@@ -38,15 +38,16 @@
 - volume:
   - type: emptyDir(will be populated through an init container)
   - mountpath: /opt/jumpscale7/apps/portals/
-
-<!-- # Influxdb
-- Depends on:
-  - Osis
+---------------------
+# Influxdb
 - docker image:
-  - url: https://hub.docker.com/u/jumpscale/portal/
-  - version: 2.2
-- exposure: public & kubernetes
-- replication: at least one instance per node (Check with Jo if it makes sense running multiple Osis servers at the same time) -->
+  - url: https://hub.docker.com/_/influxdb/
+  - version: 1.4
+- exposure: internal & kubernetes
+- replication: at least one instance per node (clustering would be handled by us, as well as the locking)
+- volume:
+  - type: hostPath (this file should be synced across all nodes )
+  - mountpath: ...
 ---------------------
 ## Grafana
 - Depends on:
