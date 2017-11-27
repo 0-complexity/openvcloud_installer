@@ -1,0 +1,9 @@
+
+#here domain=jumpscale, change name for more domains
+metadata.jumpscale             =
+    branch:'7.2.1',
+    url:'https://github.com/jumpscale7/ays_jumpscale7',
+
+metadata.openvcloud            =
+    branch:'2.2.1',
+    url:'https://github.com/0-complexity/openvcloud_ays',
