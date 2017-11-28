@@ -27,13 +27,21 @@
 - exposure: internal & kubernetes
 - replication: at least one instance per node
 ---------------------
+## Nginx
+- Depends on:
+  - OpenvCloud portal
+- docker image:
+  - url: 
+  - version: 
+- exposure: public
+- replication: at least one instance per node (this makes more sense to load balance)
 ## OpenvCloud Portal
 - Depends on:
   - Osis
 - docker image:
   - url: https://hub.docker.com/u/openvcloud/portal/
   - version: 2.3
-- exposure: public & kubernetes
+- exposure: kubernetes
 - replication: at least one instance per node (this makes more sense to load balance)
 - volume:
   - mountpath: /opt/jumpscale7/apps/portals/
