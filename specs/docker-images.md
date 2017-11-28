@@ -15,4 +15,8 @@
 - ancestor: 
   - url: https://hub.docker.com/u/jumpscale/core/
   - version: 7.2
-- version: 7.2
+- version: 2.3
+
+# https://hub.docker.com/u/openvcloud/statscollector/
+- ancestor: ??
+- version: 2.3

@@ -25,25 +25,24 @@
   - url: https://hub.docker.com/u/jumpscale/osis/
   - version: 7.2
 - exposure: internal & kubernetes
-- replication: at least one instance per node (Check with Jo if it makes sense running multiple Osis servers at the same time)
+- replication: at least one instance per node
 ---------------------
-## OpenVcloud Portal
+## OpenvCloud Portal
 - Depends on:
   - Osis
 - docker image:
-  - url: https://hub.docker.com/u/jumpscale/portal/
-  - version: 7.2
+  - url: https://hub.docker.com/u/openvcloud/portal/
+  - version: 2.3
 - exposure: public & kubernetes
 - replication: at least one instance per node (this makes more sense to load balance)
 - volume:
-  - type: emptyDir(will be populated through an init container)
   - mountpath: /opt/jumpscale7/apps/portals/
 ---------------------
-# Influxdb
+## InfluxDB
 - docker image:
   - url: https://hub.docker.com/_/influxdb/
   - version: 1.4
-- exposure: internal & kubernetes
+- exposure: kubernetes
 - replication: at least one instance per node (clustering would be handled by us, as well as the locking)
 - volume:
   - type: hostPath (this file should be synced across all nodes )
@@ -51,17 +50,26 @@
 ---------------------
 ## Grafana
 - Depends on:
-  - Influxdb (To be discussed)
+  - InfluxDB
 - docker image:
   - url: https://hub.docker.com/r/grafana/grafana/
   - version: 3.1
-- exposure: public & kubernetes
+- exposure: kubernetes
 - replication: at least one instance per node
 ---------------------
-## JSAgent and Agent Controller
+## StatsCollector
+- Depends on:
+  - InfluxDB
+- docker image:
+  - url: https://hub.docker.com/u/openvcloud/statscollector/
+  - version: 2.3
+- exposure: none
+- replication: single instance
+---------------------
+## JSAgent, Agent Controller and Redis
 Different containers same deployment so we can share the redis socket
 - Depends on:
-  - OSIS
+  - Osis
 - docker images:
   - JSAgent
     - url: https://hub.docker.com/u/jumpscale/core/
@@ -73,4 +81,8 @@ Different containers same deployment so we can share the redis socket
     - url: https://hub.docker.com/r/_/redis/
     - version: 3.2
 - exposure: internal & kubernetes
-- replication: one (not sure)
+- replication: single instance
+---------------------
+## DHCP Server, PXE Boot, TFTP Server
+Priviliged (needs network access to mgmt network)
+1, 2 or 3 containers?
