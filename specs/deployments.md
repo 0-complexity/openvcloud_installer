@@ -27,34 +27,48 @@
 - exposure: internal & kubernetes
 - replication: at least one instance per node
 ---------------------
-## Nginx
-- Depends on:
-  - OpenvCloud portal
-- docker image:
-  - url: 
-  - version: 
-- exposure: public
-- replication: at least one instance per node (this makes more sense to load balance)
 ## OpenvCloud Portal
 - Depends on:
   - Osis
-- docker image:
-  - url: https://hub.docker.com/u/openvcloud/portal/
-  - version: 2.3
-- exposure: kubernetes
-- replication: at least one instance per node (this makes more sense to load balance)
-- volume:
-  - mountpath: /opt/jumpscale7/apps/portals/
+- docker images:
+  - nginx: Reverse proxy listening on a public ip
+    - url: https://hub.docker.com/_/nginx/
+    - version: 1.12
+  - portal: Actual portal listening on localhost
+    - url: https://hub.docker.com/u/openvcloud/portal/
+    - version: 2.3
+  - synchting: Service that replicates capnp billing files to all pods within the deployment
+    - url: https://hub.docker.com/r/syncthing/syncthing/
+    - version: v0.14.40
+- exposure: public & kubernetes
+- replication: one instance per node
+- volumes:
+  - portal:
+    - type: local 
+    - mountpath: /opt/jumpscale7/apps/portals/
+  - capnp billing files:
+    - type: hostpath
+    - mountpath: /var/ovc/billing
 ---------------------
 ## InfluxDB
 - docker image:
   - url: https://hub.docker.com/_/influxdb/
   - version: 1.4
 - exposure: kubernetes
-- replication: at least one instance per node (clustering would be handled by us, as well as the locking)
+- replication: single instance
 - volume:
   - type: hostPath (this file should be synced across all nodes )
-  - mountpath: ...
+  - mountpath: /var/ovc/influx
+---------------------
+## InfluxDB DB replication
+- docker image:
+  - url: https://hub.docker.com/r/syncthing/syncthing/
+  - version: v0.14.40
+- exposure: none
+- replication: one instance per node
+- volume:
+  - type: hostPath
+  - mountpath: /var/ovc/influx
 ---------------------
 ## Grafana
 - Depends on:
@@ -63,7 +77,7 @@
   - url: https://hub.docker.com/r/grafana/grafana/
   - version: 3.1
 - exposure: kubernetes
-- replication: at least one instance per node
+- replication: single instance
 ---------------------
 ## StatsCollector
 - Depends on:
@@ -90,6 +104,10 @@ Different containers same deployment so we can share the redis socket
     - version: 3.2
 - exposure: internal & kubernetes
 - replication: single instance
+- volumes:
+  - capnp billing files
+    - type: hostpath
+    - mountpath: /var/ovc/billing
 ---------------------
 ## DHCP Server, PXE Boot, TFTP Server
 Priviliged (needs network access to mgmt network)
