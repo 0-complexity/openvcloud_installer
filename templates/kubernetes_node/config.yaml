@@ -1,0 +1,7 @@
+links:
+  consume:
+    - auto: false
+      min: 1
+      max: 1
+      role: jsagent
+      argname: jsagent

@@ -2,5 +2,5 @@
 
 struct Schema {
     pxeboot @0 : Text; Name of PXE boot AYS service
-    
+
 }
