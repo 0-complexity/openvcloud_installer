@@ -1,12 +1,14 @@
-links:
-  consume:
-    - auto: false
-      min: 1
-      max: 9999
-      role: kubernetes_node
-      argname: nodes
-    - auto: false
-      min: 1
-      max: 1
-      role: kubernetes_node
-      argname: nodes      
+from js9 import j
+
+
+def input(job):
+    """
+    - Validate input.
+    - Test connection to osis.
+    - Test connection to agent controller.
+    """
+
+def install(job):
+    """
+    - Create JSagent deployment with connection to agent controller and osis.
+    """

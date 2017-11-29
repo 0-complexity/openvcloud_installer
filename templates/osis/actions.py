@@ -1,12 +1,8 @@
-links:
-  consume:
-    - auto: false
-      min: 1
-      max: 9999
-      role: kubernetes_node
-      argname: nodes
-    - auto: false
-      min: 1
-      max: 1
-      role: kubernetes_node
-      argname: nodes      
+from js9 import j
+
+
+def install(job):
+    """
+    - Create deployment for osis.
+    - connect to mongo replica set.
+    """

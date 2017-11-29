@@ -1,12 +1,10 @@
-links:
-  consume:
-    - auto: false
-      min: 1
-      max: 9999
-      role: kubernetes_node
-      argname: nodes
-    - auto: false
-      min: 1
-      max: 1
-      role: kubernetes_node
-      argname: nodes      
+from js9 import j
+
+
+def install(job):
+    """
+    - create deployment for syncthing.
+    - attach mount location to pods at
+      - /var/ovc/billing
+      - /var/ovc/influx
+    """

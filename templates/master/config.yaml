@@ -15,7 +15,7 @@ links:
       max: 1
       role: grafana
       argname: grafana
-    - auto: false
+    - auto: true
       min: 1
       max: 1
       role: agent_controller

@@ -4,15 +4,11 @@ from js9 import j
 def input(job):
     """
     - Validate input.
-    - Test root access over ssh connection to the node
-    - Validate hardware requirements
-    - Validate network configuration
+    - Validate network configuration.
     """
 
-def install(job):
+def join_clsuter(job):
     """
     - Prepare storage
-    - Create directories for synced host directories
-      - /var/ovc/billing
-      - /var/ovc/influx
+    - Install the kubernetes cluster and tools, using prefab, and join nodes to cluster.
     """

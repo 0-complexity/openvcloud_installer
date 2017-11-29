@@ -1,12 +1,12 @@
-links:
-  consume:
-    - auto: false
-      min: 1
-      max: 9999
-      role: kubernetes_node
-      argname: nodes
-    - auto: false
-      min: 1
-      max: 1
-      role: kubernetes_node
-      argname: nodes      
+from js9 import j
+
+
+def input(job):
+    """
+    TODO
+    """
+
+def install(job):
+    """
+    TODO
+    """

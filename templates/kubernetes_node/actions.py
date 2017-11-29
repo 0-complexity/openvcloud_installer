@@ -1,12 +1,18 @@
-links:
-  consume:
-    - auto: false
-      min: 1
-      max: 9999
-      role: kubernetes_node
-      argname: nodes
-    - auto: false
-      min: 1
-      max: 1
-      role: kubernetes_node
-      argname: nodes      
+from js9 import j
+
+
+def input(job):
+    """
+    - Validate input.
+    - Test root access over ssh connection to the node.
+    - Validate hardware requirements.
+    """
+
+def install(job):
+    """
+    - install kubernetes tools
+    - Prepare storage.
+    - Create directories for synced host directories
+      - /var/ovc/billing
+      - /var/ovc/influx
+    """
