@@ -1,0 +1,7 @@
+links:
+  consume:
+    - auto: false
+      min: 3
+      max: 9999
+      role: kubernetes_node
+      argname: nodes
