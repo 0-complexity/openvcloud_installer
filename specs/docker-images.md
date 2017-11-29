@@ -4,6 +4,13 @@
   - url: https://hub.docker.com/_/ubuntu/
   - version: 16.04
 - version: 7.2
+
+# https://hub.docker.com/u/jumpscale/core/
+- description: complete jumpscale
+- ancestor:
+  - url: https://hub.docker.com/_/ubuntu/
+  - version: 16.04
+- version: 9.3
   
 # https://hub.docker.com/u/jumpscale/osis/
 - ancestor: 
@@ -18,5 +25,7 @@
 - version: 2.3
 
 # https://hub.docker.com/u/openvcloud/statscollector/
-- ancestor: ??
+- ancestor: 
+  - url: https://hub.docker.com/u/jumpscale/core/
+  - version: 9.3
 - version: 2.3

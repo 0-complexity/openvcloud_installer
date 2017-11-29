@@ -37,6 +37,9 @@
   - portal: Actual portal listening on localhost
     - url: https://hub.docker.com/u/openvcloud/portal/
     - version: 2.3
+  - Redis
+    - url: https://hub.docker.com/r/_/redis/
+    - version: 3.2
   - synchting: Service that replicates capnp billing files to all pods within the deployment
     - url: https://hub.docker.com/r/syncthing/syncthing/
     - version: v0.14.40
