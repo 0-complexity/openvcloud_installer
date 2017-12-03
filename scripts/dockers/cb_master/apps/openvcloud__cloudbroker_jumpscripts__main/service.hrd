@@ -1,0 +1,16 @@
+service.dependencies.1         =
+    name:'agentcontroller',
+
+service.domain                 = 'openvcloud'
+service.git.export.1           =
+    branch:'2.2.0',
+    dest:'/opt/jumpscale7/apps/agentcontroller/jumpscripts/',
+    link:'True',
+    source:'libs/agent-scripts//*',
+    url:'https://github.com/0-complexity/openvcloud.git',
+
+service.git.url                = 'https://github.com/0-complexity/openvcloud.git'
+service.installed.checksum     = '69524768f90c6e2f4c854cda39d8ff60'
+service.instance               = 'main'
+service.name                   = 'cloudbroker_jumpscripts'
+service.platform.supported     = 'generic'

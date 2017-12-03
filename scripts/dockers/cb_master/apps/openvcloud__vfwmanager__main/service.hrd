@@ -1,0 +1,19 @@
+instance.portal.instance       = 'main'
+
+service.dependencies.1         =
+    name:'portal',
+
+service.domain                 = 'openvcloud'
+# service.git.export.1           =
+#     branch:'master',
+#     dest:'/opt/jumpscale7/apps/portals/main/base/',
+#     link:'True',
+#     source:'apps/vfw/base/*',
+#     url:'https://github.com/0-complexity/openvcloud.git',
+
+service.git.url                = 'https://github.com/0-complexity/openvcloud.git'
+service.installed.checksum     = '1f7efe1b1d8c3003dd2f03cb4d4d2eca'
+service.instance               = 'main'
+service.name                   = 'vfwmanager'
+service.platform.supported     =
+    'generic',

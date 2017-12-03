@@ -1,0 +1,62 @@
+grid.id                        = '66'
+grid.node.id                   = '1'
+grid.node.machineguid          = '92f630a1850a'
+
+instance.agentcontroller.connection = 'main'
+instance.grid.id               = '66'
+instance.grid.node.roles       = 'node'
+instance.osis.connection       = 'main'
+
+service.dep.args.agentcontroller_client =
+    agentcontroller.client.login:'node',
+    agentcontroller.client.passwd:,
+
+service.dep.args.osis_client   =
+    param.osis.client.login:'node',
+    param.osis.client.passwd:,
+
+service.dependencies.1         =
+    args:'dep.args.agentcontroller_client',
+    instance:'main',
+    name:'agentcontroller_client',
+
+service.dependencies.2         =
+    args:'dep.args.osis_client',
+    instance:'main',
+    name:'osis_client',
+
+service.domain                 = 'jumpscale'
+
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.git.export.1           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/jsagent/',
+    link:'True',
+    source:'apps/jsagent/*',
+    url:'https://github.com/jumpscale7/jumpscale_core7/',
+
+#source /opt/jumpscale7/env.sh;//opt/jumpscale7/bin/
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+service.git.url                = 'https://github.com/jumpscale7/jumpscale_core7/'
+service.installed.checksum     = '410aecc9395cfcaadb4c53f984f63ff1'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '10'
+service.name                   = 'jsagent'
+service.platform.supported     =
+    'linux64',
+
+service.process.1              =
+    args:'jsagent.py -i main',
+    cmd:'jspython',
+    cwd:'/opt/jumpscale7/apps/jsagent/',
+    env:,
+    filterstr:'jsagent.py',
+    ports:'4446',
+    prio:'100',
+    startupmanager:'tmux',
+    timeout_start:'20',
+    timeout_stop:'20',
+
+service.ubuntu.packages        = 'libmhash2'

@@ -1,0 +1,37 @@
+instance.param.mongodb.connection = 'main'
+instance.param.port            = '5000'
+
+service.dependencies.1         =
+    name:'mongodb_client',
+
+service.domain                 = 'jumpscale'
+
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.git.export.1           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/eve',
+    link:'True',
+    source:'apps/eve/',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+service.git.url                = 'https://github.com/jumpscale7/jumpscale_portal/'
+service.installed.checksum     = '053750670df64cb6967bd7a215b6c242'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '10'
+service.name                   = 'osis_eve'
+service.platform.supported     =
+    'linux64',
+
+service.process.1              =
+    args:'eve_start.py --port 5000 --mongodb_config main',
+    cmd:'/opt/jumpscale7/bin/jspython',
+    cwd:'/opt/jumpscale7/apps/eve/',
+    filterstr:'eve_start.py --port 5000',
+    ports:'5000',
+    prio:'15',
+    startupmanager:'tmux',
+    timeout_start:'10',
+    timeout_stop:'10',

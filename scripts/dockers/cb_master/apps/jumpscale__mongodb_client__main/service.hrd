@@ -1,0 +1,11 @@
+instance.param.addr            = 'localhost'
+instance.param.login           = 
+instance.param.passwd          = 
+instance.param.port            = '27017'
+instance.param.replicaset      = 
+instance.param.ssl             = 
+
+service.domain                 = 'jumpscale'
+service.installed.checksum     = '5a11c68bd3fbcc55f09a76d997e064c6'
+service.instance               = 'main'
+service.name                   = 'mongodb_client'

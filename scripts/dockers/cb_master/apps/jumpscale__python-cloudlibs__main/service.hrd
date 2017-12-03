@@ -1,0 +1,14 @@
+service.domain                 = 'jumpscale'
+service.git.export.1           =
+    depth:'1',
+    dest:'/opt/jumpscale7/libext/',
+    link:'False',
+    source:'root/*',
+    url:'http://git.aydo.com/binary/python-cloudlibs',
+
+service.git.url                = 'http://git.aydo.com/binary/python-cloudlibs'
+service.installed.checksum     = '0bd34caba9f1a9109e45871f68ae2f61'
+service.instance               = 'main'
+service.name                   = 'python-cloudlibs'
+service.platform.supported     =
+    'linux64',

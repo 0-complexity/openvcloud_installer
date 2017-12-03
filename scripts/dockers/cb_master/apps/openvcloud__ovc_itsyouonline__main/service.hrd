@@ -1,0 +1,11 @@
+instance.param.callbackurl     = 'http://192.168.57.22/restmachine/system/oauth/authorize'
+instance.param.client_id       = 'deboeckj.ovcenvs.wolverine'
+instance.param.client_secret   = 'QFwtzSYUnz99KDY5GuEdxyBOlfn8rLuudNQoxEMkJqSlCfEcYu38'
+instance.param.environment     = 'ovc'
+
+service.domain                 = 'openvcloud'
+service.installed.checksum     = '0e27e20ef13e0eb201088ec843928fa2'
+service.instance               = 'main'
+service.name                   = 'ovc_itsyouonline'
+service.platform.supported     =
+    'generic',

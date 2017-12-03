@@ -1,0 +1,16 @@
+service.dependencies.1         =
+    name:'osis',
+
+service.domain                 = 'openvcloud'
+service.git.export.1           =
+    branch:'2.2.0',
+    dest:'/opt/jumpscale7/apps/osis/logic/',
+    link:'True',
+    source:'apps/osis/logic/*',
+    url:'https://github.com/0-complexity/openvcloud.git',
+
+service.git.url                = 'https://github.com/0-complexity/openvcloud.git'
+service.installed.checksum     = '2e2c4294f93ef003ff4068f882e8a2f4'
+service.instance               = 'main'
+service.name                   = 'cloudbroker_model'
+service.platform.supported     = 'generic'

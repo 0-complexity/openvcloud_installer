@@ -1,0 +1,19 @@
+service.domain                 = 'jumpscale'
+service.git.export.1           =
+    dest:'/opt/jumpscale7/jslib/',
+    link:'False',
+    source:'root/jslib/',
+    url:'http://git.aydo.com/binary/web_python',
+
+service.git.export.2           =
+    dest:'/opt/jumpscale7/lib/',
+    link:'False',
+    source:'root/lib/',
+    url:'http://git.aydo.com/binary/web_python',
+
+service.git.url                = 'http://git.aydo.com/binary/web_python'
+service.installed.checksum     = '482cba5a1dbbc7ccf44b9333536bfe99'
+service.instance               = 'main'
+service.name                   = 'web'
+service.platform.supported     =
+    'linux64',

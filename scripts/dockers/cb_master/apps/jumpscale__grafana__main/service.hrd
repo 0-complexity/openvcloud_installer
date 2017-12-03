@@ -1,0 +1,50 @@
+instance.param.influxdb.connection = 'main'
+instance.param.password        = 'rooter'
+instance.param.port            = '3000'
+
+#dependencies.1                 =
+#    name:'portal_lib',
+service.dependencies.1         =
+    name:'influxdb_client',
+
+service.domain                 = 'jumpscale'
+service.git.export.1           =
+    branch:'3.1',
+    dest:'/opt/grafana',
+    link:'False',
+    source:'bin/grafana-server',
+    url:'http://git.aydo.com/binary/grafana',
+
+service.git.export.2           =
+    branch:'3.1',
+    dest:'/opt/grafana/conf',
+    link:'False',
+    source:'conf/defaults.ini',
+    url:'http://git.aydo.com/binary/grafana',
+
+service.git.export.3           =
+    branch:'3.1',
+    dest:'/opt/grafana/public',
+    link:'False',
+    source:'public/',
+    url:'http://git.aydo.com/binary/grafana',
+
+service.git.url                = 'http://git.aydo.com/binary/grafana'
+service.installed.checksum     = '005c711dc12f29e002f980daf89fbd21'
+service.instance               = 'main'
+service.instances.maxnr        = '1'
+service.name                   = 'grafana'
+service.platform.supported     =
+    'linux64',
+
+service.process.1              =
+    args:'-config /opt/grafana/conf/defaults.ini',
+    cmd:'/opt/grafana/grafana-server',
+    cwd:'/opt/grafana',
+    env:,
+    filterstr:'/opt/grafana/grafana-server',
+    ports:'3000',
+    prio:'10',
+    startupmanager:'tmux',
+    timeout_start:'60',
+    timeout_stop:'10',

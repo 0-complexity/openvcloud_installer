@@ -1,0 +1,11 @@
+service.domain                 = 'openvcloud'
+service.git.export.1           =
+    branch:'2.2.0',
+    dest:'/opt/jumpscale7/apps/g8vdc/',
+    link:'True',
+    source:'*',
+    url:'https://github.com/0-complexity/g8vdc.git',
+
+service.installed.checksum     = 'c2f15f539828580c60564132baea402b'
+service.instance               = 'main'
+service.name                   = 'g8vdc'

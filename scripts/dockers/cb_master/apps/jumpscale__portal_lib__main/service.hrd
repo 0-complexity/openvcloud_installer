@@ -1,0 +1,29 @@
+service.domain                 = 'jumpscale'
+service.git.export.1           =
+    dest:'/opt/jumpscale7/lib/',
+    link:'False',
+    overwrite:'False',
+    platform:'linux64',
+    source:'root/lib/*',
+    url:'http://git.aydo.com/binary/web_python',
+
+service.git.export.2           =
+    dest:'/opt/jumpscale7/apps/portals/jslib/',
+    link:'False',
+    platform:'linux64',
+    source:'root/jslib/*',
+    url:'http://git.aydo.com/binary/web_python',
+
+service.git.export.3           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/lib/JumpScale/portal',
+    link:'True',
+    source:'lib/portal',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+#source /opt/jumpscale7/env.sh;//opt/jumpscale7/bin/
+service.git.url                = 'http://git.aydo.com/binary/web_python'
+service.installed.checksum     = 'f28e73041ec15a5e270fce6fdff69a55'
+service.instance               = 'main'
+service.name                   = 'portal_lib'
+service.param.base             = '/opt/jumpscale7/lib'

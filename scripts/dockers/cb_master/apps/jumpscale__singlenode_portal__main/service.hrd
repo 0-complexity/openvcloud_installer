@@ -1,0 +1,114 @@
+instance.param.rootpasswd      = 'rooter'
+
+service.dep.args.influxdbclient =
+    param.influxdb.client.address:'localhost',
+    param.influxdb.client.dbname:'main',
+    param.influxdb.client.login:'root',
+    param.influxdb.client.passwd:'root',
+    param.influxdb.client.port:'8086',
+
+service.dep.args.mailclient    =
+    smtp.login:,
+    smtp.passwd:,
+    smtp.port:'25',
+    smtp.sender:'info@jumpscale.com',
+    smtp.server:'localhost',
+
+service.dep.args.mongodb       =
+    param.host:'localhost',
+    param.port:'27017',
+    param.replicaset:,
+
+service.dep.args.mongodbclient =
+    param.addr:'localhost',
+    param.login:,
+    param.passwd:,
+    param.port:'27017',
+    param.replicaSet:,
+
+service.dep.args.osis          =
+    param.osis.connection.influxdb:'main',
+    param.osis.connection.mongodb:'main',
+    param.osis.superadmin.passwd:'rooter',
+
+service.dep.args.osis_client   =
+    param.osis.client.addr:'localhost',
+    param.osis.client.login:'root',
+    param.osis.client.passwd:'rooter',
+
+service.dep.args.portal        =
+    param.cfg.admingroups:'admin,',
+    param.cfg.authentication.method:'osis',
+    param.cfg.contentdirs:,
+    param.cfg.defaultspace:'home',
+    param.cfg.force_oauth_instance:,
+    param.cfg.gitlab.connection:'main',
+    param.cfg.ipaddr:'localhost',
+    param.cfg.port:'82',
+    param.cfg.secret:'rooter',
+    param.dcpm.url:'https://dcpmcustomer.demo.greenitglobe.com',
+    param.osis.connection:'main',
+    param.ovs.url:'https://ovscustomer.demo.greenitglobe.com',
+    param.portal.name:'main',
+    param.portal.rootpasswd:'rooter',
+    param.portal.url:'https://customer.demo.greenitglobe.com',
+
+service.dep.args.portal_client =
+    param.addr:'localhost',
+    param.port:'82',
+    param.secret:'rooter',
+
+service.dep.args.redis         =
+    param.disk:'1',
+    param.mem:'100',
+    param.passwd:,
+    param.port:'9999',
+    param.unixsocket:'0',
+
+service.dependencies.1         =
+    args:'dep.args.redis',
+    instance:'system',
+    name:'redis',
+
+service.dependencies.10        =
+    args:'dep.args.portal',
+    name:'portal',
+
+service.dependencies.11        =
+    args:'dep.args.portal_client',
+    name:'portal_client',
+
+service.dependencies.2         =
+    name:'web',
+
+service.dependencies.3         =
+    args:'dep.args.mongodb',
+    name:'mongodb',
+
+service.dependencies.4         =
+    args:'dep.args.mongodbclient',
+    name:'mongodb_client',
+
+service.dependencies.5         =
+    name:'influxdb',
+
+service.dependencies.6         =
+    args:'dep.args.influxdbclient',
+    name:'influxdb_client',
+
+service.dependencies.7         =
+    args:'dep.args.osis',
+    name:'osis',
+
+service.dependencies.8         =
+    args:'dep.args.osis_client',
+    name:'osis_client',
+
+service.dependencies.9         =
+    args:'dep.args.mailclient',
+    name:'mailclient',
+
+service.domain                 = 'jumpscale'
+service.installed.checksum     = 'ab3a84544eafc8a4663c3c4956ffdc79'
+service.instance               = 'main'
+service.name                   = 'singlenode_portal'

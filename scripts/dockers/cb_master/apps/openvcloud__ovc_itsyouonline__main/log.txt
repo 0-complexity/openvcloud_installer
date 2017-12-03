@@ -1,0 +1,31 @@
+2017/11/17 15:47:57 : init
+2017/11/17 15:47:57 : stop instance
+2017/11/17 15:47:57 : prepare install for instance
+2017/11/17 15:47:57 : install instance
+2017/11/17 15:47:57 : configure instance
+2017/11/17 15:48:08 : start instance
+2017/11/17 17:59:28 : start instance
+2017/11/17 17:59:30 : start instance
+2017/11/18 08:48:21 : start instance
+2017/11/18 08:48:23 : start instance
+2017/11/19 07:02:40 : start instance
+2017/11/19 07:02:43 : start instance
+2017/11/20 08:36:40 : start instance
+2017/11/20 08:36:43 : start instance
+2017/11/23 05:57:33 : stop instance
+2017/11/23 05:58:32 : start instance
+2017/11/23 05:58:35 : start instance
+2017/11/23 06:30:03 : stop instance
+2017/11/23 06:30:59 : start instance
+2017/11/23 06:31:01 : start instance
+2017/11/28 13:17:24 : stop instance
+2017/11/28 13:18:22 : start instance
+2017/11/28 13:18:24 : start instance
+2017/11/28 14:54:09 : stop instance
+2017/11/28 14:55:10 : start instance
+2017/11/28 14:55:12 : start instance
+2017/11/28 16:48:19 : stop instance
+2017/11/28 16:49:09 : start instance
+2017/11/28 16:49:11 : start instance
+2017/11/29 05:33:33 : start instance
+2017/11/29 05:33:35 : start instance

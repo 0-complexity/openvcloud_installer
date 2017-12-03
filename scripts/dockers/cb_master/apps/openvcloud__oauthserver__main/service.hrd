@@ -1,0 +1,59 @@
+instance.grafana.url           = '$(instance.param.grafana.url)'
+instance.oauth.clients.ovs.secret = 'GF0lfOG331yhT53EeNx8dTB4h7QzM85e6RWyZvgto1E='
+instance.oauth.clients.portal.id = 'portal'
+instance.oauth.clients.portal.secret = 'xCbZiGzAGTeqvqpOlEMKK4OFtjYZ-ahYuffbUe4UiCk='
+instance.oauth.cookie_store_secret = '7FkV0QYe4BFKLV800TqTsprljuwI4L2kGMxxvJU6mtQJNHuyzCbn67eduxOf+YWfzWTRALiRU8NErE/3T+RbdwQhvh+WV4JxhLGYMRW8hf2jaJsLGxZD2gevkglI32/d5X3rRyDE7MwejX1GNIsdddpLuYIbWpFUHl8IKFOrGZzl/Hr+8k/81N42LbJGFF1PGwEDyzUnof3YR1CwxplU9k6N94ZBQXvuvS+dp6jeZ3E6l/pou3lYAI9Uw0tJ8JRCdZDKUJwhJzkDOw4PPUG+2BBHjeIPTiEUiUMe+kobfLCkDNcfgGGLxgS81zZiTuO6AJKyyyp8IHrymSkj2PVS5w=='
+instance.oauth.url             = 'http://192.168.57.22'
+instance.ovs.url               = 'http://192.168.57.31'
+instance.portal.url            = 'http://192.168.57.22'
+
+service.domain                 = 'openvcloud'
+
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.git.export.1           =
+    dest:'/opt/jumpscale7/apps/oauthserver/oauthserver',
+    link:'True',
+    source:'apps/oauthserver/oauthserver',
+    url:'https://git.aydo.com/binary/openvcloud/',
+
+service.git.export.2           =
+    dest:'/opt/jumpscale7/apps/oauthserver/html',
+    link:'True',
+    source:'apps/oauthserver/html',
+    url:'https://git.aydo.com/binary/openvcloud/',
+
+service.git.export.3           =
+    dest:'/opt/jumpscale7/apps/oauthserver/settings.toml',
+    link:'False',
+    source:'apps/oauthserver/settings.toml',
+    url:'https://git.aydo.com/binary/openvcloud/',
+
+service.git.export.4           =
+    dest:'/opt/jumpscale7/apps/oauthserver/clients.toml',
+    link:'False',
+    source:'apps/oauthserver/clients.toml',
+    url:'https://git.aydo.com/binary/openvcloud/',
+
+#source /opt/jumpscale7/env.sh;//opt/jumpscale7/bin/
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+service.git.url                = 'https://git.aydo.com/binary/openvcloud/'
+service.installed.checksum     = '7d5a1f6a98046dea359e0d377593d0a1'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '1'
+service.name                   = 'oauthserver'
+service.platform.supported     =
+    'generic',
+
+service.process.1              =
+    args:,
+    cmd:'./oauthserver',
+    cwd:'/opt/jumpscale7/apps/oauthserver/',
+    env:,
+    filterstr:'oauthserver',
+    ports:'8010',
+    prio:'20',
+    startupmanager:'tmux',
+    timeout_start:'20',
+    timeout_stop:'20',

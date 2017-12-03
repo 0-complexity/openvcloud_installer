@@ -1,0 +1,23 @@
+instance.param.password        = 'rooter'
+instance.param.url             = 'http://127.0.0.1:3000'
+instance.param.username        = 'admin'
+
+service.domain                 = 'jumpscale'
+service.env.process.1          = 
+
+#if set to link then when getting files from git they will be linked not copied, can be overruled on export rule per export rule
+service.files.link             = 'true'
+
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+#dict where key is source in repo,
+service.git.url                = 
+service.installed.checksum     = '35a8b36076614eba6556b4a928d45691'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '100'
+service.name                   = 'grafana_client'
+
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.platform.supported     =
+    'linux',

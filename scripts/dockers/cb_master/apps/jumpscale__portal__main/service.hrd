@@ -1,0 +1,145 @@
+instance.navigationlinks.ays   =
+    name:'At Your Service',
+    scope:'admin',
+    theme:'light',
+    url:'/AYS',
+
+instance.navigationlinks.cbgrid =
+    name:'Cloud Broker',
+    scope:'admin',
+    theme:'light',
+    url:'/cbgrid',
+
+instance.navigationlinks.grafana =
+    external:'true',
+    name:'Statistics',
+    scope:'admin',
+    theme:'light',
+    url:'/grafana',
+
+instance.navigationlinks.grid  =
+    name:'Grid',
+    scope:'admin',
+    theme:'light',
+    url:'/grid',
+
+instance.navigationlinks.ovs   =
+    external:'true',
+    name:'Storage',
+    scope:'ovs_admin',
+    theme:'light',
+    url:'http://192.168.57.31',
+
+instance.navigationlinks.system =
+    name:'System',
+    scope:'admin',
+    theme:'light',
+    url:'/system',
+
+instance.navigationlinks.vdc   =
+    external:'true',
+    name:'End User',
+    scope:'user',
+    theme:'dark',
+    url:'http://192.168.57.22',
+
+instance.param.cfg.admingroups = 'admin,'
+instance.param.cfg.appdir      = '$base/apps/portals/portalbase'
+instance.param.cfg.authentication.method = 'osis'
+instance.param.cfg.contentdirs = 
+instance.param.cfg.defaultspace = 'vdc'
+instance.param.cfg.filesroot   = '$vardir/portal/files'
+instance.param.cfg.force_oauth_instance = 'itsyouonline'
+instance.param.cfg.gitlab.connection = 'main'
+instance.param.cfg.ipaddr      = 'localhost'
+instance.param.cfg.port        = '82'
+instance.param.cfg.secret      = 'rooter'
+instance.param.dcpm.url        = 'https://dcpmcustomer.demo.greenitglobe.com'
+instance.param.osis.connection = 'main'
+instance.param.ovs.url         = 'https://ovscustomer.demo.greenitglobe.com'
+instance.param.portal.name     = 'main'
+instance.param.portal.rootpasswd = 'rooter'
+instance.param.portal.url      = 'https://customer.demo.greenitglobe.com'
+instance.proxy.1               =
+    dest:'http://localhost:3000',
+    path:'/grafana',
+
+instance.proxy.2               =
+    dest:'http://localhost:5000',
+    path:'/proxy/eve',
+
+service.dependencies.1         =
+    name:'portal_lib',
+
+service.dependencies.2         =
+    instance:'main',
+    name:'osis_client',
+
+service.dependencies.3         =
+    name:'mailclient',
+
+service.domain                 = 'jumpscale'
+service.env.process.1          = 
+service.git.export.1           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/portals/portalbase/macros/',
+    link:'True',
+    source:'apps/portalbase/macros/*',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+service.git.export.2           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/portals/portalbase/system/',
+    link:'True',
+    source:'apps/portalbase/system/*',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+service.git.export.3           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/portals/portalbase/wiki/System',
+    link:'True',
+    source:'apps/portalbase/wiki/System',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+service.git.export.4           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/portals/portalbase/templates/',
+    link:'True',
+    source:'apps/portalbase/templates/*',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+service.git.export.5           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/portals/main/portal_start.py',
+    link:'True',
+    source:'apps/portalbase/portal_start.py',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+service.git.export.6           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/portals/main/base/home/',
+    link:'True',
+    source:'apps/portalbase/home/',
+    url:'https://github.com/jumpscale7/jumpscale_portal/',
+
+service.git.url                = 'https://github.com/jumpscale7/jumpscale_portal/'
+service.installed.checksum     = '1d3590bdacb5c45b3bad8b1383e380bf'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '10'
+service.name                   = 'portal'
+service.platform.supported     =
+    'linux64',
+
+#source /opt/jumpscale7/env.sh;//opt/jumpscale7/bin/
+service.process.1              =
+    args:'portal_start.py main',
+    cmd:'jspython',
+    cwd:'/opt/jumpscale7/apps/portals/main',
+    filterstr:'portal_start.py main',
+    ports:'82',
+    prio:'20',
+    startupmanager:'tmux',
+    timeout_start:'10',
+    timeout_stop:'10',

@@ -1,0 +1,10 @@
+instance.param.osis.client.addr = 'localhost'
+instance.param.osis.client.login = 'root'
+instance.param.osis.client.passwd = 'rooter'
+instance.param.osis.client.poolsize = '1000'
+instance.param.osis.client.port = '5544'
+
+service.domain                 = 'jumpscale'
+service.installed.checksum     = 'd5d0b569e4452a6e5d56a61dc52c9247'
+service.instance               = 'main'
+service.name                   = 'osis_client'

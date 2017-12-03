@@ -1,0 +1,58 @@
+instance.osis.connection       = 'main'
+
+service.domain                 = 'jumpscale'
+
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.git.export.1           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/agentcontroller/controller.py',
+    link:'True',
+    source:'apps/agentcontroller/controller.py',
+    url:'https://github.com/jumpscale7/jumpscale_core7/',
+
+service.git.export.2           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/agentcontroller/jumpscripts/core',
+    link:'True',
+    source:'apps/agentcontroller/jumpscripts/core',
+    url:'https://github.com/jumpscale7/jumpscale_core7/',
+
+service.git.export.3           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/agentcontroller/processmanager',
+    link:'True',
+    source:'apps/agentcontroller/processmanager',
+    url:'https://github.com/jumpscale7/jumpscale_core7/',
+
+service.git.export.4           =
+    branch:'7.1.7',
+    dest:'/opt/jumpscale7/apps/agentcontroller/luajumpscripts/jumpscale',
+    link:'True',
+    source:'apps/agentcontroller/luajumpscripts/jumpscale',
+    url:'https://github.com/jumpscale7/jumpscale_core7/',
+
+#source /opt/jumpscale7/env.sh;//opt/jumpscale7/bin/
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+service.git.url                = 'https://github.com/jumpscale7/jumpscale_core7/'
+service.installed.checksum     = '49fe4ad6ff1b6f1253832598f076639a'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '10'
+service.name                   = 'agentcontroller'
+service.platform.supported     =
+    'linux64',
+
+service.process.1              =
+    args:'controller.py -i main',
+    cmd:'jspython',
+    cwd:'/opt/jumpscale7/apps/agentcontroller/',
+    env:,
+    filterstr:'controller.py',
+    ports:'4444',
+    prio:'20',
+    startupmanager:'tmux',
+    timeout_start:'20',
+    timeout_stop:'20',
+
+service.ubuntu.packages        = 'libmhash2'

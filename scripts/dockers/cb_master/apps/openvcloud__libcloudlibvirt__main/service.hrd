@@ -1,0 +1,13 @@
+service.domain                 = 'openvcloud'
+service.git.export.1           =
+    branch:'2.2.0',
+    dest:'/opt/jumpscale7/libext/CloudscalerLibcloud/',
+    link:'True',
+    source:'libs/CloudscalerLibcloud/CloudscalerLibcloud',
+    url:'https://github.com/0-complexity/openvcloud.git',
+
+service.git.url                = 'https://github.com/0-complexity/openvcloud.git'
+service.installed.checksum     = '14bbaaaef48584d04b2998068cf4d903'
+service.instance               = 'main'
+service.name                   = 'libcloudlibvirt'
+service.platform.supported     = 'generic'

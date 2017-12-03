@@ -1,0 +1,31 @@
+service.domain                 = 'jumpscale'
+service.git.export.1           =
+    branch:'nosandbox',
+    depth:'1',
+    dest:'/opt/jumpscale7/bin/',
+    link:'False',
+    overwrite:'False',
+    source:'root/bin/',
+    url:'http://git.aydo.com/binary/base_python',
+
+service.git.export.2           =
+    depth:'1',
+    dest:'/opt/jumpscale7/lib/',
+    link:'False',
+    overwrite:'False',
+    source:'root/lib/',
+    url:'http://git.aydo.com/binary/base_python',
+
+service.git.export.3           =
+    dest:'/etc/init.d/ays',
+    link:'False',
+    overwrite:'True',
+    source:'root/ays',
+    url:'http://git.aydo.com/binary/base_python',
+
+service.git.url                = 'http://git.aydo.com/binary/base_python'
+service.installed.checksum     = '1ec4fd7a09f25f8b0c72005a023f311e'
+service.instance               = 'main'
+service.name                   = 'base'
+service.platform.supported     =
+    'linux64',

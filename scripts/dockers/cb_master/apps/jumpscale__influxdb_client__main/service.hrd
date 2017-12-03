@@ -1,0 +1,25 @@
+instance.param.influxdb.client.address = 'localhost'
+instance.param.influxdb.client.dbname = 'main'
+instance.param.influxdb.client.login = 'root'
+instance.param.influxdb.client.passwd = 'root'
+instance.param.influxdb.client.port = '8086'
+
+service.domain                 = 'jumpscale'
+service.env.process.1          = 
+
+#if set to link then when getting files from git they will be linked not copied, can be overruled on export rule per export rule
+service.files.link             = 'true'
+
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+#dict where key is source in repo,
+service.git.url                = 
+service.installed.checksum     = 'fa81844240d3c5d10967532d44215b85'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '100'
+service.name                   = 'influxdb_client'
+
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.platform.supported     =
+    'linux',

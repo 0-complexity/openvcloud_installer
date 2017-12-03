@@ -1,0 +1,16 @@
+logging                        = '1'
+
+paths.app                      = '/opt/jumpscale7/apps'
+paths.base                     = '/opt/jumpscale7'
+paths.bin                      = '/opt/jumpscale7/bin'
+paths.cfg                      = '/opt/jumpscale7/cfg'
+paths.code                     = '/opt/code'
+paths.hrd                      = '/opt/jumpscale7/hrd'
+paths.lib                      = '/opt/jumpscale7/lib'
+paths.log                      = '/opt/jumpscale7/var/log'
+paths.pid                      = '/opt/jumpscale7/var/pid'
+paths.python.lib.ext           = '/opt/jumpscale7/libext'
+paths.python.lib.js            = '/opt/jumpscale7/lib/JumpScale'
+paths.var                      = '/opt/jumpscale7/var'
+
+sandbox                        = '1'

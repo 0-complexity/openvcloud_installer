@@ -1,0 +1,38 @@
+instance.param.host            = 'localhost'
+instance.param.port            = '27017'
+instance.param.replicaset      = 
+
+service.domain                 = 'jumpscale'
+
+#dict where key is source in repo, 
+#known var's are: $root,$base,$cfg,$jslib,$pylib,$lib
+service.git.export.1           =
+    dest:'/opt/mongodb/bin',
+    link:'True',
+    platform:'linux64',
+    source:'mongodb/bin',
+    url:'http://git.aydo.com/binary/mongodb',
+
+#base of repo where code or files are e.g. http://git.aydo.com/binary/base
+service.git.url                = 'http://git.aydo.com/binary/mongodb'
+service.installed.checksum     = '69497e94ee0fe2b43032d07f3415d109'
+service.instance               = 'main'
+
+#how many instances can be installed of this package, if 1 the instance name is always 'main'
+service.instances.maxnr        = '1'
+service.name                   = 'mongodb'
+service.platform.supported     =
+    'linux64',
+    'darwin',
+
+service.process.1              =
+    args:,
+    cmd:'rm -f /opt/jumpscale7/var/mongodb/main/mongod.lock;export LC_ALL=C;/opt/mongodb/bin/mongod --dbpath /opt/jumpscale7/var/mongodb/main/ --smallfiles --rest --httpinterface',
+    cwd:'/opt/mongodb/bin',
+    env:,
+    filterstr:'bin/mongod',
+    ports:'27017;28017',
+    prio:'5',
+    startupmanager:'tmux',
+    timeout_start:'60',
+    timeout_stop:'10',

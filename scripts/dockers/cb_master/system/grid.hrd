@@ -1,0 +1,8 @@
+id                             = '66'
+
+node.id                        = '1'
+node.machineguid               = '92f630a1850a'
+node.roles                     =
+    'node',
+    'master',
+
