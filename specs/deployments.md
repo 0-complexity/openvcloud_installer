@@ -40,14 +40,11 @@
   - Redis
     - url: https://hub.docker.com/r/_/redis/
     - version: 3.2
-  - synchting: Service that replicates capnp billing files to all pods within the deployment
-    - url: https://hub.docker.com/r/syncthing/syncthing/
-    - version: v0.14.40
 - exposure: public & kubernetes
 - replication: one instance per node
 - volumes:
   - portal:
-    - type: local 
+    - type: local
     - mountpath: /opt/jumpscale7/apps/portals/
   - capnp billing files:
     - type: hostpath
@@ -63,15 +60,18 @@
   - type: hostPath (this file should be synced across all nodes )
   - mountpath: /var/ovc/influx
 ---------------------
-## InfluxDB DB replication
+## Syncthing
+- synchting: Service that replicates capnp billing files to all pods within the deployment
 - docker image:
   - url: https://hub.docker.com/r/syncthing/syncthing/
-  - version: v0.14.40
+  - version: 0.14
 - exposure: none
 - replication: one instance per node
 - volume:
-  - type: hostPath
-  - mountpath: /var/ovc/influx
+  - type: hostPath  
+    mountpath: /var/ovc/influx
+  - type: hostPath  
+    mountpath: /var/ovc/billing
 ---------------------
 ## Grafana
 - Depends on:
