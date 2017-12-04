@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb
+  labels:
+    name: influxdb
+spec:
+  ports:
+  - name: main
+    port: 8088
+    targetPort: 8088
+  - name: http
+    port: 8086
+    targetPort: 8086
+  - name: ifql
+    port: 8082
+    targetPort: 8082
+  - name: graphite
+    port: 2003
+    targetPort: 2003
+  - name: collectd
+    port: 25826
+    targetPort: 25826
+  - name: opentsdb
+    port: 4242
+    targetPort: 4242
+  - name: udp
+    protocol: UDP
+    port: 8089
+    targetPort: 8089
+  clusterIP: None
+  selector:
+    app: influxdb
