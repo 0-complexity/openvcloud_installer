@@ -1,0 +1,37 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: syncthing
+spec:
+  serviceName: "syncthing"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        role: syncthing
+        environment: test
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - syncthing
+            topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: syncthing
+        image: syncthing/syncthing
+        ports:
+        - containerPort: 8384
+        volumeMounts:
+        - name: syncthing-persistant
+          mountPath: /var/ovc
+      volumes:
+      - name:  syncthing-persistant
+        hostPath:
+          path: /var/ovc
+          type: Directory
