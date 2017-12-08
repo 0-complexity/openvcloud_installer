@@ -30,6 +30,12 @@ spec:
         volumeMounts:
         - name: syncthing-persistant
           mountPath: /var/ovc
+      - name: syncthing-sidecar
+        image: maxux/jumpscale_sidecar
+        command:
+            - /bin/sh
+            - "-c"
+            - "sleep 86400"
       volumes:
       - name:  syncthing-persistant
         hostPath:
