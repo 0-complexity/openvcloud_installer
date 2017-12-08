@@ -67,7 +67,7 @@ pip2 install -r requirements.txt
 
 2. Run the cisco.py script
 ```bash
-python .\cisco.py --help
+python cisco.py --help
 usage: cisco.py [-h] [--port PORT] [--logfile LOGFILE] config switch
 
 Provision configuration into the cisco router
