@@ -2,7 +2,7 @@
 ![image](https://docs.google.com/drawings/d/e/2PACX-1vTVm5VstLyfsevlecNHkPjH2JencQbqKqTH767EsbG_Mvs0aV5juH6kXwGpu_bm10BD7Lzvle0S2iry/pub?w=1580&h=722)
 [edit image here](https://docs.google.com/drawings/d/1LXH7eJQNU9i0RqO13yo-8z0_rx3cyeO498wA23N7q8o/edit)
 
-## Environment network configuration files
+## Environment network configuration file
 ```yaml
 timezone: CET
 network:
@@ -57,4 +57,28 @@ network:
         - 2
       lacp-port-ranges:
         - 3 - 48
+```
+
+## Applying cisco configuration
+1. First install dependencies:
+```bash
+pip2 install -r requirements.txt
+```
+
+2. Run the cisco.py script
+```bash
+python .\cisco.py --help
+usage: cisco.py [-h] [--port PORT] [--logfile LOGFILE] config switch
+
+Provision configuration into the cisco router
+
+positional arguments:
+  config             OVC environment yaml configuration file
+  switch             Name of the switch in the yaml configuration file
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --port PORT        Serial port to use to connect to the cisco.
+  --logfile LOGFILE  Logfile to which all communication to the cisco is
+                     written.
 ```
