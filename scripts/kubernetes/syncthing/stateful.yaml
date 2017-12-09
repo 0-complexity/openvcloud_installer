@@ -11,6 +11,7 @@ spec:
         role: syncthing
         environment: test
     spec:
+      hostNetwork: true
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -27,17 +28,24 @@ spec:
         image: syncthing/syncthing
         ports:
         - containerPort: 8384
+        - containerPort: 22000
         volumeMounts:
         - name: syncthing-persistant
           mountPath: /var/ovc
       - name: syncthing-sidecar
         image: maxux/jumpscale_sidecar
         command:
-            - /bin/sh
-            - "-c"
-            - "sleep 86400"
+        - /bin/sh
+        - "-c"
+        - "sleep 86400"
+        env:
+        - name: HOST_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
       volumes:
       - name:  syncthing-persistant
         hostPath:
           path: /var/ovc
           type: Directory
+
