@@ -55,6 +55,23 @@ for container in available:
     })
 
 
+def add_device(client, name, device, address):
+    for dev in client._config['devices']:
+        if dev['deviceID'] == device:
+            return False
+
+    device = {
+        'addresses': [address],
+        'certName': '',
+        'compression': 'always',
+        'deviceID': deviceid,
+        'introducer': False,
+        'name': name
+    }
+
+    client._config['devices'].append(device)
+    return True
+
 def add_folder(client, name, path, devices):
     for folder in client._config['folders']:
         if folder['id'] == name:
@@ -78,7 +95,7 @@ def add_folder(client, name, path, devices):
         'versioning': {'params': {}, 'type': ''}
     }
 
-    client._config["folders"].append(folder)
+    client._config['folders'].append(folder)
     return True
 
 def share(devices):
@@ -90,7 +107,8 @@ def share(devices):
             if target['id'] == device['id']:
                 continue
 
-            device['client'].config_add_device(target['hostname'], target['id'])
+            devaddr = 'tcp://%s:22000' % target['target']
+            add_device(device['client'], target['hostname'], target['id'], devaddr)
 
         add_folder(device['client'], 'ovc-billing', '/var/ovc/billing', devlist)
         add_folder(device['client'], 'ovc-influx', '/var/ovc/influxdb', devlist)
