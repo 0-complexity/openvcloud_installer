@@ -1,4 +1,3 @@
-instance.param.osis.connection.influxdb = 'main'
 
 #example: param.osis.connection.mongodb:main param.osis.connection.influxdb:main
 instance.param.osis.connection.mongodb = 'main'

@@ -15,7 +15,8 @@ spec:
       containers:
       - name: influxdb-container
         imagePullPolicy: Always
-        command: [influxd]
+        command: ["/bin/bash"]
+        args: ["-c", "influxd config > /etc/influxdb/influxdb.conf && influxd -config /etc/influxdb/influxdb.conf"]
         image: influxdb:1.4
         ports:
         - containerPort: 8088
@@ -28,7 +29,7 @@ spec:
       volumes:
         - name:  influxdb-persistent-storage
           hostPath:
-            Path to mount: /var/ovc/influx
+              path: /var/ovc/influx
 
 
 
