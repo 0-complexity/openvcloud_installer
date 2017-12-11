@@ -32,11 +32,7 @@ spec:
         - name: syncthing-persistant
           mountPath: /var/ovc
       - name: syncthing-sidecar
-        image: maxux/jumpscale_sidecar
-        command:
-        - /bin/sh
-        - "-c"
-        - "sleep 86400"
+        image: maxux/syncthing_sidecar
         env:
         - name: HOST_POD_NAME
           valueFrom:
