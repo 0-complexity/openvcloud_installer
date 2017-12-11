@@ -1,13 +1,21 @@
 from kubernetes import KuberneteSidecar
 from syncthinglight import SyncthingLight
+import os
 import json
 import time
 import xml.etree.ElementTree as et
 
 print("[+] initializing")
 kube = KuberneteSidecar()
+master = "syncthing-0"
+nextcycle = 5
 
 while True:
+    if os.environ['HOST_POD_NAME'] != master:
+        print("[+] i'm not the master, nothing to do")
+        time.sleep(180)
+        continue
+
     print("[+] retreiving pods")
     pods = kube.kubectl(['get', 'pods'])
 
@@ -78,4 +86,9 @@ while True:
         device['client'].restart()
 
     print("[+] waiting for next cycle")
-    time.sleep(60)
+
+    # incremental sleep
+    if nextcycle < 120:
+        nextcycle = nextcycle * 2
+
+    time.sleep(nextcycle)

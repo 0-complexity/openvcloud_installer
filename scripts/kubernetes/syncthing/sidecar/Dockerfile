@@ -5,4 +5,4 @@ COPY kubernetes.py /opt/sidecar
 COPY sidecar.py /opt/sidecar
 COPY syncthinglight.py /opt/sidecar
 
-ENTRYPOINT ['python3', '/opt/sidecar/sidecar.py']
+ENTRYPOINT /usr/bin/python3 /opt/sidecar/sidecar.py
