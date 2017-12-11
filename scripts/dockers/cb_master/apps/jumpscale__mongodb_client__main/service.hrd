@@ -1,4 +1,4 @@
-instance.param.addr            = mongo-0.mongo,mongo-1.mongo,mongo-2.mongo
+instance.param.addr            = 'mongo-0.mongo,mongo-1.mongo,mongo-2.mongo'
 instance.param.login           =
 instance.param.passwd          =
 instance.param.port            = '27017'
