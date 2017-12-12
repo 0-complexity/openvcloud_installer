@@ -1,4 +1,4 @@
-instance.param.osis.client.addr = 'localhost'
+instance.param.osis.client.addr = 'osis'
 instance.param.osis.client.login = 'root'
 instance.param.osis.client.passwd = 'rooter'
 instance.param.osis.client.poolsize = '1000'

@@ -1,0 +1,41 @@
+apiVersion: apps/v1beta2 # for versions before 1.8.0 use apps/v1beta1
+kind: Deployment
+metadata:
+  name: agentcontroller
+spec:
+  selector:
+    matchLabels:
+      app: agentcontroller
+  replicas: 1 # Update the replicas from 2 to 4
+  template:
+    metadata:
+      labels:
+        app: agentcontroller
+    spec:
+      containers:
+      - name: agentcontroller-container
+        imagePullPolicy: Always
+        command: [/opt/jumpscale7/bin/jspython]
+        args: ['controller.py',  '-i',  'main']
+        image: abduman/cb_master
+        workingDir: /opt/jumpscale7/apps/agentcontroller/
+        ports:
+        - containerPort: 4444
+      - name: jsagent
+        imagePullPolicy: Always
+        command: [/opt/jumpscale7/bin/jspython]
+        args: ['jsagent.py', '-i', 'main']
+        image: abduman/cb_master
+        workingDir: /opt/jumpscale7/apps/jsagent/
+        ports:
+        - containerPort: 4446
+      - name: redis-container
+        imagePullPolicy: Always
+        command: [redis-server]
+        args: ['--port', '9999', '--bind', '0.0.0.0']
+        image: redis:3.2
+        ports:
+        - containerPort: 9999
+
+
+
