@@ -1,0 +1,36 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: grafana
+spec:
+  serviceName: "grafana"
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        role: grafana
+        environment: test
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: role
+                operator: In
+                values:
+                - grafana
+            topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: grafana
+        image: grafana/grafana
+        volumeMounts:
+        - name: graphana-persistant
+          mountPath: /var/ovc/grafana
+      volumes:
+      - name:  syncthing-persistant
+        hostPath:
+          path: /var/ovc/grafana
+          type: Directory
+

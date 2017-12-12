@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  labels:
+    name: grafana
+spec:
+  ports:
+  - port: 8384
+    targetPort: 8384
+  selector:
+    role: grafana
+  type: NodePort
