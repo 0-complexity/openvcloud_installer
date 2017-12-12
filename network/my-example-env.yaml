@@ -51,3 +51,9 @@ network:
         - 2
       lacp-port-ranges:
         - 3 - 48
+nodes:
+  cpu:
+    - name: cpu01
+      mgmt:
+        macaddress: ...
+        ipaddress: ...
