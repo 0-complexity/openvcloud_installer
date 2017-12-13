@@ -2,7 +2,7 @@ FROM phusion/baseimage
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo
+    apt-get install -y sudo libmhash2
 
 ENV AYSBRANCH 7.2.1
 ENV JSBRANCH 7.2.1
