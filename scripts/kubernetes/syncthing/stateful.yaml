@@ -9,9 +9,8 @@ spec:
     metadata:
       labels:
         role: syncthing
-        environment: test
     spec:
-      affinity:
+      affinity: # only one per node
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
