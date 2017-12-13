@@ -29,7 +29,7 @@ spec:
         - name: graphana-persistant
           mountPath: /var/ovc/grafana
       volumes:
-      - name:  syncthing-persistant
+      - name:  grafana-persistant
         hostPath:
           path: /var/ovc/grafana
           type: Directory
