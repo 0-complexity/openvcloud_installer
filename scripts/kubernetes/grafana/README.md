@@ -2,4 +2,4 @@
 
 # Installation
 - Run `kubectl create -f service.yaml`
-- Run `kubectl create -f stateful.yaml`
+- Run `kubectl create -f deployment.yaml`

@@ -6,12 +6,11 @@ spec:
   selector:
     matchLabels:
       app: grafana
-  serviceName: "grafana"
   replicas: 1
   template:
     metadata:
       labels:
-        role: grafana
+        app: grafana
     spec:
       containers:
       - name: grafana-container
@@ -19,7 +18,7 @@ spec:
         ports:
         - containerPort: 3000
         volumeMounts:
-        - name: graphana-persistant
+        - name: grafana-persistant
           mountPath: /var/ovc/grafana
       volumes:
       - name:  grafana-persistant
