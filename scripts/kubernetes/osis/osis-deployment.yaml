@@ -12,6 +12,7 @@ spec:
       labels:
         app: osis
     spec:
+      restartPolicy: Always
       containers:
       - name: osis-container
         imagePullPolicy: Always

@@ -12,6 +12,7 @@ spec:
       labels:
         app: agentcontroller
     spec:
+      restartPolicy: Always
       containers:
       - name: agentcontroller-container
         imagePullPolicy: Always
