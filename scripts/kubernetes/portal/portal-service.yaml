@@ -5,9 +5,9 @@ metadata:
   labels:
     name: portal
 spec:
+  type: NodePort
   ports:
   - port: 82
-    targetPort: 82
-  clusterIP: None
+    targetPort: 8200
   selector:
     role: portal

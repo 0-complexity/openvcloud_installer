@@ -15,15 +15,12 @@ spec:
       initContainers:
       - name: portal-init
         imagePullPolicy: Always
-        command: [opt/jumpscale7/bin/jspython]
-        args: ['config.py']
-        image: abduman/cb_master
-        workingDir: /opt/cfg/portal
+        command: [/opt/jumpscale7/bin/jspython]
+        args: ['/opt/cfg/portal/configs.py']
+        image: abduman/portal7
         volumeMounts:
           - name:  portal-config-vol
             mountPath:  /opt/cfg/portal
-        ports:
-        - containerPort: 82
       containers:
       - name: portal-container
         imagePullPolicy: Always
@@ -33,14 +30,6 @@ spec:
         workingDir: /opt/jumpscale7/apps/apps/portals/main
         ports:
         - containerPort: 82
-      - name: nginx-container
-        imagePullPolicy: Always
-        command: [/opt/jumpscale7/bin/jspython]
-        args: [osisServerStart.py, main]
-        image: nginx:1.12
-        workingDir: /opt/jumpscale7/apps/osis
-        ports:
-        - containerPort: 5544
       - name: redis-container
         imagePullPolicy: Always
         command: [/opt/jumpscale7/bin/jspython]
