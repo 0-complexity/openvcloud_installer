@@ -6,8 +6,8 @@ metadata:
     name: grafana
 spec:
   ports:
-  - port: 8384
-    targetPort: 8384
+  - port: 3000
+    targetPort: 3000
   selector:
-    role: grafana
+    app: grafana
   type: NodePort
