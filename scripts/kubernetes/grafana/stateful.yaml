@@ -1,30 +1,23 @@
 apiVersion: apps/v1beta1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: grafana
 spec:
+  selector:
+    matchLabels:
+      app: grafana
   serviceName: "grafana"
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
         role: grafana
-        environment: test
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchExpressions:
-              - key: role
-                operator: In
-                values:
-                - grafana
-            topologyKey: "kubernetes.io/hostname"
-      terminationGracePeriodSeconds: 10
       containers:
-      - name: grafana
+      - name: grafana-container
         image: grafana/grafana
+        ports:
+        - containerPort: 3000
         volumeMounts:
         - name: graphana-persistant
           mountPath: /var/ovc/grafana
