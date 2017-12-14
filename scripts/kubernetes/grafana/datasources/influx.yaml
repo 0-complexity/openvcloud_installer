@@ -1,0 +1,10 @@
+datasources:
+ - name: influxdb_main
+   type: influxdb
+   access: proxy
+   url: http://influxdb:8088
+   password: root
+   user: root
+   database: main
+   editable: false
+

@@ -14,14 +14,19 @@ spec:
     spec:
       containers:
       - name: grafana-container
-        image: grafana/grafana
+        image: grafana/grafana:master
         ports:
         - containerPort: 3000
         volumeMounts:
+        - name: grafana-datasources
+          mountPath: /usr/share/grafana/conf/provisioning/datasources/
         - name: grafana-persistant
-          mountPath: /var/ovc/grafana
+          mountPath: /var/lib/grafana
       volumes:
-      - name:  grafana-persistant
+      - name: grafana-datasources
+        configMap:
+          name: grafana-datasources
+      - name: grafana-persistant
         hostPath:
           path: /var/ovc/grafana
           type: Directory
