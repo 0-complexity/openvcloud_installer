@@ -1,12 +1,25 @@
 # Grafana kubernetes for openvcloud
 
-# Install initial datasource configuration
-- Add configmap datasource: `kubectl create configmap grafana-datasources --from-file=datasources/influxdb.yaml`
+# Generate dashboards
+If you want to edit dashboards, you need to regenrate them from template.
 
-# Install dashboards
-- Generate dashboard (if you changed them, generated are alreadu pushed): `cd dashboards && python3 build.py && cd ..`
-- Add dashboards configmap: `kubectl create configmap grafana-dashboards --from-file=dashboards`
+We provide default templates, you can probably skip this step.
 
-# Installation
+## Generating dashboards from template
+```
+cd sources
+python3 build.py
+cd ..
+```
+
+# Install configuration
+- Add configmap datasource and dashboards:
+```
+kubectl create configmap grafana-provisioning-datasources --from-file=provisioning/datasources
+kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards
+kubectl create configmap grafana-dashboards --from-file=sources/build
+```
+
+# Deployment
 - Run `kubectl create -f grafana-service.yaml`
 - Run `kubectl create -f grafana-deployment.yaml`
