@@ -18,14 +18,24 @@ spec:
         ports:
         - containerPort: 3000
         volumeMounts:
-        - name: grafana-datasources
-          mountPath: /usr/share/grafana/conf/provisioning/datasources/
+        - name: grafana-provisioning-dashboards
+          mountPath: /usr/share/grafana/conf/provisioning/dashboards
+        - name: grafana-provisioning-datasources
+          mountPath: /usr/share/grafana/conf/provisioning/datasources
+        - name: grafana-dashboards
+          mountPath: /var/lib/grafana/dashboards
         - name: grafana-persistant
           mountPath: /var/lib/grafana
       volumes:
-      - name: grafana-datasources
+      - name: grafana-provisioning-dashboards
         configMap:
-          name: grafana-datasources
+          name: grafana-provisioning-dashboards
+      - name: grafana-provisioning-datasources
+        configMap:
+          name: grafana-provisioning-datasources
+      - name: grafana-dashboards
+        configMap:
+          name: grafana-dashboards
       - name: grafana-persistant
         hostPath:
           path: /var/ovc/grafana

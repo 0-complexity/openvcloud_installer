@@ -2,7 +2,7 @@ import json
 import os
 
 template = "./templates"
-target = "./generated"
+target = "./build"
 datasource = "influxdb_main"
 
 for filename in os.listdir(template):
