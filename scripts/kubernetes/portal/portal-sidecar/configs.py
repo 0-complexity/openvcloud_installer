@@ -1,4 +1,4 @@
-from jumpscale import j
+from JumpScale import j
 from yaml import loader, load
 
 # this is not everything these are only the base components and can be added to
