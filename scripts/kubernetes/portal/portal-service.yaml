@@ -7,7 +7,8 @@ metadata:
 spec:
   type: NodePort
   ports:
-  - port: 82
-    targetPort: 8200
+  - name: portal
+    port: 82
+    nodePort: 32000
   selector:
-    role: portal
+    app: portal

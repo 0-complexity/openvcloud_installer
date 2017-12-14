@@ -23,23 +23,23 @@ spec:
         volumeMounts:
           - name:  portal-config-vol
             mountPath:  /opt/cfg/portal/portal-config-map.yaml
+            subPath: portal-config-map.yaml
       containers:
       - name: portal-container
         imagePullPolicy: Always
         command: [/opt/jumpscale7/bin/jspython]
         args: [portal_start.py, main]
         image: abduman/cb_master
-        workingDir: /opt/jumpscale7/apps/apps/portals/main
+        workingDir: /opt/jumpscale7/apps/portals/main
         ports:
         - containerPort: 82
       - name: redis-container
         imagePullPolicy: Always
-        command: [/opt/jumpscale7/bin/jspython]
-        args: [osisServerStart.py, main]
+        command: [redis-server]
+        args: ['--port', '9999', '--bind', '0.0.0.0']
         image: redis:3.2
-        workingDir: /opt/jumpscale7/apps/osis
         ports:
-        - containerPort: 5544
+        - containerPort: 9999
       volumes:
       - name: portal-config-vol
         projected:
