@@ -33,7 +33,7 @@ spec:
         - name:  influxdb-persistent-storage
           hostPath:
               path: /var/ovc/influx
-              type: Directory
+              type: DirectoryOrCreate
 
 
 
