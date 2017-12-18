@@ -12,7 +12,6 @@ spec:
         role: mongo
         environment: test
     spec:
-      restartPolicy: Always
       terminationGracePeriodSeconds: 10
       containers:
         - name: mongo

@@ -68,6 +68,7 @@ class Cluster:
             mount, vol = self._migrate_controller_config(migrate_from)
         else:
             mount, vol = self._create_controller_config()
+
         controller_container = self.client.define_container(name='%s-controller-container' % self.name,
                                                             image=IMAGE_NAME, volume_mounts=[mount])
         self.client.define_deployment(name='%s-controller-deployment' % self.name, containers=[controller_container],

@@ -113,8 +113,9 @@ class ItsYouOnline(object):
                 'instance.oauth.client.user_info_url': os.path.join(self.baseurl, 'api/users/{username}/info')
                 }
         oauthclient = j.atyourservice.get(domain='jumpscale', name='oauth_client', instance='itsyouonline')
-        oauthclient.hrd.set(data=data)
-        oauthclient.save()
+        for key, val in data.items():
+            oauthclient.hrd.set(key, val)
+        oauthclient.hrd.save()
 
 
         # configure groups on itsyouonline
@@ -135,7 +136,7 @@ class ItsYouOnline(object):
         # configure portal to use this oauthprovider and restart
         portal = j.atyourservice.get(name='portal', instance='main')
         portal.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
-        portal.save()
+        portal.hrd.save()
 
         j.do.execute('ln -s /opt/jumpscale7/')
 

@@ -2,7 +2,7 @@ portal:
   user: admin
   passwd: admin
 itsyouonline:
-  redirect_url: 147.75.83.145:32000/restmachine/system/oauth/authorize
-  secret: H95yk0YBZAIHKMELsraNQBszphcxJn1HZ9HfSqvnOW_79jza70ye
+  callbackURL:
+  clientSecret:
   clientId: kubernetes_cluster_test
   environment: kubernetes_cluster_test
