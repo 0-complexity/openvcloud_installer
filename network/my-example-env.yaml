@@ -51,6 +51,51 @@ network:
         - 2
       lacp-port-ranges:
         - 3 - 48
+ssh:
+  private-key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG
+    ...
+    TZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==
+    -----END RSA PRIVATE KEY-----  
+  public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ
+controller:
+  disk-layout:
+    - partition: 0
+      md: True
+      filesystem: ext4
+      mount: /boot
+      size: 4 # Gigabyte
+    - partition: 1
+      md: False
+      filesystem: swap
+      size: 8
+    - partition: 2
+      md: False
+      filesystem: btrfs # The two corresponding partitions will be mirrored by btrfs
+      size: 0 # Remaining size on the disk
+      subvolumes:
+        - name: root
+          mount: /
+          size: 20
+        - name: home
+          mount: /home
+          size: 5
+        - name: billing
+          mount: /var/ovc/billing
+          size: 20
+        - name: influx
+          mount: /var/ovc/influx
+          size: 5
+        - name: mongodb
+          mount: /var/ovc/mongodb
+          size: 20
+  hosts:
+    - hostname: be-loc-4-ctrl-01
+      network-interfaces:
+        - device: enp3s0
+        - device: enp4s0
+          ipaddress: 10.101.109.251/24
 nodes:
   cpu:
     - name: cpu01
