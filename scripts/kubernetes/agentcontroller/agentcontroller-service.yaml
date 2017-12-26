@@ -15,9 +15,6 @@ spec:
   - name: redis-port
     port: 9999
     targetPort: 9999
-
-
-
   clusterIP: None
   selector:
-    role: agentcontroller
+    app: agentcontroller
