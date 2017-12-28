@@ -96,6 +96,14 @@ controller:
         - device: enp3s0
         - device: enp4s0
           ipaddress: 10.101.109.251/24
+
+environment:
+  grid:
+    id: 1337
+  domain: be-loc-4
+  subnet: 10.109.2.0
+  gateway: 10.109.2.1
+
 nodes:
   cpu:
     - name: cpu01
