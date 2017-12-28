@@ -1,0 +1,6 @@
+#!/bin/bash
+echo "Copying source to destination"
+cp -rv /source/* /opt/pxeboot/
+
+echo "Generating config files"
+python3 /usr/local/bin/generate-config.py
