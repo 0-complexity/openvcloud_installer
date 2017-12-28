@@ -4,4 +4,5 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y graphviz
 
-COPY configs.py /opt/cfg/portal/
+RUN mkdir -p /var/run/scripts/portal/
+COPY configure-portal.py /var/run/scripts/portal/

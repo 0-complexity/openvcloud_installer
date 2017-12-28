@@ -9,6 +9,10 @@ COPY whoami.hrd /opt/jumpscale7/hrd/system/
 COPY start.sh /
 COPY services-migrator.py /tmp/
 
+# add configuration script
+RUN mkdir -p /var/run/scripts/system
+COPY configure-system.py /var/run/scripts/system
+
 # Copy over private key
 # Set permissions
 # Create known_hosts

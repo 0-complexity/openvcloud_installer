@@ -1,5 +1,5 @@
 from JumpScale import j
-from yaml import loader, load
+import yaml
 import os
 import requests
 
@@ -8,8 +8,8 @@ import requests
 
 
 def get_config():
-    with open('/opt/cfg/portal/portal-config-map.yaml') as f :
-        data  = load(f)
+    with open('/opt/cfg/system/system-config.yaml') as file_discriptor :
+        data  = load(file_discriptor)
     return data
 
 def add_user(user, passwd):
@@ -23,7 +23,7 @@ def add_user(user, passwd):
     j.do.execute(cmd2, dieOnNonZeroExitCode=False)
 
 
-class ItsYouOnline(object):
+class Portal(object):
     """
     process for install
     -------------------
@@ -81,7 +81,25 @@ class ItsYouOnline(object):
             apikey = result.json()
         return apikey
 
-    def configure(self, config):
+    def configure_user_groups(self, config, portal):
+        ovcEnvironment = config['itsyouonline']['environment']
+        gid = j.application.whoAmI.gid
+        portal.hrd.set('instance.param.cfg.defaultspace', 'vdc')
+        portal.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
+        portal.start()
+
+        scl = j.clients.osis.getNamespace('system')
+
+        # setup user/groups
+        for groupname in ('user', 'ovs_admin'):
+            if not scl.group.search({'id': groupname})[0]:
+                group = scl.group.new()
+                group.gid = gid
+                group.id = groupname
+                group.users = ['admin']
+                scl.group.set(group)
+
+    def configure_IYO(self, config):
         if not config['itsyouonline'].get('callbackURL'):
             raise RuntimeError('callbackURL is not set')
         if not config['itsyouonline'].get('environment'):
@@ -137,14 +155,14 @@ class ItsYouOnline(object):
         portal = j.atyourservice.get(name='portal', instance='main')
         portal.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
         portal.hrd.save()
-
         j.do.execute('ln -s /opt/jumpscale7/')
-
+        return portal
 
 
 if __name__ == '__main__':
     config = get_config()
     add_user(config['portal']['user'], config['portal']['passwd'])
-    iyo = ItsYouOnline()
-    iyo.prepare(config)
-    iyo.configure(config)
+    portal = Portal()
+    portal.prepare(config)
+    service = portal.configure_IYO(config)
+    portal.configure_gid_network(config, service)

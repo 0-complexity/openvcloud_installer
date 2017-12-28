@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: system-config-map
+data:
+  system-config.yaml: |
+    system:
+      gid: 2
+    network:
+      netmask:
+      start:
+      end:
+      gateway:
+    portal:
+      user: admin
+      passwd: admin
+    itsyouonline:
+      callbackURL: http://147.75.80.229:32000/restmachine/system/oauth/authorize
+      clientSecret: H95yk0YBZAIHKMELsraNQBszphcxJn1HZ9HfSqvnOW_79jza70ye
+      clientId: kubernetes_cluster_test
+      environment: kubernetes_cluster_test

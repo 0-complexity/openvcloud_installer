@@ -1,8 +1,0 @@
-portal:
-  user: admin
-  passwd: admin
-itsyouonline:
-  callbackURL:
-  clientSecret:
-  clientId: kubernetes_cluster_test
-  environment: kubernetes_cluster_test

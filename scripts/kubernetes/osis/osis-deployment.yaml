@@ -13,6 +13,19 @@ spec:
         app: osis
     spec:
       restartPolicy: Always
+      initContainers:
+      - name: system-init
+        imagePullPolicy: Always
+        command: [jspython]
+        args: ['configure-system.py']
+        image: abduman/cb_master
+        workingDir: /var/run/scripts/system
+        volumeMounts:
+        - name: system-hrd
+          mountPath:  /opt/cfg/system/
+        - name:  system-config
+          mountPath:  /opt/cfg/system/system-config.yaml
+          subPath: system-config.yaml
       containers:
       - name: osis-container
         imagePullPolicy: Always
@@ -20,8 +33,16 @@ spec:
         args: [osisServerStart.py, main]
         image: abduman/cb_master
         workingDir: /opt/jumpscale7/apps/osis
+        volumeMounts:
+          - name:  system-hrd
+            mountPath: /opt/jumpscale7/hrd/system/
         ports:
         - containerPort: 5544
-
+      volumes:
+      - name: system-hrd
+        emptyDir: {}
+      - name: system-config
+        configMap:
+          name: system-config-map
 
 
