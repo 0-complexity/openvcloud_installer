@@ -6,56 +6,32 @@ import requests
 # this is not everything these are only the base components and can be added to
 
 
-
-def get_config():
-    with open('/opt/cfg/system/system-config.yaml') as file_discriptor :
-        data  = load(file_discriptor)
-    return data
-
-def add_user(user, passwd):
-    cmd1 = 'jsuser list'
-    res = j.do.execute(cmd1, dieOnNonZeroExitCode=False)[1]
-    for line in res.splitlines():
-        if line.find(user) != -1:
-            return
-
-    cmd2='jsuser add -d %s:%s:admin:fakeemail.test.com:jumpscale' % (user, passwd)
-    j.do.execute(cmd2, dieOnNonZeroExitCode=False)
-
-
 class Portal(object):
     """
-    process for install
-    -------------------
-    step1: prepare actions
-    step2: check_requirements action
-    step3: download files & copy on right location (hrd info is used)
-    step4: configure action
-    step5: check_uptime_local to see if process stops  (uses timeout $process.stop.timeout)
-    step5b: if check uptime was true will do stop action and retry the check_uptime_local check
-    step5c: if check uptime was true even after stop will do halt action and retry the check_uptime_local check
-    step6: use the info in the hrd to start the application
-    step7: do check_uptime_local to see if process starts
-    step7b: do monitor_local to see if package healthy installed & running
-    step7c: do monitor_remote to see if package healthy installed & running, but this time test is done from central location
+    Class used to define the portal service
     """
-    def prepare(self, config):
+    def __init__(self, path='/opt/cfg/system/system-config.yaml'):
+        with open(path) as file_discriptor:
+            data = yaml.load(file_discriptor)
+        self.config = data
         self.__authheaders = None
-        if not config['itsyouonline'].get('clientId'):
+        if not self.config['itsyouonline'].get('clientId'):
             raise RuntimeError('clientId is not set')
-        if not config['itsyouonline'].get('clientSecret'):
+        if not self.config['itsyouonline'].get('clientSecret'):
             raise RuntimeError('clientSecret is not set')
 
-        self.client_id = config['itsyouonline']['clientId']
-        self.client_secret = config['itsyouonline']['clientSecret']
+        self.client_id = self.config['itsyouonline']['clientId']
+        self.client_secret = self.config['itsyouonline']['clientSecret']
         # baseurl = "https://staging.itsyou.online/"
         self.baseurl = "https://itsyou.online/"
 
     @property
     def authheaders(self):
         if self.__authheaders is None:
-            accesstokenparams = {'grant_type': 'client_credentials', 'client_id': self.client_id, 'client_secret': self.client_secret}
-            accesstoken = requests.post(os.path.join(self.baseurl, 'v1', 'oauth', 'access_token'), params=accesstokenparams)
+            accesstokenparams = {'grant_type': 'client_credentials',
+                                 'client_id': self.client_id, 'client_secret': self.client_secret}
+            accesstoken = requests.post(os.path.join(self.baseurl, 'v1', 'oauth',
+                                                     'access_token'), params=accesstokenparams)
             token = accesstoken.json()['access_token']
             self.__authheaders = {'Authorization': 'token %s' % token}
         return self.__authheaders
@@ -81,31 +57,92 @@ class Portal(object):
             apikey = result.json()
         return apikey
 
-    def configure_user_groups(self, config, portal):
-        ovcEnvironment = config['itsyouonline']['environment']
-        gid = j.application.whoAmI.gid
-        portal.hrd.set('instance.param.cfg.defaultspace', 'vdc')
-        portal.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
-        portal.start()
+    def add_user(self):
+        """
+        Add portal user using jsuser.
+        """
+        user = portal.config['portal']['user']
+        passwd =  portal.config['portal']['passwd']
+        cmd1 = 'jsuser list'
+        res = j.do.execute(cmd1, dieOnNonZeroExitCode=False)[1]
+        for line in res.splitlines():
+            if line.find(user) != -1:
+                return
 
+        cmd2 = 'jsuser add -d %s:%s:admin:fakeemail.test.com:jumpscale' % (user, passwd)
+        j.do.execute(cmd2, dieOnNonZeroExitCode=False)
+
+
+    def configure_user_groups(self, service):
+        ovc_environment = self.config['itsyouonline']['environment']
+        gid = j.application.whoAmI.gid
+        fqdn = self.config['enviroment']['fqdn']
+        portal_links = {
+            'ays': {
+                'name': 'At Your Service',
+                'url': '/AYS',
+                'scope': 'admin',
+                'theme': 'light',
+            },
+            'vdc': {
+                'name': 'End User',
+                'url': fqdn,
+                'scope': 'user',
+                'theme': 'dark',
+                'external': 'true'},
+            'ovs': {
+                'name': 'Storage',
+                'url': 'ovs-%s' % (fqdn),
+                'scope': 'ovs_admin',
+                'theme': 'light',
+                'external': 'true'},
+            'grafana': {
+                'name': 'Statistics',
+                'url': '/grafana',
+                'scope': 'admin',
+                'theme': 'light',
+                'external': 'true'},
+            'grid': {
+                'name': 'Grid',
+                'url': '/grid',
+                'scope': 'admin',
+                'theme': 'light'},
+            'system': {
+                'name': 'System',
+                'url': '/system',
+                'scope': 'admin',
+                'theme': 'light'},
+            'cbgrid': {
+                'name': 'Cloud Broker',
+                'url': '/cbgrid',
+                'scope': 'admin',
+                'theme': 'light'},
+        }
+        for linkid, data in portal_links.iteritems():
+            if data['url']:
+                service.hrd.set('instance.navigationlinks.%s' % linkid, data)
+        service.hrd.set('instance.param.cfg.defaultspace', 'vdc')
+        service.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
+        service.start()
         scl = j.clients.osis.getNamespace('system')
 
         # setup user/groups
-        for groupname in ('user', 'ovs_admin'):
+        for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3'):
             if not scl.group.search({'id': groupname})[0]:
                 group = scl.group.new()
                 group.gid = gid
                 group.id = groupname
                 group.users = ['admin']
                 scl.group.set(group)
+        service.stop()
 
-    def configure_IYO(self, config):
-        if not config['itsyouonline'].get('callbackURL'):
+    def configure_IYO(self):
+        if not self.config['itsyouonline'].get('callbackURL'):
             raise RuntimeError('callbackURL is not set')
-        if not config['itsyouonline'].get('environment'):
+        if not self.config['itsyouonline'].get('environment'):
             raise RuntimeError('environment is not set')
-        callbackURL = config['itsyouonline']['callbackURL']
-        environment = config['itsyouonline']['environment']
+        callbackURL = self.config['itsyouonline']['callbackURL']
+        environment = self.config['itsyouonline']['environment']
         groups = ['admin', 'level1', 'level2', 'level3', 'ovs_admin', 'user']
 
         # register api key
@@ -135,7 +172,6 @@ class Portal(object):
             oauthclient.hrd.set(key, val)
         oauthclient.hrd.save()
 
-
         # configure groups on itsyouonline
         for group in groups:
             suborgname = self.client_id + '.' + group
@@ -160,9 +196,7 @@ class Portal(object):
 
 
 if __name__ == '__main__':
-    config = get_config()
-    add_user(config['portal']['user'], config['portal']['passwd'])
     portal = Portal()
-    portal.prepare(config)
-    service = portal.configure_IYO(config)
-    portal.configure_gid_network(config, service)
+    portal.add_user()
+    service = portal.configure_IYO()
+    portal.configure_user_groups(service)
