@@ -1,43 +1,41 @@
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: grafana
+  name: pxeboot
 spec:
   selector:
     matchLabels:
-      app: grafana
+      app: pxeboot
   replicas: 1
   template:
     metadata:
       labels:
-        app: grafana
+        app: pxeboot
     spec:
       containers:
-      - name: grafana-container
-        image: grafana/grafana:master
-        ports:
-        - containerPort: 3000
+      - name: pxeboot
+        image: openvcloud/pxeboot
         volumeMounts:
-        - name: grafana-provisioning-dashboards
-          mountPath: /usr/share/grafana/conf/provisioning/dashboards
-        - name: grafana-provisioning-datasources
-          mountPath: /usr/share/grafana/conf/provisioning/datasources
-        - name: grafana-dashboards
-          mountPath: /var/lib/grafana/dashboards
-        - name: grafana-persistant
-          mountPath: /var/lib/grafana
+        - name: pxeboot-root
+          mountPath: /pxeboot
+      #
+      # add here container which do http and images
+      #
+      initContainers:
+      - name: pxeboot-init
+        image: openvcloud/pxeboot-init
+        command:
+        - bash
+        - /usr/local/bin/pxeboot-init
+        volumeMounts:
+        - name: system-config
+          mountPath: "/etc/system-config.yaml"
+        - name: pxeboot-root
+          mountPath: /opt/pxeboot
       volumes:
-      - name: grafana-provisioning-dashboards
+      - name: system-config
         configMap:
-          name: grafana-provisioning-dashboards
-      - name: grafana-provisioning-datasources
-        configMap:
-          name: grafana-provisioning-datasources
-      - name: grafana-dashboards
-        configMap:
-          name: grafana-dashboards
-      - name: grafana-persistant
-        hostPath:
-          path: /var/ovc/grafana
-          type: Directory
+          name: system-config-map
+      - name: pxeboot-root
+        emptyDir: {}
 
