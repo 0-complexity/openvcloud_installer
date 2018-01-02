@@ -1,4 +1,4 @@
-FROM maxux/light_sidecar
+FROM openvcloud/slightcar
 
 RUN mkdir -p /opt/sidecar
 COPY kubernetes.py /opt/sidecar

@@ -31,7 +31,7 @@ spec:
         - name: syncthing-persistant
           mountPath: /var/ovc
       - name: syncthing-sidecar
-        image: maxux/syncthing_sidecar
+        image: openvcloud/syncthing_sidecar
         env:
         - name: HOST_POD_NAME
           valueFrom:
