@@ -1,21 +1,244 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: system-config-map
-data:
-  system-config.yaml: |
-    system:
-      gid: 2
-    network:
-      netmask:
-      start:
-      end:
-      gateway:
-    portal:
-      user: admin
-      passwd: admin
-    itsyouonline:
-      callbackURL: http://147.75.80.229:32000/restmachine/system/oauth/authorize
-      clientSecret: H95yk0YBZAIHKMELsraNQBszphcxJn1HZ9HfSqvnOW_79jza70ye
-      clientId: kubernetes_cluster_test
-      environment: kubernetes_cluster_test
+portal:
+  user: admin # default portal user
+  passwd: admin # default portal password
+itsyouonline:
+  callbackURL: http://147.75.80.229:32000/restmachine/system/oauth/authorize # The url to be redirecrtd to after authentication with itsyounoline
+  clientSecret: H95yk0YBZAIHKMELsraNQBszphcxJn1HZ9HfSqvnOW_79jza70ye # itsyouonlie secret
+  clientId: kubernetes_cluster_test # itsyouonline client id 
+timezone: CET
+network:
+  vlans:
+    management: 2311
+    public: 2312
+    vx-backend: 2313
+    gateway: 2314
+    storage: 2315
+  providers:
+    - name: interroute
+      vlan: 23 # Vlan to internet provider network. 0 for untagged
+  cisco:
+    - name: 50 port switch
+      password: H0ndebr0k3nZijnN44tL3kk3r
+      hostname: littledavid
+      provider-port: 48 # Switch port that will be cabled to the internet provider
+      management: 
+        switch-ip:
+          address: 10.12.2.201
+          netmask: 255.255.255.0
+        ports:
+          controllers:
+            ipmi: 1-3 # Network connections to ipmi ports
+            mgmt: 4-6 # Network connections to regular nic'ses
+          cpunodes:
+            ipmi: 7,8
+            mgmt: 9,10
+          stornodes:
+            ipmi: 11-12
+            mgmt: 13-14
+          mellanox: 15,16
+      trunk-ports: 
+        controllers: 45-47
+        mellanox: 49,50          
+  mellanox:
+    mellanox-1:
+      provider:
+          port: 46 # Switch port that will be cabled to the internet provider
+          vlan: 23 # Vlan to internet provider network. 0 for untagged
+      mlag:
+        - 47
+        - 48
+      lacp-port-ranges:
+        - 1 - 45
+    mellanox-2:
+      provider:
+          port: 48 # Switch port that will be cabled to the internet provider
+          vlan: 23 # Vlan to internet provider network. 0 for untagged
+      mlag:
+        - 1
+        - 2
+      lacp-port-ranges:
+        - 3 - 48
+ssh:
+  private-key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG
+    ...
+    TZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==
+    -----END RSA PRIVATE KEY-----  
+  public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ
+controller:
+  directories: # required directories for nodes in cluster
+    - /var/ovc/billing
+    - /var/ovc/influx
+    - /var/ovc/mongodb
+
+  disk-layout:
+    - partition: 0
+      md: True
+      filesystem: ext4
+      mount: /boot
+      size: 4 # Gigabyte
+    - partition: 1
+      md: False
+      filesystem: swap
+      size: 8
+    - partition: 2
+      md: False
+      filesystem: btrfs # The two corresponding partitions will be mirrored by btrfs
+      size: 0 # Remaining size on the disk
+      subvolumes:
+        - name: root
+          mount: /
+          size: 20
+        - name: home
+          mount: /home
+          size: 5
+        - name: billing
+          mount: /var/ovc/billing
+          size: 20
+        - name: influx
+          mount: /var/ovc/influx
+          size: 5
+        - name: mongodb
+          mount: /var/ovc/mongodb
+          size: 20
+  hosts: # Nodes in cluster info
+    - hostname: be-loc-4-ctrl-01
+      user: cloudscalers
+      password: wTK4Wj1bR
+      network-interfaces:
+        - device: enp3s0
+        - device: enp4s0
+          label: mgmt # devices with label mgmt contains the node address
+          ipaddress: 192.168.103.254 # Node address
+    - hostname: be-loc-4-ctrl-02
+      user: cloudscalers
+      password: d73veZ9fD
+      network-interfaces:
+        - device: enp3s0
+        - device: enp4s0
+          label: mgmt
+          ipaddress: 192.168.103.253
+    - hostname: be-loc-4-ctrl-03
+      user: cloudscalers
+      password: idBnCE0xV
+      network-interfaces:
+        - device: enp3s0
+        - device: enp4s0
+          label: mgmt
+          ipaddress: 192.168.103.252
+
+environment:
+  grid:
+    id: 1337
+  domain: be-loc-4
+  subnet: 10.109.2.0
+  gateway: 10.109.2.1
+
+nodes: # Environment nodes info
+  cpu: # CPU nodes info
+    - name: cpu01
+      mgmt:
+        macaddress: 0C:C4:7A:AC:11:36
+        ipaddress: 10.109.2.11
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu02
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AE:66
+        ipaddress: 10.109.2.12
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu03
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AE:26
+        ipaddress: 10.109.2.13
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu04
+      mgmt:
+        macaddress: 0C:C4:7A:AC:11:46
+        ipaddress: 10.109.2.14
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu05
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AC:AE
+        ipaddress: 10.109.2.15
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu06
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AE:22
+        ipaddress: 10.109.2.16
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu07
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AE:5E
+        ipaddress: 10.109.2.17
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu08
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AE:62
+        ipaddress: 10.109.2.18
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+    - name: cpu09
+      mgmt:
+        macaddress: 0C:C4:7A:AB:AD:1A
+        ipaddress: 10.109.2.19
+      ipmi:
+          address: 10.109.0.0
+          username: ADMIN
+          password: ADMIN
+  storage: # Storage nodes info
+    - name: storage01
+      mgmt:
+        macaddress: 2C:60:0C:BC:26:65
+        ipaddress: 10.109.2.41
+      ipmi:
+          address: 10.109.0.0
+          username: admin
+          password: admin
+    - name: storage02
+      mgmt:
+        macaddress: 2C:60:0C:BC:24:C4
+        ipaddress: 10.109.2.42
+      ipmi:
+          address: 10.109.0.0
+          username: admin
+          password: admin
+    - name: storage03
+      mgmt:
+        macaddress: 2C:60:0C:5F:8E:EA
+        ipaddress: 10.109.2.43
+      ipmi:
+          address: 10.109.0.0
+          username: admin
+          password: admin
+    - name: storage04
+      mgmt:
+        macaddress: 2C:60:0C:5F:8E:1B
+        ipaddress: 10.109.2.44
+      ipmi:
+          address: 10.109.0.0
+          username: admin
+          password: admin
