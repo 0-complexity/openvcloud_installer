@@ -5,13 +5,11 @@ metadata:
   labels:
     name: portal
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
   - name: portal
     port: 82
-    nodePort: 32000
   - name: redis
     port: 9999
-    targetPort: 9999
   selector:
     app: portal

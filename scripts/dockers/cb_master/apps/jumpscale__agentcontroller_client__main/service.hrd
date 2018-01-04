@@ -1,4 +1,4 @@
-instance.agentcontroller.client.addr = 'localhost'
+instance.agentcontroller.client.addr = 'agentcontroller'
 instance.agentcontroller.client.login = 'node'
 instance.agentcontroller.client.passwd = 'rooter'
 instance.agentcontroller.client.port = '4444'

@@ -14,7 +14,6 @@ spec:
     spec:
       containers:
       - name: influxdb-container
-        imagePullPolicy: Always
         command: ["/bin/bash"]
         args: ["-c", "influxd config > /etc/influxdb/influxdb.conf && influxd -config /etc/influxdb/influxdb.conf"]
         image: influxdb:1.4

@@ -30,21 +30,26 @@ spec:
       - name: portal-container
         imagePullPolicy: Always
         command: [/bin/bash]
-        args: ['-c', '/opt/jumpscale7/bin/jspython /var/run/scripts/system/configure-portal.py && /opt/jumpscale7/bin/jspython portal_start.py main']
+        args: ['-c', '/opt/jumpscale7/bin/jspython /var/run/scripts/portal/configure-portal.py && /opt/jumpscale7/bin/jspython portal_start.py main']
         image: abduman/portal7
         workingDir: /opt/jumpscale7/apps/portals/main
         volumeMounts:
+        - name:  system-hrd
+          mountPath: /opt/jumpscale7/hrd/system/
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
         ports:
         - containerPort: 82
-      - name: jsagent
+      - name: jsagent-container
         imagePullPolicy: Always
         command: [/opt/jumpscale7/bin/jspython]
         args: ['jsagent.py', '-i', 'main']
         image: abduman/cb_master
         workingDir: /opt/jumpscale7/apps/jsagent/
+        volumeMounts:
+        - name:  system-hrd
+          mountPath: /opt/jumpscale7/hrd/system/
         ports:
         - containerPort: 4446
       - name: redis-container

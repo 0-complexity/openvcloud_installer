@@ -74,9 +74,8 @@ class Portal(object):
 
 
     def configure_user_groups(self, service):
-        ovc_environment = self.config['itsyouonline']['environment']
         gid = j.application.whoAmI.gid
-        fqdn = self.config['enviroment']['fqdn']
+        fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         portal_links = {
             'ays': {
                 'name': 'At Your Service',

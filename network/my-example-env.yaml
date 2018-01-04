@@ -14,7 +14,7 @@ network:
       password: H0ndebr0k3nZijnN44tL3kk3r
       hostname: littledavid
       provider-port: 48 # Switch port that will be cabled to the internet provider
-      management: 
+      management:
         switch-ip:
           address: 10.12.2.201
           netmask: 255.255.255.0
@@ -29,9 +29,9 @@ network:
             ipmi: 11-12
             mgmt: 13-14
           mellanox: 15,16
-      trunk-ports: 
+      trunk-ports:
         controllers: 45-47
-        mellanox: 49,50          
+        mellanox: 49,50
   mellanox:
     mellanox-1:
       provider:
@@ -57,7 +57,7 @@ ssh:
     MIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG
     ...
     TZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==
-    -----END RSA PRIVATE KEY-----  
+    -----END RSA PRIVATE KEY-----
   public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ
 controller:
   disk-layout:
@@ -100,7 +100,8 @@ controller:
 environment:
   grid:
     id: 1337
-  domain: be-loc-4
+  basedomain: demo.greentiglobe.com
+  subdomain: be-g8-4
   subnet: 10.109.2.0
   gateway: 10.109.2.1
 

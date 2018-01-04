@@ -10,7 +10,7 @@ COPY start.sh /
 COPY services-migrator.py /tmp/
 
 # add configuration script
-RUN mkdir -p /var/run/scripts/system
+RUN mkdir -p /var/run/scripts/system /opt/cfg/system
 COPY configure-system.py /var/run/scripts/system
 
 # Copy over private key
