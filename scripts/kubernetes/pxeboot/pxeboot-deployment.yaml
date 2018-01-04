@@ -12,6 +12,7 @@ spec:
       labels:
         app: pxeboot
     spec:
+      hostNetwork: true
       containers:
       - name: pxeboot
         image: openvcloud/pxeboot
