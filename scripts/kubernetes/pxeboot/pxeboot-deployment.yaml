@@ -36,7 +36,7 @@ spec:
       volumes:
       - name: system-config
         configMap:
-          name: system-config-map
+          name: system-config
       - name: pxeboot-root
         hostPath:
           path: /var/ovc/pxeboot

@@ -73,7 +73,7 @@ spec:
           emptyDir: {}
         - name: system-config
           configMap:
-            name: system-config-map
+            name: system-config
         - name: root-certs
           secret:
             secretName: root-certs

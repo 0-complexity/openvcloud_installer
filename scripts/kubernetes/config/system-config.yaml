@@ -2,9 +2,10 @@ portal:
   user: admin # default portal user
   passwd: admin # default portal password
 itsyouonline:
-  callbackURL: http://147.75.80.229:32000/restmachine/system/oauth/authorize # The url to be redirecrtd to after authentication with itsyounoline
-  clientSecret: H95yk0YBZAIHKMELsraNQBszphcxJn1HZ9HfSqvnOW_79jza70ye # itsyouonlie secret
-  clientId: kubernetes_cluster_test # itsyouonline client id
+  callbackURL: https://be-g8-4.demo.greenitglobe.com/restmachine/system/oauth/authorize # The url to be redirecrtd to after authentication with itsyounoline
+  clientSecret: fwegfwefwefw-ALGwzRpSLLf # itsyouonlie secret
+  clientId: greenitglobe.environments.be-g8-4 # itsyouonline client id
+  environment: be-g8-4 # 
 timezone: CET
 network:
   vlans:
@@ -130,9 +131,9 @@ controller:
 
 environment:
   grid:
-    id: 2
-  subdomain: se
-  basedomain: kube
+    id: 109
+  subdomain: be-g8-4
+  basedomain: demo.greenitglobe.com
   ssl:
     root:
       name: demo.greenitglobe.com
