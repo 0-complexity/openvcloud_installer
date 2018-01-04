@@ -1,78 +1,81 @@
-from JumpScale9 import j
+from js9 import j
+import netaddr
+import click
 
 IMAGE_NAME = ''
 
-class ClusterFactory:
-    def deploy_cluster():
-        """
-        Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
-        TODO
-        """
-    def Build_images():
-        """
-        build the releveant images that will be used to run the deployments
-        TODO
-        """
+@click.command()
+@click.option('--config', help='Config file to deploy the cluster')
+def deploy_cluster(config):
+    """
+    Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
+    """
+    if not config:
+        raise j.exceptions.Input('Please specify a config file')
+    if not j.clients.ssh.ssh_agent_available() or not j.clients.ssh.ssh_keys_list_from_agent():
+        raise j.exceptions.NotFound ("No ssh key loaded. Please load the appropriate sshkey.")
+    cluster = Cluster(config)
+    cluster.install_kubernetes_cluster()
+    cluster.install_controller()
+
+
+def Build_images():
+    """
+    build the releveant images that will be used to run the deployments
+    TODO
+    """
 
 
 class Cluster:
     """
     Cluster abstraction layer to allow for easier manipulation.
     """
-    def __init__(self, name, addresses, config_location=None):
-        self.name = name
+    def __init__(self, config_path):
+        self.config = j.data.serializer.yaml.load(config_path)
+        self.config_path = config_path
+        self.k8s_config = '/tmp/kubelet.conf'
+        self.join_line = ''
         self.prefab = j.tools.prefab.local
-        self._nodes = [j.tools.prefab.get(ip) for ip in addresses]
-        if not config_location:
-            self.prefab.core.dir_ensure("%s/kubernetes/" % j.dirs.CFGDIR)
-            config_location = "%s/kubernetes/%s" % (j.dirs.CFGDIR, self.name)
-        if self.prefab.core.exists(config_location):
-            self.client = j.clients.kubernetes.get(config_location)
+        self.nodes = self._nodes_prefab()
+        
+    def _nodes_prefab(self):
+        nodes = []
+        for host in self.config['controller']['hosts']:
+            for interface in host['network-interfaces']:
+                if interface.get('label') == 'mgmt':
+                    sshclient = j.clients.ssh.get(interface['ipaddress'], login=host['user'], passwd=host['password'])
+                    sshkey = j.clients.ssh.ssh_keys_list_from_agent()[0]
+                    sshclient.SSHAuthorizeKey(j.sal.fs.getBaseName(sshkey))
+                    executor = j.tools.executor.getSSHBased(interface['ipaddress'], usecache=False)
+                    nodes.append(j.tools.prefab.get(executor))
+        return nodes
+
+    def _get_cidr(self):
+        addr = self.nodes[0].executor.sshclient.addr
+        net = netaddr.IPNetwork(addr)
+        return str(net.cidr)
 
     def install_kubernetes_cluster(self):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
         """
-        config, join_line = self.prefab.virtualization.kubernetes.multihost_install(self.nodes)
-        self.join_line = join_line
-        # TODO
+        for node in self.nodes:
+            node.core.run('swapoff -a')
+        k8s_config_data , self.join_line = self.prefab.virtualization.kubernetes.multihost_install(self.nodes, unsafe=True)
+        self.prefab.core.file_write(self.k8s_config, k8s_config_data)
 
-    def _create_controller_config(self):
-        """
-        Will automatically generate the configs as config_maps and create the relevant volumes to be mounted when
-        installing controller
-        TODO
-        """
-        # name, config_name, config_items, default_mode=0644, optional=False
-        # self.client.define_config_map_volume(name=name,
-
-    def _migrate_controller_config(self, url):
-        """
-        will create the relevant git volume to be mounted on install
-        TODO
-        """
-        vol_name = '%s-controller-volume' % self.name
-        volume = self.client.define_git_volume(name=vol_name, repo=url, target='.')
-        mount = self.client.define_mount(name=vol_name, mountPath='/opt/jumpscale7/hrd/apps/')
-        return mount, volume
-
-
-    def install_controller(self, migrate_from='', selector={}, replicas=1):
+    def install_controller(self):
         """
         Will use existing yaml or config scripts in this dir as well as jumpscale modules to install the controller setup on the
         cluster. Creating the relevant deployments, services, and mounts
         TODO
         """
-
-        if migrate_from:
-            mount, vol = self._migrate_controller_config(migrate_from)
-        else:
-            mount, vol = self._create_controller_config()
-
-        controller_container = self.client.define_container(name='%s-controller-container' % self.name,
-                                                            image=IMAGE_NAME, volume_mounts=[mount])
-        self.client.define_deployment(name='%s-controller-deployment' % self.name, containers=[controller_container],
-                                      selector=selector, replicas=replicas, volumes=[vol])
+        self.prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
+        directories = self.config['controller'].get('directories')
+        for node in self.nodes:
+            for directory in directories:
+                node.core.dir_ensure(directory, mode='777')
+        self.kub_client_apply()
 
     def add_node(self, address):
         """
@@ -81,9 +84,38 @@ class Cluster:
         @param address ,, str adress of the new node with format 'ip:port'
         """
         if not self.join_line:
-            raise RuntimeError('cluster is not deployed. deploy cluster first to add new minoins.')
+            raise RuntimeError('cluster is not deployed. deploy cluster first to add new minions.')
         prefab = j.tools.prefab.get(address)
         prefab.virtualization.kubernetes.install_minion(self.join_line)
 
+    def kub_client_apply(self, scripts_dir='/opt/code/github/0-complexity/openvcloud_installer/scripts/kubernetes/'):
+        self.prefab.core.run('kubectl --kubeconfig="{config}" apply -f {path}/rbac.yaml'.format(config=self.k8s_config, path=scripts_dir))
+        self.prefab.core.run('kubectl --kubeconfig="{config}" create configmap system-config --from-file {path}'.format(
+                            path=self.config_path, config=self.k8s_config))
+        templates = ['mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal']
+        for template in templates:
+            template_file = scripts_dir + template
+            if template == 'stats-collector':
+                template = template_file + '/stats-deployment.yaml'
+                data = j.data.serializer.yaml.load(template)
+                data['spec']['template']['spec']['containers'][0]['args'][4] = self._get_cidr()
+                j.data.serializer.yaml.dump(template, data)
+            self.prefab.core.run('kubectl --kubeconfig="{config}" apply -f {template}'.format(config=self.k8s_config, template=template_file))
+        self.grafana_apply('{}/grafana'.format(scripts_dir))
+
+    def grafana_apply(self, grafana_dir):
+        cmd = """
+        cd {dir}
+        kubectl --kubeconfig="{config}" create configmap grafana-provisioning-datasources --from-file=provisioning/datasources
+        kubectl --kubeconfig="{config}" create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards
+        kubectl --kubeconfig="{config}" create configmap grafana-dashboards --from-file=sources/templates
+        kubectl --kubeconfig="{config}" apply -f grafana-service.yaml
+        kubectl --kubeconfig="{config}" apply -f grafana-deployment.yaml
+        """.format(dir=grafana_dir, config=self.k8s_config)
+        self.prefab.core.execute_bash(cmd)
+        
+
+if __name__ == '__main__':
+    deploy_cluster()
 
 
