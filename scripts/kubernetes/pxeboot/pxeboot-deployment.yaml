@@ -37,5 +37,7 @@ spec:
         configMap:
           name: system-config-map
       - name: pxeboot-root
-        emptyDir: {}
+        hostPath:
+          path: /var/ovc/pxeboot
+          type: DirectoryOrCreate
 

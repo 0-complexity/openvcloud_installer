@@ -1,6 +1,6 @@
 FROM alpine:3.2
 
 RUN apk -U add dnsmasq
-RUN mkdir -p /tftpboot /conf
+RUN mkdir -p /pxeboot/tftpboot /pxeboot/conf
 
-ENTRYPOINT ["/usr/sbin/dnsmasq", "-C", "/conf/dnsmasq.conf", "--no-daemon"]
+ENTRYPOINT ["/usr/sbin/dnsmasq", "-C", "/pxeboot/conf/dnsmasq.conf", "--no-daemon"]

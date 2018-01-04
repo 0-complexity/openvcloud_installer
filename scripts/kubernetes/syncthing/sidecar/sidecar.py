@@ -80,6 +80,7 @@ while True:
         device['client'].add_folder('ovc-billing', '/var/ovc/billing', devlist)
         device['client'].add_folder('ovc-influx', '/var/ovc/influxdb', devlist)
         device['client'].add_folder('ovc-grafana', '/var/ovc/grafana', devlist)
+        device['client'].add_folder('ovc-pxeboot', '/var/ovc/pxeboot', devlist)
 
         device['client'].config_set()
 
