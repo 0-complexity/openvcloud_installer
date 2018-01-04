@@ -104,29 +104,29 @@ controller:
           size: 20
   hosts: # Nodes in cluster info
     - hostname: be-loc-4-ctrl-01
-      user: cloudscalers
-      password: wTK4Wj1bR
+      user: gig
+      password: rooter
       network-interfaces:
         - device: enp3s0
         - device: enp4s0
           label: mgmt # devices with label mgmt contains the node address
-          ipaddress: 192.168.103.254 # Node address
+          ipaddress: 10.101.109.1 # Node address
     - hostname: be-loc-4-ctrl-02
-      user: cloudscalers
-      password: d73veZ9fD
+      user: gig
+      password: rooter
       network-interfaces:
         - device: enp3s0
         - device: enp4s0
           label: mgmt
-          ipaddress: 192.168.103.253
+          ipaddress: 10.101.109.2
     - hostname: be-loc-4-ctrl-03
-      user: cloudscalers
-      password: idBnCE0xV
+      user: gig
+      password: rooter
       network-interfaces:
         - device: enp3s0
         - device: enp4s0
           label: mgmt
-          ipaddress: 192.168.103.252
+          ipaddress: 10.101.109.3
 
 environment:
   grid:

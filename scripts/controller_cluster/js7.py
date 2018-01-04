@@ -62,6 +62,30 @@ class JumpScale7:
         cmd = 'ays install -d {} -n {} -i {} --data "{}"'.format(domain, package, instance, datastr)
         self.prefab.core.run(cmd)
 
+    def install_compute_node(self, netinfo, masterhost, masterpassword, gid):
+        data_net = {
+            'netconfig.public_backplane.interfacename': 'backplane1',
+            'netconfig.gw_mgmt_backplane.interfacename': 'backplane1',
+            'netconfig.vxbackend.interfacename': 'backplane1',
+            'netconfig.gw_mgmt.vlanid': netinfo['gwmgmt_vlan'],
+            'netconfig.vxbackend.vlanid': netinfo['vxbackend_vlan'],
+            'netconfig.gw_mgmt.ipaddr': netinfo['gwmgmt_ip'],
+            'netconfig.vxbackend.ipaddr': netinfo['vxbackend_ip'],
+        }
+
+        data_cpu = {
+            'param.rootpasswd': masterpassword,
+            'param.master.addr': masterhost,
+            'param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
+            'param.grid.id': gid,
+        }
+
+        j.console.notice('installing network')
+        self.ays_install('scaleout_networkconfig', instance='main', data=data_net)
+
+        j.console.notice('installing cpu node')
+        self.ays_install('cb_cpunode_aio', instance='main', data=data_cpu)
+
 
 
 if __name__ == '__main__':

@@ -62,7 +62,15 @@ Alternatively the user has two options to specify the config:
 
 ## Deploying the application
 
-First config map needs to be created:
+Deploying each component of the application is done by using the following command:
+
+```bash
+kubectl apply -f <path>
+```
+
+This needs to be applied on `rbac.yaml` first before doing any other operations. It can be found under `scripts/kubernetes/`
+
+Creating the config map:
 
 `kubectl create secret generic system-config --from-file <config path>`
 
@@ -78,12 +86,6 @@ Same needs to be done for the certificats. Four secrets are needed, they can use
 - `novnc-certs`
 - `ovs-certs`
 - `root-certs`
-
-Deploying each component of the application is done by using the following command:
-
-```bash
-kubectl apply -f <path>
-```
 
 This needs to be done in a specific order and it is preferable to wait after each pod has been deployed.
 To check the status of pods run `kubectl get pods` to list names of available pods and then `kubectl get pod <podname>`.
