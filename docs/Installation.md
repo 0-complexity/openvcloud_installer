@@ -8,9 +8,10 @@
 - Swap needs to be off on each node
 - Each node needs to be able to access each other node in the cluster
 - Make sure that following directories exists on each node with mode 777(ex: chmod 777 /var/ovc/mongodb):
-  - /var/ovc/mongodb
-  - /var/ovc/influx
-  - /var/ovc/billing
+  - `/var/ovc/mongodb`
+  - `/var/ovc/influx`
+  - `/var/ovc/billing`
+  - `/var/ovc/pxeboot`
 
 ## Installing the cluster
 
