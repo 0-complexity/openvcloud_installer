@@ -4,7 +4,7 @@ import os
 configroot = '/opt/pxeboot/conf'
 tftproot = '/opt/pxeboot/tftpboot'
 
-with open('/etc/system-config.yaml', 'r') as f:
+with open('/etc/global/system-config.yaml', 'r') as f:
     configfile = f.read()
 
 config = yaml.load(configfile)

@@ -30,7 +30,7 @@ spec:
         - /usr/local/bin/pxeboot-init
         volumeMounts:
         - name: system-config
-          mountPath: "/etc/system-config.yaml"
+          mountPath: "/etc/global"
         - name: pxeboot-root
           mountPath: /opt/pxeboot
       volumes:
