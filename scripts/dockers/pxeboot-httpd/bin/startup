@@ -1,0 +1,7 @@
+#!/bin/bash
+set -ex
+
+cd /www
+
+addr=$(python3 /usr/local/bin/managementaddr.py)
+python3 -m http.server 8080 --bind ${addr}
