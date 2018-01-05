@@ -46,6 +46,8 @@ spec:
         - name: defense-certs
           mountPath: /opt/cfg/nginx/ssl/defense
           readOnly: true
+        - name: g8vdc-volume
+          mountPath: /opt/code/github/
       volumes:
         - name: nginx-config
           emptyDir: {}
@@ -64,5 +66,8 @@ spec:
         - name: defense-certs
           secret:
             secretName: defense-certs
+        - name: g8vdc-volume
+          gitRepo:
+            repository: "https://github.com/0-complexity/g8vdc.git"
 
 

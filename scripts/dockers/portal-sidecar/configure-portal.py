@@ -122,7 +122,7 @@ class Portal(object):
                 service.hrd.set('instance.navigationlinks.%s' % linkid, data)
         service.hrd.set('instance.param.cfg.defaultspace', 'vdc')
         service.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
-        service.start()
+        service.hrd.save()
         scl = j.clients.osis.getNamespace('system')
 
         # setup user/groups
