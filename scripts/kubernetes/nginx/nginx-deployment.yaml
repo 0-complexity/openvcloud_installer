@@ -46,28 +46,6 @@ spec:
         - name: defense-certs
           mountPath: /opt/cfg/nginx/ssl/defense
           readOnly: true
-      - name: dev
-        image: nginx:1.12
-        ports:
-        - containerPort: 80
-        - containerPort: 443
-        command: ['yes']
-        volumeMounts:
-        - name: nginx-config
-          mountPath: /etc/nginx/nginx.conf
-          subPath: nginx.conf
-        - name: root-certs
-          mountPath: /opt/cfg/nginx/ssl/root
-          readOnly: true
-        - name: ovs-certs
-          mountPath: /opt/cfg/nginx/ssl/ovs
-          readOnly: true
-        - name: novnc-certs
-          mountPath: /opt/cfg/nginx/ssl/novnc
-          readOnly: true
-        - name: defense-certs
-          mountPath: /opt/cfg/nginx/ssl/defense
-          readOnly: true
       volumes:
         - name: nginx-config
           emptyDir: {}
