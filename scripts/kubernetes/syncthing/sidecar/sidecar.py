@@ -23,6 +23,9 @@ while True:
     available = []
 
     for item in pods['items']:
+        if not item['status'].get('containerStatuses'):
+            continue
+
         for container in item['status']['containerStatuses']:
             if container['name'] == target and container['ready']:
                 available.append({
