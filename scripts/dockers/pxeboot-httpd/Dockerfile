@@ -1,8 +1,4 @@
-FROM ubuntu:16.04
-
-RUN apt-get update && \
-    apt-get install -y python3 && \
-    mkdir /www
+FROM busybox:latest
 
 COPY bin /usr/local/bin
 

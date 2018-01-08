@@ -1,7 +1,5 @@
 #!/bin/bash
 set -ex
 
-cd /www
-
-addr=$(python3 /usr/local/bin/managementaddr.py)
-python3 -m http.server 8080 --bind ${addr}
+addr=$(ip -o a sh dev mgmt | awk -F'[[:space:]/]' '/inet / { print $7 }')
+httpd -f -v -p "${addr}:8080" -h /www
