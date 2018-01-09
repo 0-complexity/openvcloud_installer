@@ -19,9 +19,11 @@ spec:
         volumeMounts:
         - name: pxeboot-root
           mountPath: /pxeboot
-      #
-      # add here container which do http and images
-      #
+      - name: pxeboot-httpd
+        image: openvcloud/pxeboot-httpd
+        volumeMounts:
+        - name: pxeboot-images
+          mountPath: /www
       initContainers:
       - name: pxeboot-init
         image: openvcloud/pxeboot-init
@@ -40,5 +42,9 @@ spec:
       - name: pxeboot-root
         hostPath:
           path: /var/ovc/pxeboot
+          type: DirectoryOrCreate
+      - name: pxeboot-images
+        hostPath:
+          path: /var/ovc/pxeboot/images
           type: DirectoryOrCreate
 

@@ -8,7 +8,7 @@ with open('/etc/global/system-config.yaml', 'r') as f:
     configfile = f.read()
 
 config = yaml.load(configfile)
-domain = config['environment']['domain']
+domain = "%s.%s" % (config['environment']['basedomain'], config['environment']['subdomain'])
 gateway = config['environment']['gateway']
 subnet = config['environment']['subnet']
 
