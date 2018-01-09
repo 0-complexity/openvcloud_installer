@@ -17,7 +17,7 @@ network:
   vlans:
     management: 2311
     public: 2312
-    vx-backend: 2313
+    vxbackend: 2313
     gateway: 2314
     storage: 2315
   providers:
@@ -156,6 +156,9 @@ environment:
       path: /certpath
   subnet: 10.109.2.0
   gateway: 10.109.2.1
+  versions:
+      openvcloud: production
+      jumpscale: production
 
 nodes: # Environment nodes info
   cpu:
@@ -169,6 +172,10 @@ nodes: # Environment nodes info
         password: ADMIN
       backplane:
         ipaddress: 10.109.2.102
+      vxbackend:
+        ipaddress: 10.240.0.12/16
+      gwmgmt:
+        ipaddress: 10.199.0.12/22
   storage:
     - name: storage01
       mgmt:

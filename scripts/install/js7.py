@@ -1,10 +1,29 @@
 from js9 import j
 
+AYSCONFIG = '''
+metadata.jumpscale             =
+    branch:'{version}',
+    url:'git@github.com:jumpscale7/ays_jumpscale7',
+
+metadata.openvcloud            =
+    branch:'{ovcversion}',
+    url:'git@github.com:0-complexity/openvcloud_ays',
+'''
+
+WHOAMI = '''
+email                          =
+
+fullname                       =
+
+git.login                      = 'ssh'
+git.passwd                     = 'ssh'
+'''
+
 class JumpScale7:
     def __init__(self, prefab):
         self.prefab = prefab
 
-    def install_core(self, version='master'):
+    def install_core(self, version='master', ovcversion='master'):
         env = {'AYSBRANCH': version, 'JSBRANCH': version}
         cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(version)
         self.prefab.system.ssh.define_host('git.aydo.com')
@@ -16,6 +35,8 @@ class JumpScale7:
             self.prefab.system.package.install('curl')
         if self.prefab.bash.cmdGetPath('js', False) is False:
             self.prefab.core.run(cmd, env=env)
+        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=version, ovcversion=ovcversion))
+        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
 
     def install_agent(self, osishost, osispassword, achost, gid):
         redisdata = {

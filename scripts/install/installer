@@ -2,11 +2,28 @@
 from js9 import j
 import netaddr
 import click
+import sys
 import time
 
 IMAGE_NAME = ''
 
-@click.command()
+@click.group()
+def cli():
+    pass
+
+@cli.group()
+def cluster():
+    pass
+
+@cli.group()
+def node():
+    pass
+
+@cli.group()
+def cpu():
+    pass
+
+@cluster.command('deploy')
 @click.option('--config', help='Config file to deploy the cluster')
 @click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
 def deploy_cluster(config, configure_cluster):
@@ -23,12 +40,55 @@ def deploy_cluster(config, configure_cluster):
     cluster.install_controller()
 
 
+
+@cpu.command('deploy')
+@click.option('--config', help='Config file to deploy the cluster')
+@click.option('--node-name', help='Node name to configure')
+def deploy_cpu(config, node_name):
+    from js7 import JumpScale7
+    config = j.data.serializer.yaml.load(config)
+    for cpunode in config['nodes']['cpu']:
+        if cpunode['name'] == node_name:
+            break
+    else:
+        print('Could not find node with name {}'.format(node_name))
+        sys.exit(1)
+
+    ip = cpunode['mgmt']['ipaddress']
+    prefab = j.tools.prefab.getFromSSH(ip)
+    jumpscale = JumpScale7(prefab)
+    versions = config['environment']['versions']
+    password = config['environment']['password']
+    gid = config['environment']['gid']
+    jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
+    controllerips = []
+    for host, interface in get_controller_host_management(config):
+        controllerips.append(interface['ipaddress'])
+
+    hostips = ','.join(controllerips)
+    jumpscale.install_agent(hostips, password, hostips, gid)
+    netinfo = {
+        'vxbackend_vlan': config['network']['vlans']['vxbackend'],
+        'vxbackend_ip': cpunode['vxbackend']['ipaddress'],
+        'gwmgmt_vlan': config['network']['vlans']['gateway'],
+        'gwmgmt_ip': cpunode['gwmgmgt']['ipaddress'],
+
+    }
+    jumpscale.install_compute_node(netinfo, hostips, password, gid)
+
+
 def Build_images():
     """
     build the releveant images that will be used to run the deployments
     TODO
     """
 
+
+def get_controller_host_management(config):
+    for host in self.config['controller']['hosts']:
+        for interface in host['network-interfaces']:
+            if interface.get('label') == 'mgmt':
+                yield host, interface
 
 class Cluster:
     """
@@ -41,17 +101,15 @@ class Cluster:
         self.join_line = ''
         self.prefab = j.tools.prefab.local
         self.nodes = self._nodes_prefab()
-        
+
     def _nodes_prefab(self):
         nodes = []
-        for host in self.config['controller']['hosts']:
-            for interface in host['network-interfaces']:
-                if interface.get('label') == 'mgmt':
-                    sshclient = j.clients.ssh.get(interface['ipaddress'], login=host['user'], passwd=host['password'])
-                    sshkey = j.clients.ssh.ssh_keys_list_from_agent()[0]
-                    sshclient.SSHAuthorizeKey(j.sal.fs.getBaseName(sshkey))
-                    executor = j.tools.executor.getSSHBased(interface['ipaddress'], usecache=False)
-                    nodes.append(j.tools.prefab.get(executor))
+        for host, interface in get_controller_host_management(self.config):
+            sshclient = j.clients.ssh.get(interface['ipaddress'], login=host['user'], passwd=host['password'])
+            sshkey = j.clients.ssh.ssh_keys_list_from_agent()[0]
+            sshclient.SSHAuthorizeKey(j.sal.fs.getBaseName(sshkey))
+            executor = j.tools.executor.getSSHBased(interface['ipaddress'], usecache=False)
+            nodes.append(j.tools.prefab.get(executor))
         return nodes
 
     def _get_cidr(self):
@@ -153,6 +211,6 @@ class Cluster:
         self.prefab.core.execute_bash(cmd)
 
 if __name__ == '__main__':
-    deploy_cluster()
+    cli()
 
 
