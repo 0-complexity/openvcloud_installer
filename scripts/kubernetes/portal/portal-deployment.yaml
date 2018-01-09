@@ -31,7 +31,7 @@ spec:
         imagePullPolicy: Always
         command: [/bin/bash]
         args: ['-c', '/opt/jumpscale7/bin/jspython /var/run/scripts/portal/configure-portal.py && /opt/jumpscale7/bin/jspython portal_start.py main']
-        image: abduman/portal7
+        image: openvcloud/portal7
         workingDir: /opt/jumpscale7/apps/portals/main
         volumeMounts:
         - name:  system-hrd

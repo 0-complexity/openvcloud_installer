@@ -10,6 +10,14 @@ def get_dependencies(template):
     return dependencies
 
 
+def replace_vars(path):
+    return path.replace('$(instance.portal.instance)', 'main') \
+           .replace('$(system.paths.base)', '/opt/jumpscale7') \
+           .replace('$(service.instance)', 'main') \
+           .replace('$(system.paths.python.lib.js)', '/opt/jumpscale7/lib/JumpScale') \
+           .replace('$(system.paths.python.lib.ext)', '/opt/jumpscale7/libext')
+
+
 class ServiceMigration:
     def __init__(self):
         pass
@@ -17,7 +25,7 @@ class ServiceMigration:
     def services(self):
         data = {}
         j.do.execute('git config --global user.email "builder@greenitglobe.com"')
-        j.do.execute('git config --global user.name "GrenItGlobe Builder"')
+        j.do.execute('git config --global user.name "GreenItGlobe Builder"')
         metarepos = j.application.config.getDictFromPrefix('atyourservice.metadata').values()
         for repo in metarepos:
             j.do.pullGitRepo(url=repo['url'], branch=repo['branch'], ignorelocalchanges=True, reset=True)
@@ -80,9 +88,12 @@ class ServiceMigration:
         else:
             items = [(src, dest, link)]
 
-        # print(items)
 
         for src, dest, link in items:
+            dest = replace_vars(dest)
+            print(dest)
+            if '$' in dest:
+                raise RuntimeError('forgot to adjust {}'.format(dest))
             if dest[0] != "/":
                 dest = "/%s" % dest
 

@@ -80,11 +80,11 @@ class JumpScale7:
             'param.grid.id': gid,
         }
 
-        j.console.notice('installing network')
-        self.ays_install('scaleout_networkconfig', instance='main', data=data_net)
+        print('installing network')
+        self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
 
-        j.console.notice('installing cpu node')
-        self.ays_install('cb_cpunode_aio', instance='main', data=data_cpu)
+        print('installing cpu node')
+        self.ays_install('cb_cpunode_aio', domain='openvcloud', instance='main', data=data_cpu)
 
 
 
