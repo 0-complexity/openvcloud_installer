@@ -72,6 +72,7 @@ controller:
     - /var/ovc/billing
     - /var/ovc/influx
     - /var/ovc/mongodb
+    - /var/ovc/pxeboot
 
   disk-layout:
     - partition: 0
