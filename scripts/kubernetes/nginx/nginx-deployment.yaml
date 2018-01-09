@@ -16,7 +16,7 @@ spec:
       - name: nginx-init
         command: [jspython]
         args: ['configure-nginx.py']
-        image: abduman/nginx-sidecar
+        image: openvcloud/nginx-sidecar
         workingDir: /var/run/scripts/nginx
         volumeMounts:
         - name: nginx-config
