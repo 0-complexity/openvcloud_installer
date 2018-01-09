@@ -5,10 +5,9 @@ metadata:
   labels:
     name: osis
 spec:
+  type: NodePort
   ports:
   - name: main
     port: 5544
-    targetPort: 5544
-  clusterIP: None
   selector:
     app: osis

@@ -5,16 +5,13 @@ metadata:
   labels:
     name: agentcontroller
 spec:
+  type: NodePort
   ports:
   - name: main-port
     port: 4444
-    targetPort: 4444
   - name: jsagent-port
     port: 4446
-    targetPort: 4446
   - name: redis-port
     port: 9999
-    targetPort: 9999
-  clusterIP: None
   selector:
     app: agentcontroller
