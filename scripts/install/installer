@@ -8,7 +8,8 @@ IMAGE_NAME = ''
 
 @click.command()
 @click.option('--config', help='Config file to deploy the cluster')
-def deploy_cluster(config):
+@click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
+def deploy_cluster(config, configure_cluster):
     """
     Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
     """
@@ -17,7 +18,8 @@ def deploy_cluster(config):
     if not j.clients.ssh.ssh_agent_available() or not j.clients.ssh.ssh_keys_list_from_agent():
         raise j.exceptions.NotFound ("No ssh key loaded. Please load the appropriate sshkey.")
     cluster = Cluster(config)
-    cluster.install_kubernetes_cluster()
+    if configure_cluster:
+        cluster.install_kubernetes_cluster()
     cluster.install_controller()
 
 
@@ -65,6 +67,9 @@ class Cluster:
             node.core.run('swapoff -a')
         k8s_config_data , self.join_line = self.prefab.virtualization.kubernetes.multihost_install(self.nodes, unsafe=True)
         self.prefab.core.file_write(self.k8s_config, k8s_config_data)
+        self.prefab.core.dir_ensure('/root/.kube')
+        if not self.prefab.core.file_exists('/root/.kube/config'):
+            self.prefab.core.file_write('/root/.kube/config', k8s_config_data)
 
     def install_controller(self):
         """
@@ -72,13 +77,13 @@ class Cluster:
         cluster. Creating the relevant deployments, services, and mounts
         TODO
         """
-        self.prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
+        if not self.prefab.core.file_exists('/usr/local/bin/kubeclt'):
+            self.prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
         directories = self.config['controller'].get('directories')
         for node in self.nodes:
             for directory in directories:
                 node.core.dir_ensure(directory, mode='777')
-        self.prefab.core.file_move(self.k8s_config, '/root/.kube/config')
-        for key, value in self.config['environment']['ssl']:
+        for key, value in self.config['environment']['ssl'].items():
             self.prefab.core.run('kubectl create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=value['path']))
         self.kub_client_apply()
 

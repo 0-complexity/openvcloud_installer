@@ -18,7 +18,7 @@ spec:
         imagePullPolicy: Always
         command: [jspython]
         args: ['configure-system.py']
-        image: abduman/cb_master
+        image: openvcloud/cb_master
         workingDir: /var/run/scripts/system
         volumeMounts:
         - name: system-hrd
@@ -31,7 +31,7 @@ spec:
         imagePullPolicy: Always
         command: [jspython]
         args: ['controller.py', '-i', 'main']
-        image: abduman/cb_master
+        image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/agentcontroller/
         ports:
         - containerPort: 4444
@@ -42,7 +42,7 @@ spec:
         imagePullPolicy: Always
         command: [jspython]
         args: ['jsagent.py', '-i', 'main']
-        image: abduman/cb_master
+        image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/jsagent/
         ports:
         - containerPort: 4446

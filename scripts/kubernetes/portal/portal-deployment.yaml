@@ -18,7 +18,7 @@ spec:
         imagePullPolicy: Always
         command: [jspython]
         args: ['configure-system.py']
-        image: abduman/cb_master
+        image: openvcloud/cb_master
         workingDir: /var/run/scripts/system
         volumeMounts:
         - name: system-hrd
@@ -45,7 +45,7 @@ spec:
         imagePullPolicy: Always
         command: [/opt/jumpscale7/bin/jspython]
         args: ['jsagent.py', '-i', 'main']
-        image: abduman/cb_master
+        image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/jsagent/
         volumeMounts:
         - name:  system-hrd

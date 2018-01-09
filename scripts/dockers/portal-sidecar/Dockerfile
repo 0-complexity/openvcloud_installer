@@ -1,4 +1,4 @@
-FROM abduman/cb_master
+FROM openvcloud/cb_master
 
 RUN apt-get update && \
     apt-get upgrade -y && \
