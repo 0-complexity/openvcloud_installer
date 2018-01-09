@@ -103,3 +103,5 @@ The required order is:
 - [stats-collector](../scripts/kubernetes/stats-collector)
 - [grafana](../scripts/kubernetes/grafana)
 - [portal](../scripts/kubernetes/portal)
+- [nginx](../scripts/kubernetes/nginx)
+- [pxeboot](../scripts/kubernetes/pxeboot)
