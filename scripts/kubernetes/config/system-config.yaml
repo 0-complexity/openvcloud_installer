@@ -6,6 +6,12 @@ itsyouonline:
   clientSecret: fwegfwefwefw-ALGwzRpSLLf # itsyouonlie secret
   clientId: greenitglobe.environments.be-g8-4 # itsyouonline client id
   environment: be-g8-4 # 
+mailclient:
+  login: support@dummy.com # SMTP login
+  passwd: 5jfgf5tjrdsd # SMTP password
+  port: 578 # SMTP port
+  sender: support@env.com # SMTP server sender
+  server: smtp.domain.com # SMTP server address
 timezone: CET
 network:
   vlans:

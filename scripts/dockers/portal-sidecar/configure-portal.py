@@ -193,9 +193,15 @@ class Portal(object):
         j.do.execute('ln -s /opt/jumpscale7/')
         return portal
 
+    def patch_mail_client(self):
+        mailclient = j.atyourservice.get(domain='jumpscale', name='mailclient', instance='main')
+        for key, value in self.config['mailclient'].items():
+            mailclient.hrd.set('instance.smtp.%s' % key, value)
+        mailclient.hrd.save()
 
 if __name__ == '__main__':
     portal = Portal()
     portal.add_user()
     service = portal.configure_IYO()
     portal.configure_user_groups(service)
+    portal.patch_mail_client()
