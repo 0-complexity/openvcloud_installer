@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ash
 set -ex
 
 addr=$(ip -o a sh dev mgmt | awk -F'[[:space:]/]' '/inet / { print $7 }')

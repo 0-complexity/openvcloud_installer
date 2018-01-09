@@ -2,4 +2,4 @@ FROM busybox:latest
 
 COPY bin /usr/local/bin
 
-ENTRYPOINT ["/bin/bash", "/usr/local/bin/startup"]
+ENTRYPOINT ["/bin/ash", "/usr/local/bin/startup"]

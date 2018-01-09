@@ -1,15 +1,17 @@
 import yaml
 import os
+from managementaddr import ManagementAddress
 
 configroot = '/opt/pxeboot/conf'
 tftproot = '/opt/pxeboot/tftpboot'
+intf = ManagementAddress()
 
 with open('/etc/global/system-config.yaml', 'r') as f:
     configfile = f.read()
 
 config = yaml.load(configfile)
 domain = "%s.%s" % (config['environment']['basedomain'], config['environment']['subdomain'])
-gateway = config['environment']['gateway']
+gateway = intf.get('mgmt')
 subnet = config['environment']['subnet']
 
 """
@@ -54,7 +56,7 @@ netconfig = {
     '%option6%': gateway,
 }
 
-pxelinux = os.path.join(tftproot, 'pxelinux.cfg', '911boot')
+pxelinux = os.path.join(configroot, 'tftp-911boot')
 dnsmasq = os.path.join(configroot, 'dnsmasq.conf')
 
 for target in [pxelinux, dnsmasq]:
