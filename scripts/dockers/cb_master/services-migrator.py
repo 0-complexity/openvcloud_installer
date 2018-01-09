@@ -1,7 +1,14 @@
 from JumpScale import j
-import json
-import pprint
-import os
+
+
+def get_dependencies(template):
+    hrd = template.getHRD()
+    dependencies = [template]
+    for dependency in hrd.getListFromPrefixEachItemDict('dependencies'):
+        for deptemplate in j.atyourservice.findTemplates(name=dependency['name'], domain=dependency.get('domain', '')):
+            dependencies += get_dependencies(deptemplate)
+    return dependencies
+
 
 class ServiceMigration:
     def __init__(self):
@@ -9,10 +16,15 @@ class ServiceMigration:
 
     def services(self):
         data = {}
-        masteraio = j.atyourservice.get(name='cb_master_aio')
+        j.do.execute('git config --global user.email "builder@greenitglobe.com"')
+        j.do.execute('git config --global user.name "GrenItGlobe Builder"')
+        metarepos = j.application.config.getDictFromPrefix('atyourservice.metadata').values()
+        for repo in metarepos:
+            j.do.pullGitRepo(url=repo['url'], branch=repo['branch'], ignorelocalchanges=True, reset=True)
+        masteraio = j.atyourservice.findTemplates(name='cb_master_aio')[0]
 
-        for service in masteraio.getDependencyChain():
-            for export in service.hrd.getListFromPrefix("service.git"):
+        for service in get_dependencies(masteraio):
+            for export in service.getHRD().getListFromPrefix("git"):
                 if not isinstance(export, dict):
                     continue
 
@@ -40,12 +52,10 @@ class ServiceMigration:
             'branch': service.get('branch'),
             'revision': service.get('revision'),
             'dest': None,
+            'ignorelocalchanges': True,
+            'reset': True,
             'tag': service.get('tag')
         }
-
-        # FIXME
-        if settings['branch'] == '7.1.7':
-            settings['branch'] = '7.2.1'
 
         repo = j.do.pullGitRepo(**settings)
 
