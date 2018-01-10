@@ -1,9 +1,11 @@
 import yaml
 import os
+import subprocess
 from managementaddr import ManagementAddress
 
 configroot = '/opt/pxeboot/conf'
 tftproot = '/opt/pxeboot/tftpboot'
+imageroot = '/opt/pxeboot/images'
 intf = ManagementAddress()
 
 with open('/etc/global/system-config.yaml', 'r') as f:
@@ -68,3 +70,18 @@ for target in [pxelinux, dnsmasq]:
 
     with open(target, 'w') as f:
         f.write(source)
+
+"""
+ssh key
+"""
+with open('/tmp/id_rsa', 'w') as f:
+    f.write(config['ssh']['private-key'])
+
+os.chmod('/tmp/id_rsa', 0o600)
+
+key = subprocess.run(['ssh-keygen', '-y', '-f', '/tmp/id_rsa'], stdout=subprocess.PIPE)
+print("Public key: %s" % key.stdout.strip())
+
+with open(os.path.join(imageroot, 'pubkey'), 'w') as f:
+    f.write(key.stdout.decode('utf-8'))
+

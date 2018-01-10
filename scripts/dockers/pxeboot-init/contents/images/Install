@@ -1,5 +1,4 @@
 #!/bin/bash
-
 DISK1=""
 DISK2=""
 DISK=""
@@ -10,15 +9,9 @@ MOBO=`sudo dmidecode -t 2 | awk '/Product Name:/{print $3}'`
 OSIMAGE="ubuntu-16.04.3-20171130.tgz"
 case "$MOBO" in
    S2P-MB) # Quanta Storage Node
-        if [ -h "/sys/class/net/p255p1" ] ; then
-	    BONDIFACES=('enp4s0' 'enp4s0d1')
-            STORIFACE="storage"
-	    MGMT=('eno1')
-	else
-	    BONDIFACES=('enp4s0' 'enp4s0d1')
-            STORIFACE="enp4s0f1"
-	    MGMT=('eno1')
-	fi
+	BONDIFACES=() # filled in by findifaces
+        STORIFACE="storage"
+	MGMT=('eno1')
 	disks=(`lsscsi -t | awk '!/^\[0:0:/{split($4,d,"/"); print d[3]}'`)
 	DISK1=${disks[0]}
 	DISK2=${disks[1]}
@@ -34,11 +27,9 @@ case "$MOBO" in
 	echo "######## Installing on $DISK1 and $DISK2"
 	;;
    X10DRW-i) # SuperMicro UberServer (be-g8-1)
-	if [ -h "/sys/class/net/p513p1" ] ; then
-		BONDIFACES=('ens1' 'ens1d1' )
-		MGMT=('eno1')
-		STORIFACE="storage"
-	fi
+	BONDIFACES=() # filled in by findifaces
+	MGMT=('eno1')
+	STORIFACE="storage"
 	;;
    X10DRT-H) # SuperMicro 4-node Chassis DigitalEnergy
 	BONDIFACES=('ens1f0' 'ens1f1' )
@@ -63,8 +54,8 @@ case "$MOBO" in
 	MGMT=('eno1')
 	;;
    G1SCN-B) # Gooxi Controller node
-	BONDIFACES=('p6p1')
-	MGMT=('p4p1')
+	BONDIFACES=('enp4s0')
+	MGMT=('enp3s0')
 	OSIMAGE="ubu-16.04-generic-raid1.tgz"
 	;;
    *)
@@ -307,7 +298,7 @@ function untarit(){
 }
 
 function findifaces(){
-    # we're looking for ixgbe drivers
+    # we're looking for fast nics
     IFACES=""
     for i in /sys/class/net/* ; do
         if ethtool ${i##*/}  2> /dev/null | grep -E '10000|40000' &>/dev/null ; then
@@ -316,6 +307,15 @@ function findifaces(){
     done
     echo ${IFACES:-eth0 eth1}
 
+}
+
+function fixQCTinitramfs(){
+    # with the latest (16.04.3) initramfsbuilder, when a device is recognized,
+    # the bootscripts don't wait for udev to settle. apparently this wreaks
+    # havoc on the QCT, with the loading of the ahci controller, and mounting
+    # the btrfs /
+    # Lets have it behave again
+    sed -i 's/.*wait-for-root.*/\t\twait_for_udev 10/' /mnt/share/initramfs-tools/scritps/local
 }
 
 function storiface(){
@@ -372,10 +372,10 @@ if [ ${#BONDIFACES[@]} -gt 1 ] ; then
 ### backplane1
 auto backplane1
 iface backplane1 inet static
- address ${BKPLNIP}
- netmask ${IPV4NETMASK}
- dns-nameserver ${IPV4DNS0}
- mtu 2000
+  address ${BKPLNIP}
+  netmask ${IPV4NETMASK}
+  dns-nameserver ${IPV4DNS0}
+  mtu 9000
 EOF
   for iface in ${BONDIFACES[@]} ; do
 	 echo "  pre-up ip l set ${iface} up " >> /mnt/etc/network/interfaces.d/Backplane1.conf
@@ -387,13 +387,12 @@ EOF
   # and mgmt iface =
   mgmtiface ${MGMT[0]}
   storiface ${STORIFACE}
-  if [ "$MOBO" = "S2P-MB" ] ; then
-    cat << EOF > /mnt/etc/modprobe.d/mlx4.conf
+  # no virtual functions for RDMA any more
+  cat << EOF > /mnt/etc/modprobe.d/mlx4.conf
 # mlx4_core gets automatically loaded, load mlx4_en also (LP: #1115710)
 softdep mlx4_core post: mlx4_en
 options mlx4_core num_vfs=0 probe_vf=0
 EOF
-  fi
 
 else
    cat << EOF > /mnt/etc/network/interfaces.d/Backplane1.conf
@@ -439,6 +438,11 @@ EOF
 # Also, remove udevd wwn creation in /dev/discs/by-id
 sed -i -e '/wwn/ s/^#*/# /' /mnt/lib/udev/rules.d/60-persistent-storage.rules
 
+# Also, if QCT, fix initramfs
+if [ "$MOBO" = "S2P-MB" ] ; then
+	fixQCTinitramfs
+fi
+
 }
 
 function installgrub(){
@@ -466,8 +470,9 @@ for i in {.,auth*,kern*,syslog*} ; do chown syslog:adm /var/log/${i} ; done
 EOF
 
     chmod 755 /mnt/rungrub
-    ./ays-chroot /mnt /rungrub
+    ./init-chroot /mnt /rungrub
 }
+
 
 function createswaps(){
     # dont forget to create swapsig
@@ -559,6 +564,10 @@ HOSTNUM=`echo $IPV4ADDR | awk -F . '{printf "%02d",$4 - 100}'`
 AYSHOSTNAME=${HOSTNAME,,}.${DNSDOMAIN,,}
 OURFILESERVER=$fullroot
 
+# to use findifaces, you need to create an empty BONDIFACES array
+if [ ${#BONDIFACES[@]} -eq 0 ] ; then
+	BONDIFACES=( $(findifaces) )
+fi
 # set hostname to some default
 hostname ${AYSHOSTNAME}
 export HOSTNAME=${AYSHOSTNAME}
@@ -582,9 +591,6 @@ installgrub
 
 # get pubkey autorized_keys
 wget ${fullroot}/pubkey -O - >> /mnt/root/.ssh/authorized_keys
-wget ${fullroot}/mlnx-en-4.1-1.0.2.0-ubuntu16.04-x86_64.tgz -O - | tar zxf - -C /mnt/root/
-mkdir /mnt/root/kernel
-wget ${fullroot}/linux-4.9.51.tgz -O - | tar zxf - -C /mnt/root/kernel/
 
 sed -i 's/^exit 0/\/sbin\/ifup backplane1\nexit 0/' /mnt/etc/rc.local
 # that should do it
