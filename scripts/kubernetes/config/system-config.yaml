@@ -1,15 +1,18 @@
 itsyouonline:
   callbackURL: https://be-g8-4.demo.greenitglobe.com/restmachine/system/oauth/authorize # The url to be redirecrtd to after authentication with itsyounoline
-  clientSecret: fwegfwefwefw-ALGwzRpSLLf # itsyouonlie secret
+  clientSecret: fwegfwefwefw-ALGwzRpSLLf # itsyouonline secret
   clientId: greenitglobe.environments.be-g8-4 # itsyouonline client id
   environment: be-g8-4 #
+
 mailclient:
   login: support@dummy.com # SMTP login
   passwd: 5jfgf5tjrdsd # SMTP password
   port: 578 # SMTP port
   sender: support@env.com # SMTP server sender
   server: smtp.domain.com # SMTP server address
+
 timezone: CET
+
 network:
   vlans:
     management: 2311
@@ -70,6 +73,7 @@ ssh:
     TZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==
     -----END RSA PRIVATE KEY-----
   public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ
+
 controller:
   directories: # required directories for nodes in cluster
     - /var/ovc/billing
