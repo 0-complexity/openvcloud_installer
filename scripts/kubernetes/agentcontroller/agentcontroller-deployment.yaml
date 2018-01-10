@@ -23,6 +23,8 @@ spec:
         volumeMounts:
         - name: system-hrd
           mountPath:  /opt/cfg/system/
+        - name: apps-hrd
+          mountPath:  /opt/cfg/apps/
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
@@ -38,6 +40,8 @@ spec:
         volumeMounts:
         - name: system-hrd
           mountPath: /opt/jumpscale7/hrd/system/
+        - name:  apps-hrd
+          mountPath: /opt/jumpscale7/hrd/apps/
       - name: jsagent
         imagePullPolicy: Always
         command: [jspython]
@@ -49,6 +53,8 @@ spec:
         volumeMounts:
         - name: system-hrd
           mountPath: /opt/jumpscale7/hrd/system/
+        - name:  apps-hrd
+          mountPath: /opt/jumpscale7/hrd/apps/
       - name: redis-container
         imagePullPolicy: Always
         command: [redis-server]
@@ -58,6 +64,8 @@ spec:
         - containerPort: 9999
       volumes:
       - name: system-hrd
+        emptyDir: {}
+      - name: apps-hrd
         emptyDir: {}
       - name: system-config
         configMap:

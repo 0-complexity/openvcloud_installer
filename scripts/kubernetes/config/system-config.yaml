@@ -1,11 +1,8 @@
-portal:
-  user: admin # default portal user
-  passwd: admin # default portal password
 itsyouonline:
   callbackURL: https://be-g8-4.demo.greenitglobe.com/restmachine/system/oauth/authorize # The url to be redirecrtd to after authentication with itsyounoline
   clientSecret: fwegfwefwefw-ALGwzRpSLLf # itsyouonlie secret
   clientId: greenitglobe.environments.be-g8-4 # itsyouonline client id
-  environment: be-g8-4 # 
+  environment: be-g8-4 #
 mailclient:
   login: support@dummy.com # SMTP login
   passwd: 5jfgf5tjrdsd # SMTP password
@@ -154,6 +151,7 @@ environment:
     defense:
       name: demo.greenitglobe.com
       path: /certpath
+  password: 'tester'
   subnet: 10.109.2.0
   gateway: 10.109.2.1
   versions:

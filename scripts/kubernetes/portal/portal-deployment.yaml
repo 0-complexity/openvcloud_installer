@@ -16,26 +16,30 @@ spec:
       initContainers:
       - name: system-init
         imagePullPolicy: Always
-        command: [jspython]
-        args: ['configure-system.py']
-        image: openvcloud/cb_master
+        command: [/bin/bash]
+        args: ['-c', 'jspython /var/run/scripts/system/configure-system.py && jspython /var/run/scripts/portal/configure-portal.py']
+        image: openvcloud/portal7
         workingDir: /var/run/scripts/system
         volumeMounts:
         - name: system-hrd
           mountPath:  /opt/cfg/system/
+        - name: apps-hrd
+          mountPath:  /opt/cfg/apps/
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
       containers:
       - name: portal-container
         imagePullPolicy: Always
-        command: [/bin/bash]
-        args: ['-c', '/opt/jumpscale7/bin/jspython /var/run/scripts/portal/configure-portal.py && /opt/jumpscale7/bin/jspython portal_start.py main']
+        command: [jspython]
+        args: [portal_start.py,  main]
         image: openvcloud/portal7
         workingDir: /opt/jumpscale7/apps/portals/main
         volumeMounts:
         - name:  system-hrd
           mountPath: /opt/jumpscale7/hrd/system/
+        - name:  apps-hrd
+          mountPath: /opt/jumpscale7/hrd/apps/
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
@@ -50,6 +54,8 @@ spec:
         volumeMounts:
         - name:  system-hrd
           mountPath: /opt/jumpscale7/hrd/system/
+        - name:  apps-hrd
+          mountPath: /opt/jumpscale7/hrd/apps/
         ports:
         - containerPort: 4446
       - name: redis-container
@@ -61,6 +67,8 @@ spec:
         - containerPort: 9999
       volumes:
       - name: system-hrd
+        emptyDir: {}
+      - name: apps-hrd
         emptyDir: {}
       - name: system-config
         configMap:

@@ -61,8 +61,8 @@ class Portal(object):
         """
         Add portal user using jsuser.
         """
-        user = portal.config['portal']['user']
-        passwd =  portal.config['portal']['passwd']
+        user = self.config['environment'].get('user', 'admin')
+        passwd =  self.config['environment']['password']
         cmd1 = 'jsuser list'
         res = j.do.execute(cmd1, dieOnNonZeroExitCode=False)[1]
         for line in res.splitlines():
@@ -74,6 +74,7 @@ class Portal(object):
 
 
     def configure_user_groups(self, service):
+        ovc_environment = self.config['itsyouonline']['environment']
         gid = j.application.whoAmI.gid
         fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         portal_links = {
@@ -124,6 +125,7 @@ class Portal(object):
         service.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
         service.hrd.save()
         scl = j.clients.osis.getNamespace('system')
+        ccl = j.clients.osis.getNamespace('cloudbroker')
 
         # setup user/groups
         for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3'):
@@ -133,6 +135,22 @@ class Portal(object):
                 group.id = groupname
                 group.users = ['admin']
                 scl.group.set(group)
+
+        # set location
+        if not ccl.location.search({'gid': j.application.whoAmI.gid})[0]:
+            loc = ccl.location.new()
+            loc.gid = j.application.whoAmI.gid
+            loc.name = ovc_environment
+            loc.flag = 'black'
+            loc.locationCode = ovc_environment
+            ccl.location.set(loc)
+        # set grid
+        if not scl.grid.exists(j.application.whoAmI.gid):
+            grid = scl.grid.new()
+            grid.id = j.application.whoAmI.gid
+            grid.name = ovc_environment
+            scl.grid.set(grid)
+
         service.stop()
 
     def configure_IYO(self):
