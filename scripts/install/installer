@@ -7,6 +7,149 @@ import time
 
 IMAGE_NAME = ''
 
+AYSCONFIG = '''
+metadata.jumpscale             =
+    branch:'{version}',
+    url:'git@github.com:jumpscale7/ays_jumpscale7',
+
+metadata.openvcloud            =
+    branch:'{ovcversion}',
+    url:'git@github.com:0-complexity/openvcloud_ays',
+'''
+
+WHOAMI = '''
+email                          =
+
+fullname                       =
+
+git.login                      = 'ssh'
+git.passwd                     = 'ssh'
+'''
+
+class JumpScale7:
+    def __init__(self, prefab):
+        self.prefab = prefab
+
+    def install_core(self, version='master', ovcversion='master'):
+        env = {'AYSBRANCH': version, 'JSBRANCH': version}
+        cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(version)
+        self.prefab.system.ssh.define_host('git.aydo.com')
+        self.prefab.system.ssh.define_host('github.com')
+
+        if self.prefab.bash.cmdGetPath('python', False) is False or self.prefab.bash.cmdGetPath('curl', False) is False:
+            self.prefab.system.package.mdupdate()
+            self.prefab.system.package.install('python')
+            self.prefab.system.package.install('curl')
+        if self.prefab.bash.cmdGetPath('js', False) is False:
+            self.prefab.core.run(cmd, env=env)
+        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=version, ovcversion=ovcversion))
+        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
+
+    def install_agent(self, osishost, osispassword, achost, gid):
+        redisdata = {
+            'param.disk': '0',
+            'param.mem': '100',
+            'param.passwd': '',
+            'param.port': '9999',
+            'param.ip' : '0.0.0.0',
+            'param.unixsocket': '0'
+        }
+        self.ays_install('redis', instance='system', data=redisdata)
+
+        osisclientdata = {
+            'param.osis.client.addr': osishost,
+            'param.osis.client.login': 'root',
+            'param.osis.client.passwd': osispassword,
+            'param.osis.client.port': '5544',
+        }
+        self.ays_install('osis_client', instance='main', data=osisclientdata)
+        self.ays_install('osis_client', instance='jsagent', data=osisclientdata)
+
+        agentcontrollerdata = {
+            'agentcontroller.client.addr': achost,
+            'agentcontroller.client.login': 'node',
+            'agentcontroller.client.passwd': '',
+            'agentcontroller.client.port': '4444'
+        }
+        self.ays_install('agentcontroller_client', instance='main', data=agentcontrollerdata)
+
+        agentdata = {
+                'agentcontroller.connection': 'main',
+                'grid.id': str(gid),
+                'grid.node.roles': 'node',
+                'osis.connection': 'jsagent',
+        }
+        self.ays_install('jsagent', instance='main', data=agentdata)
+
+
+    def ays_install(self, package, domain='jumpscale', instance='main', data=None):
+        datastr = ''
+        data = data or {}
+        for key, value in data.items():
+            datastr += "{}:{} ".format(key, value)
+        cmd = 'ays install -d {} -n {} -i {} --data "{}"'.format(domain, package, instance, datastr)
+        self.prefab.core.run(cmd)
+
+    def install_compute_node(self, netinfo, masterhost, masterpassword, gid):
+        data_net = {
+            'netconfig.public_backplane.interfacename': 'backplane1',
+            'netconfig.gw_mgmt_backplane.interfacename': 'backplane1',
+            'netconfig.vxbackend.interfacename': 'backplane1',
+            'netconfig.gw_mgmt.vlanid': netinfo['gwmgmt_vlan'],
+            'netconfig.vxbackend.vlanid': netinfo['vxbackend_vlan'],
+            'netconfig.gw_mgmt.ipaddr': netinfo['gwmgmt_ip'],
+            'netconfig.vxbackend.ipaddr': netinfo['vxbackend_ip'],
+        }
+
+        data_cpu = {
+            'param.rootpasswd': masterpassword,
+            'param.master.addr': masterhost,
+            'param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
+            'param.grid.id': gid,
+        }
+
+        print('installing network')
+        self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
+
+        print('installing cpu node')
+        self.ays_install('cb_cpunode_aio', domain='openvcloud', instance='main', data=data_cpu)
+
+
+
+    def install_compute_node(self, netinfo, masterhost, masterpassword, gid):
+        data_net = {
+            'netconfig.public_backplane.interfacename': 'backplane1',
+            'netconfig.gw_mgmt_backplane.interfacename': 'backplane1',
+            'netconfig.vxbackend.interfacename': 'backplane1',
+            'netconfig.gw_mgmt.vlanid': netinfo['gwmgmt_vlan'],
+            'netconfig.vxbackend.vlanid': netinfo['vxbackend_vlan'],
+            'netconfig.gw_mgmt.ipaddr': netinfo['gwmgmt_ip'],
+            'netconfig.vxbackend.ipaddr': netinfo['vxbackend_ip'],
+        }
+
+        data_cpu = {
+            'param.rootpasswd': masterpassword,
+            'param.master.addr': masterhost,
+            'param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
+            'param.grid.id': gid,
+        }
+
+        print('installing network')
+        self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
+
+        print('installing cpu node')
+        self.ays_install('cb_cpunode_aio', domain='openvcloud', instance='main', data=data_cpu)
+
+
+
+
+
+
+
+###                    ###
+# Command line interface #
+###                    ###
+
 @click.group()
 def cli():
     pass
@@ -21,6 +164,10 @@ def node():
 
 @cli.group()
 def cpu():
+    pass
+
+@cli.group()
+def storage():
     pass
 
 @cluster.command('deploy')
@@ -45,7 +192,6 @@ def deploy_cluster(config, configure_cluster):
 @click.option('--config', help='Config file to deploy the cluster')
 @click.option('--node-name', help='Node name to configure')
 def deploy_cpu(config, node_name):
-    from js7 import JumpScale7
     config = j.data.serializer.yaml.load(config)
     for cpunode in config['nodes']['cpu']:
         if cpunode['name'] == node_name:
@@ -59,7 +205,7 @@ def deploy_cpu(config, node_name):
     jumpscale = JumpScale7(prefab)
     versions = config['environment']['versions']
     password = config['environment']['password']
-    gid = config['environment']['gid']
+    gid = config['environment']['grid']['id']
     jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
     controllerips = []
     for host, interface in get_controller_host_management(config):
@@ -71,10 +217,47 @@ def deploy_cpu(config, node_name):
         'vxbackend_vlan': config['network']['vlans']['vxbackend'],
         'vxbackend_ip': cpunode['vxbackend']['ipaddress'],
         'gwmgmt_vlan': config['network']['vlans']['gateway'],
-        'gwmgmt_ip': cpunode['gwmgmgt']['ipaddress'],
+        'gwmgmt_ip': cpunode['gwmgmt']['ipaddress'],
 
     }
     jumpscale.install_compute_node(netinfo, hostips, password, gid)
+
+
+@storage.command('deploy')
+@click.option('--config', help='Config file to deploy the cluster')
+@click.option('--node-name', help='Node name to configure')
+def deploy_storage(config, node_name):
+    pass
+    # WIP TODO
+    # config = j.data.serializer.yaml.load(config)
+    # for cpunode in config['nodes']['cpu']:
+    #     if cpunode['name'] == node_name:
+    #         break
+    # else:
+    #     print('Could not find node with name {}'.format(node_name))
+    #     sys.exit(1)
+
+    # ip = cpunode['mgmt']['ipaddress']
+    # prefab = j.tools.prefab.getFromSSH(ip)
+    # jumpscale = JumpScale7(prefab)
+    # versions = config['environment']['versions']
+    # password = config['environment']['password']
+    # gid = config['environment']['grid']['id']
+    # jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
+    # controllerips = []
+    # for host, interface in get_controller_host_management(config):
+    #     controllerips.append(interface['ipaddress'])
+
+    # hostips = ','.join(controllerips)
+    # jumpscale.install_agent(hostips, password, hostips, gid)
+    # netinfo = {
+    #     'vxbackend_vlan': config['network']['vlans']['vxbackend'],
+    #     'vxbackend_ip': cpunode['vxbackend']['ipaddress'],
+    #     'gwmgmt_vlan': config['network']['vlans']['gateway'],
+    #     'gwmgmt_ip': cpunode['gwmgmt']['ipaddress'],
+
+    # }
+    # jumpscale.install_compute_node(netinfo, hostips, password, gid)
 
 
 def Build_images():
@@ -83,9 +266,8 @@ def Build_images():
     TODO
     """
 
-
 def get_controller_host_management(config):
-    for host in self.config['controller']['hosts']:
+    for host in config['controller']['hosts']:
         for interface in host['network-interfaces']:
             if interface.get('label') == 'mgmt':
                 yield host, interface
@@ -178,7 +360,7 @@ class Cluster:
     def _prepare_templates(self, scripts_dir):
         templates = ['agentcontroller', 'osis', 'nginx']
         for template in templates:
-            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir,name=template) 
+            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir,name=template)
             data = j.data.serializer.yaml.load(template_loc)
             data['spec']['externalIPs'] = [node.executor.sshclient.addr for node in self.nodes]
             j.data.serializer.yaml.dump(template_loc, data)
@@ -195,7 +377,7 @@ class Cluster:
                             path=self.config_path))
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot']
         for template in templates:
-            template_file = scripts_dir + template                
+            template_file = scripts_dir + template
             self.prefab.core.run('kubectl apply -f {template}'.format(template=template_file))
         self.grafana_apply('{}/grafana'.format(scripts_dir))
 
