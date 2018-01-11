@@ -228,3 +228,4 @@ if __name__ == '__main__':
     service = portal.configure_IYO()
     portal.configure_user_groups(service)
     portal.patch_mail_client()
+    j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')
