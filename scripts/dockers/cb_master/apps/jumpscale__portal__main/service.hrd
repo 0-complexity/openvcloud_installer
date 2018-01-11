@@ -28,7 +28,6 @@ instance.navigationlinks.ovs   =
     name:'Storage',
     scope:'ovs_admin',
     theme:'light',
-    url:'http://192.168.57.31',
 
 instance.navigationlinks.system =
     name:'System',
@@ -41,12 +40,12 @@ instance.navigationlinks.vdc   =
     name:'End User',
     scope:'user',
     theme:'dark',
-    url:'http://192.168.57.22',
+
 
 instance.param.cfg.admingroups = 'admin,'
 instance.param.cfg.appdir      = '$base/apps/portals/portalbase'
 instance.param.cfg.authentication.method = 'osis'
-instance.param.cfg.contentdirs = 
+instance.param.cfg.contentdirs =
 instance.param.cfg.defaultspace = 'vdc'
 instance.param.cfg.filesroot   = '$vardir/portal/files'
 instance.param.cfg.force_oauth_instance = 'itsyouonline'
@@ -54,19 +53,14 @@ instance.param.cfg.gitlab.connection = 'main'
 instance.param.cfg.ipaddr      = 'localhost'
 instance.param.cfg.port        = '82'
 instance.param.cfg.secret      = 'rooter'
-instance.param.dcpm.url        = 'https://dcpmcustomer.demo.greenitglobe.com'
 instance.param.osis.connection = 'main'
 instance.param.ovs.url         = 'https://ovscustomer.demo.greenitglobe.com'
 instance.param.portal.name     = 'main'
 instance.param.portal.rootpasswd = 'rooter'
 instance.param.portal.url      = 'https://customer.demo.greenitglobe.com'
 instance.proxy.1               =
-    dest:'http://localhost:3000',
+    dest:'http://grafana:3000',
     path:'/grafana',
-
-instance.proxy.2               =
-    dest:'http://localhost:5000',
-    path:'/proxy/eve',
 
 service.dependencies.1         =
     name:'portal_lib',
@@ -79,7 +73,7 @@ service.dependencies.3         =
     name:'mailclient',
 
 service.domain                 = 'jumpscale'
-service.env.process.1          = 
+service.env.process.1          =
 service.git.export.1           =
     branch:'7.1.7',
     dest:'/opt/jumpscale7/apps/portals/portalbase/macros/',

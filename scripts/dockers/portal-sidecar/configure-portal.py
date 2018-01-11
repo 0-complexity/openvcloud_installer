@@ -205,8 +205,13 @@ class Portal(object):
                         suborgname, result.status_code, result.text))
 
         # configure portal to use this oauthprovider and restart
+        fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         portal = j.atyourservice.get(name='portal', instance='main')
         portal.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
+        portal.hrd.set('instance.param.dcpm.url', fqdn)
+        portal.hrd.set('instance.param.ovs.url', 'ovs-%s' % (fqdn))
+        portal.hrd.set('instance.param.portal.url', fqdn)
+
         portal.hrd.save()
         j.do.execute('ln -s /opt/jumpscale7/')
         return portal

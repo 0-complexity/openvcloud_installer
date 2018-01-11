@@ -116,35 +116,49 @@ class JumpScale7:
 
 
 
-    def install_compute_node(self, netinfo, masterhost, masterpassword, gid):
-        data_net = {
-            'netconfig.public_backplane.interfacename': 'backplane1',
-            'netconfig.gw_mgmt_backplane.interfacename': 'backplane1',
-            'netconfig.vxbackend.interfacename': 'backplane1',
-            'netconfig.gw_mgmt.vlanid': netinfo['gwmgmt_vlan'],
-            'netconfig.vxbackend.vlanid': netinfo['vxbackend_vlan'],
-            'netconfig.gw_mgmt.ipaddr': netinfo['gwmgmt_ip'],
-            'netconfig.vxbackend.ipaddr': netinfo['vxbackend_ip'],
+    def install_storage_node(self, masterhost, masterpassword, gid, driver=False, alba=False):
+
+        data_storage = {
+            'instance.param.rootpasswd': masterpassword,
+            'instance.param.master.addr': masterhost,
+            'instance.param.grid.id': gid,
         }
 
-        data_cpu = {
-            'param.rootpasswd': masterpassword,
-            'param.master.addr': masterhost,
-            'param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
-            'param.grid.id': gid,
-        }
+        print('[+] installing storage node')
+        self.ays_install('cb_storagenode_aio', domain='openvcloud', instance='main', data=data_storage)
+        if driver:
+            self.ays_install('cb_storagedriver_aio', domain='openvcloud', instance='main', data=data_storage)
+            if 'MASTER' in self.prefab.core.run('ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"'):
+                if alba:
+                    self.prefab.core.run("python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py")
+                # TODO (on halt for now)
+                # loading ovc_master oauth server keys
+                # oauthfile = '/tmp/oauthserver.hrd'
+                # ovc_iyo = j.atyourservice.get(name='ovc_itsyouonline')
+                # ovc_iyo.actions.prepare(ovc_iyo)
+                # environment = settings.get('instance.ovc.environment')
+                # location = node.parent.instance
+                # apikeyname = 'ovs-{}-{}'.format(environment, location)
+                # domain = configure.get('instance.param.domain')
+                # ovscallbackurl = 'https://ovs-{}.{}/api/oauth2/redirect/'.format(location, domain)
+                # apikey = {'callbackURL': ovscallbackurl,
+                #         'clientCredentialsGrantType': False,
+                #         'label': apikeyname
+                #         }
+                # apikey = ovc_iyo.actions.configure_api_key(apikey)
 
-        print('installing network')
-        self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
+                # j.console.info('building oauth configuration')
+                # oauth_token_uri = os.path.join(ovc_iyo.actions.baseurl, 'v1/oauth/access_token')
+                # oauth_authorize_uri = os.path.join(ovc_iyo.actions.baseurl, 'v1/oauth/authorize')
 
-        print('installing cpu node')
-        self.ays_install('cb_cpunode_aio', domain='openvcloud', instance='main', data=data_cpu)
+                # data_oauth = {'instance.oauth.id': ovc_iyo.actions.client_id,
+                #             'instance.oauth.secret': apikey['secret'],
+                #             'instance.oauth.authorize_uri': oauth_authorize_uri,
+                #             'instance.oauth.token_uri': oauth_token_uri}
 
-
-
-
-
-
+                # temp = j.atyourservice.new(name='openvstorage_oauth', instance='main', args=data_oauth, parent=node)
+                # temp.consume('node', node.instance)
+                # temp.install(deps=True)
 
 ###                    ###
 # Command line interface #
@@ -227,37 +241,28 @@ def deploy_cpu(config, node_name):
 @click.option('--config', help='Config file to deploy the cluster')
 @click.option('--node-name', help='Node name to configure')
 def deploy_storage(config, node_name):
-    pass
-    # WIP TODO
-    # config = j.data.serializer.yaml.load(config)
-    # for cpunode in config['nodes']['cpu']:
-    #     if cpunode['name'] == node_name:
-    #         break
-    # else:
-    #     print('Could not find node with name {}'.format(node_name))
-    #     sys.exit(1)
+    config = j.data.serializer.yaml.load(config)
+    for storage_node in config['nodes']['storage']:
+        if storage_node['name'] == node_name:
+            break
+    else:
+        print('Could not find node with name {}'.format(node_name))
+        sys.exit(1)
 
-    # ip = cpunode['mgmt']['ipaddress']
-    # prefab = j.tools.prefab.getFromSSH(ip)
-    # jumpscale = JumpScale7(prefab)
-    # versions = config['environment']['versions']
-    # password = config['environment']['password']
-    # gid = config['environment']['grid']['id']
-    # jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
-    # controllerips = []
-    # for host, interface in get_controller_host_management(config):
-    #     controllerips.append(interface['ipaddress'])
+    ip = storage_node['mgmt']['ipaddress']
+    prefab = j.tools.prefab.getFromSSH(ip)
+    jumpscale = JumpScale7(prefab)
+    versions = config['environment']['versions']
+    password = config['environment']['password']
+    gid = config['environment']['grid']['id']
+    jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
+    controllerips = []
+    for host, interface in get_controller_host_management(config):
+        controllerips.append(interface['ipaddress'])
 
-    # hostips = ','.join(controllerips)
-    # jumpscale.install_agent(hostips, password, hostips, gid)
-    # netinfo = {
-    #     'vxbackend_vlan': config['network']['vlans']['vxbackend'],
-    #     'vxbackend_ip': cpunode['vxbackend']['ipaddress'],
-    #     'gwmgmt_vlan': config['network']['vlans']['gateway'],
-    #     'gwmgmt_ip': cpunode['gwmgmt']['ipaddress'],
-
-    # }
-    # jumpscale.install_compute_node(netinfo, hostips, password, gid)
+    hostips = ','.join(controllerips)
+    jumpscale.install_agent(hostips, password, hostips, gid)
+    jumpscale.install_storage_node(hostips, password, gid, driver=True, alba=False)
 
 
 def Build_images():
