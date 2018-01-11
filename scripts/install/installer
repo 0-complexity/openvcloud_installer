@@ -193,8 +193,6 @@ def deploy_cluster(config, configure_cluster):
     """
     if not config:
         raise j.exceptions.Input('Please specify a config file')
-    if not j.clients.ssh.ssh_agent_available() or not j.clients.ssh.ssh_keys_list_from_agent():
-        raise j.exceptions.NotFound ("No ssh key loaded. Please load the appropriate sshkey.")
     cluster = Cluster(config)
     if configure_cluster:
         cluster.install_kubernetes_cluster()
@@ -206,7 +204,7 @@ def deploy_cluster(config, configure_cluster):
 @click.option('--config', help='Config file to deploy the cluster')
 @click.option('--node-name', help='Node name to configure')
 def deploy_cpu(config, node_name):
-    config = j.data.serializer.yaml.load(config)
+    config = prepare_config(config)
     for cpunode in config['nodes']['cpu']:
         if cpunode['name'] == node_name:
             break
@@ -214,7 +212,7 @@ def deploy_cpu(config, node_name):
         print('Could not find node with name {}'.format(node_name))
         sys.exit(1)
 
-    ip = cpunode['mgmt']['ipaddress']
+    ip = cpunode['management']['ipaddress'].split('/')[0]
     prefab = j.tools.prefab.getFromSSH(ip)
     jumpscale = JumpScale7(prefab)
     versions = config['environment']['versions']
@@ -222,16 +220,16 @@ def deploy_cpu(config, node_name):
     gid = config['environment']['grid']['id']
     jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
     controllerips = []
-    for host, interface in get_controller_host_management(config):
-        controllerips.append(interface['ipaddress'])
+    for host, address in get_controller_host_management(config):
+        controllerips.append(address)
 
     hostips = ','.join(controllerips)
     jumpscale.install_agent(hostips, password, hostips, gid)
     netinfo = {
-        'vxbackend_vlan': config['network']['vlans']['vxbackend'],
-        'vxbackend_ip': cpunode['vxbackend']['ipaddress'],
-        'gwmgmt_vlan': config['network']['vlans']['gateway'],
-        'gwmgmt_ip': cpunode['gwmgmt']['ipaddress'],
+        'vxbackend_vlan': config['network']['vxbackend']['vlan'],
+        'vxbackend_ip': cpunode['vxbackend']['ipaddress'].split('/')[0],
+        'gwmgmt_vlan': config['network']['gateway-management']['vlan'],
+        'gwmgmt_ip': cpunode['gateway-management']['ipaddress'].split('/')[0],
 
     }
     jumpscale.install_compute_node(netinfo, hostips, password, gid)
@@ -241,7 +239,7 @@ def deploy_cpu(config, node_name):
 @click.option('--config', help='Config file to deploy the cluster')
 @click.option('--node-name', help='Node name to configure')
 def deploy_storage(config, node_name):
-    config = j.data.serializer.yaml.load(config)
+    config = prepare_config(config)
     for storage_node in config['nodes']['storage']:
         if storage_node['name'] == node_name:
             break
@@ -249,7 +247,7 @@ def deploy_storage(config, node_name):
         print('Could not find node with name {}'.format(node_name))
         sys.exit(1)
 
-    ip = storage_node['mgmt']['ipaddress']
+    ip = storage_node['management']['ipaddress'].split('/')[0]
     prefab = j.tools.prefab.getFromSSH(ip)
     jumpscale = JumpScale7(prefab)
     versions = config['environment']['versions']
@@ -257,8 +255,8 @@ def deploy_storage(config, node_name):
     gid = config['environment']['grid']['id']
     jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
     controllerips = []
-    for host, interface in get_controller_host_management(config):
-        controllerips.append(interface['ipaddress'])
+    for host, address in get_controller_host_management(config):
+        controllerips.append(address)
 
     hostips = ','.join(controllerips)
     jumpscale.install_agent(hostips, password, hostips, gid)
@@ -270,32 +268,50 @@ def Build_images():
     build the releveant images that will be used to run the deployments
     TODO
     """
+def prepare_config(config_path):
+    def _helper(nodes):
+        nodes_res = []
+        for node in nodes:
+            net = netaddr.IPNetwork(value['network'])
+            ip = net.ip + node['ip-lsb']
+            if key not in node:
+                node[key] = {}
+            node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
+            nodes_res.append(node)
+        return nodes_res
+
+    config = j.data.serializer.yaml.load(config_path)
+    for key, value in config['network'].items():
+        if 'network' in value:
+            for cat, nodes in config['nodes'].items():
+                config['nodes'][cat] = _helper(nodes) 
+            config['controller']['hosts'] = _helper(config['controller']['hosts'])
+    return config
 
 def get_controller_host_management(config):
     for host in config['controller']['hosts']:
-        for interface in host['network-interfaces']:
-            if interface.get('label') == 'mgmt':
-                yield host, interface
+        yield host, host['management']['ipaddress'].split('/')[0]
 
 class Cluster:
     """
     Cluster abstraction layer to allow for easier manipulation.
     """
     def __init__(self, config_path):
-        self.config = j.data.serializer.yaml.load(config_path)
-        self.config_path = config_path
+        self.config = prepare_config(config_path)
+        self.config_path = '/tmp/config.yaml'
         self.k8s_config = '/tmp/kubelet.conf'
         self.join_line = ''
         self.prefab = j.tools.prefab.local
+        self._prepare_config()
         self.nodes = self._nodes_prefab()
 
     def _nodes_prefab(self):
         nodes = []
-        for host, interface in get_controller_host_management(self.config):
-            sshclient = j.clients.ssh.get(interface['ipaddress'], login=host['user'], passwd=host['password'])
-            sshkey = j.clients.ssh.ssh_keys_list_from_agent()[0]
-            sshclient.SSHAuthorizeKey(j.sal.fs.getBaseName(sshkey))
-            executor = j.tools.executor.getSSHBased(interface['ipaddress'], usecache=False)
+        j.clients.ssh.start_ssh_agent()
+        key = self.config['ssh']['private-key']
+        self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
+        for host, address in get_controller_host_management(self.config):
+            executor = j.tools.executor.getSSHBased(address, usecache=False)
             nodes.append(j.tools.prefab.get(executor))
         return nodes
 
@@ -363,7 +379,7 @@ class Cluster:
             raise j.exceptions.Timeout('Deploying %s took longer than expected. Exiting..')
 
     def _prepare_templates(self, scripts_dir):
-        templates = ['agentcontroller', 'osis', 'nginx']
+        templates = ['agentcontroller', 'osis', 'nginx', '0-access']
         for template in templates:
             template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir,name=template)
             data = j.data.serializer.yaml.load(template_loc)
@@ -377,10 +393,12 @@ class Cluster:
     def kub_client_apply(self, scripts_dir='/opt/code/github/0-complexity/openvcloud_installer/templates/'):
         self.prefab.core.copyTree('/opt/code/github/0-complexity/openvcloud_installer/scripts/kubernetes', scripts_dir)
         self._prepare_templates(scripts_dir)
+        j.data.serializer.yaml.dump(self.config_path, self.config)
         self.prefab.core.run('kubectl apply -f {path}/rbac.yaml'.format(path=scripts_dir))
         self.prefab.core.run('kubectl create configmap system-config --from-file {path}'.format(
                             path=self.config_path))
-        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot']
+        self.prefab.core.dir_remove(self.config_path)
+        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access']
         for template in templates:
             template_file = scripts_dir + template
             self.prefab.core.run('kubectl apply -f {template}'.format(template=template_file))

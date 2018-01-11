@@ -3,15 +3,17 @@
 ## Prerequisites
 
 - A JumpScale 9 installation(See [docs](https://github.com/Jumpscale/bash) for installation)
-- Three nodes deploying the cluster
+- Three nodes for deploying the cluster
 - For each node the user needs to have credentials to establish a SSH connection
 - Swap needs to be off on each node
 - Each node needs to be able to access each other node in the cluster
 - Make sure that following directories exists on each node with mode 777(ex: chmod 777 /var/ovc/mongodb):
   - `/var/ovc/mongodb`
   - `/var/ovc/influx`
+  - `/var/ovc/grafana`
   - `/var/ovc/billing`
   - `/var/ovc/pxeboot`
+  - `/var/ovc/0-access/index`
 
 ## Installing the cluster
 
@@ -105,3 +107,4 @@ The required order is:
 - [portal](../scripts/kubernetes/portal)
 - [nginx](../scripts/kubernetes/nginx)
 - [pxeboot](../scripts/kubernetes/pxeboot)
+- [0-access](../scripts/kubernetes/0-access)

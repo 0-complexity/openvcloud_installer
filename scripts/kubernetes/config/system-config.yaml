@@ -92,7 +92,7 @@ controller:
     - /var/ovc/influx
     - /var/ovc/mongodb
     - /var/ovc/pxeboot
-    - /var/ovc/0-access
+    - /var/ovc/0-access/index
 
   hosts: # Nodes in cluster info
     - hostname: be-loc-4-ctrl-01
@@ -138,14 +138,14 @@ nodes: # Environment nodes info
   cpu:
     - name: cpu-01
       ip-lsb: 11
-      mgmt:
+      management:
         macaddress: 0C:C4:7A:AC:11:36
       ipmi:
         username: ADMIN
         password: ADMIN
     - name: cpu-02
       ip-lsb: 12
-      mgmt:
+      management:
         macaddress: 0C:C4:7A:AC:11:36
       ipmi:
         username: ADMIN
@@ -153,7 +153,7 @@ nodes: # Environment nodes info
   storage:
     - name: stor-01
       ip-lsb: 41
-      mgmt:
+      management:
         macaddress: 2C:60:0C:BC:26:65
       ipmi:
         username: admin
