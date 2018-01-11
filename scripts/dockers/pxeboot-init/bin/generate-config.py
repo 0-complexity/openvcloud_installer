@@ -28,7 +28,7 @@ with open(target, "w") as f:
         f.write("#\n# %s\n#\n" % subgroup)
 
         for node in nodes:
-            f.write("%s,%s,infinite\n" % (node['mgmt']['macaddress'].lower(), node['name']))
+            f.write("%s,%s,infinite\n" % (node['management']['macaddress'].lower(), node['name']))
 
         f.write("\n")
 
@@ -44,7 +44,7 @@ with open(target, "w") as f:
         f.write("#\n# %s\n#\n" % subgroup)
 
         for node in nodes:
-            f.write("%s %s.%s %s\n" % (node['mgmt']['ipaddress'], node['name'], domain, node['name']))
+            f.write("%s %s.%s %s\n" % (node['management']['ipaddress'].split('/')[0], node['name'], domain, node['name']))
 
         f.write("\n")
 
