@@ -5,8 +5,6 @@ import click
 import sys
 import time
 
-IMAGE_NAME = ''
-
 AYSCONFIG = '''
 metadata.jumpscale             =
     branch:'{version}',
@@ -227,9 +225,9 @@ def deploy_cpu(config, node_name):
     jumpscale.install_agent(hostips, password, hostips, gid)
     netinfo = {
         'vxbackend_vlan': config['network']['vxbackend']['vlan'],
-        'vxbackend_ip': cpunode['vxbackend']['ipaddress'].split('/')[0],
+        'vxbackend_ip': cpunode['vxbackend']['ipaddress'],
         'gwmgmt_vlan': config['network']['gateway-management']['vlan'],
-        'gwmgmt_ip': cpunode['gateway-management']['ipaddress'].split('/')[0],
+        'gwmgmt_ip': cpunode['gateway-management']['ipaddress'],
 
     }
     jumpscale.install_compute_node(netinfo, hostips, password, gid)
@@ -263,29 +261,27 @@ def deploy_storage(config, node_name):
     jumpscale.install_storage_node(hostips, password, gid, driver=True, alba=False)
 
 
-def Build_images():
+def build_images():
     """
     build the releveant images that will be used to run the deployments
     TODO
     """
+
 def prepare_config(config_path):
     def _helper(nodes):
-        nodes_res = []
         for node in nodes:
             net = netaddr.IPNetwork(value['network'])
             ip = net.ip + node['ip-lsb']
             if key not in node:
                 node[key] = {}
             node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
-            nodes_res.append(node)
-        return nodes_res
 
     config = j.data.serializer.yaml.load(config_path)
     for key, value in config['network'].items():
         if 'network' in value:
             for cat, nodes in config['nodes'].items():
-                config['nodes'][cat] = _helper(nodes) 
-            config['controller']['hosts'] = _helper(config['controller']['hosts'])
+                _helper(nodes)
+            _helper(config['controller']['hosts'])
     return config
 
 def get_controller_host_management(config):
@@ -298,7 +294,6 @@ class Cluster:
     """
     def __init__(self, config_path):
         self.config = prepare_config(config_path)
-        self.config_path = '/tmp/config.yaml'
         self.k8s_config = '/tmp/kubelet.conf'
         self.join_line = ''
         self.prefab = j.tools.prefab.local
@@ -393,11 +388,15 @@ class Cluster:
     def kub_client_apply(self, scripts_dir='/opt/code/github/0-complexity/openvcloud_installer/templates/'):
         self.prefab.core.copyTree('/opt/code/github/0-complexity/openvcloud_installer/scripts/kubernetes', scripts_dir)
         self._prepare_templates(scripts_dir)
-        j.data.serializer.yaml.dump(self.config_path, self.config)
+
         self.prefab.core.run('kubectl apply -f {path}/rbac.yaml'.format(path=scripts_dir))
-        self.prefab.core.run('kubectl create configmap system-config --from-file {path}'.format(
-                            path=self.config_path))
-        self.prefab.core.dir_remove(self.config_path)
+        tmpfile = j.sal.fs.getTmpFilePath()
+        try:
+            j.data.serializer.yaml.dump(tmpfile, self.config)
+            self.prefab.core.run('kubectl create configmap system-config --from-file {path}'.format(
+                            path=tmpfile))
+        finally:
+            j.sal.fs.remove(tmpfile)
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access']
         for template in templates:
             template_file = scripts_dir + template
@@ -411,7 +410,7 @@ class Cluster:
         kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards
         kubectl create configmap grafana-dashboards --from-file=sources/templates
         kubectl apply -f grafana-service.yaml
-        kubectl  apply -f grafana-deployment.yaml
+        kubectl apply -f grafana-deployment.yaml
         """.format(dir=grafana_dir)
         self.prefab.core.execute_bash(cmd)
 
