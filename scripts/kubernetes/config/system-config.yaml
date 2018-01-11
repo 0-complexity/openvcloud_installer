@@ -17,14 +17,16 @@ network:
   management: 
     vlan: 2311
     network: 10.109.2.0/24
+    gateway: 10.109.2.254
   public:
     vlan: 2312
+    gateway: 223.55.12.56
   vxbackend:
     vlan: 2313
     network: 10.240.0.0/16
   backplane:
     network: 10.109.1.0/24
-  gateway:
+  gateway-management:
     vlan: 2314
     network: 10.199.0.0/22
   storage:
@@ -90,62 +92,24 @@ controller:
     - /var/ovc/influx
     - /var/ovc/mongodb
     - /var/ovc/pxeboot
+    - /var/ovc/0-access
 
-  disk-layout:
-    - partition: 0
-      md: True
-      filesystem: ext4
-      mount: /boot
-      size: 4 # Gigabyte
-    - partition: 1
-      md: False
-      filesystem: swap
-      size: 8
-    - partition: 2
-      md: False
-      filesystem: btrfs # The two corresponding partitions will be mirrored by btrfs
-      size: 0 # Remaining size on the disk
-      subvolumes:
-        - name: root
-          mount: /
-          size: 20
-        - name: home
-          mount: /home
-          size: 5
-        - name: billing
-          mount: /var/ovc/billing
-          size: 20
-        - name: influx
-          mount: /var/ovc/influx
-          size: 5
-        - name: mongodb
-          mount: /var/ovc/mongodb
-          size: 20
   hosts: # Nodes in cluster info
     - hostname: be-loc-4-ctrl-01
-      user: gig
-      password: rooter
-      network-interfaces:
-        - device: enp3s0
-        - device: enp4s0
-          label: mgmt # devices with label mgmt contains the node address
-          ipaddress: 10.101.109.1 # Node address
+      ip-lsb: 1
+      fallback:
+        ip: 10.101.109.201/16
+        gateway: 10.101.0.1
     - hostname: be-loc-4-ctrl-02
-      user: gig
-      password: rooter
-      network-interfaces:
-        - device: enp3s0
-        - device: enp4s0
-          label: mgmt
-          ipaddress: 10.101.109.2
+      ip-lsb: 2
+      fallback:
+        ip: 10.101.109.202/16
+        gateway: 10.101.0.1
     - hostname: be-loc-4-ctrl-03
-      user: gig
-      password: rooter
-      network-interfaces:
-        - device: enp3s0
-        - device: enp4s0
-          label: mgmt
-          ipaddress: 10.101.109.3
+      ip-lsb: 3
+      fallback:
+        ip: 10.101.109.203/16
+        gateway: 10.101.0.1
 
 environment:
   grid:
