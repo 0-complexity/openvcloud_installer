@@ -14,12 +14,22 @@ mailclient:
 timezone: CET
 
 network:
-  vlans:
-    management: 2311
-    public: 2312
-    vxbackend: 2313
-    gateway: 2314
-    storage: 2315
+  management: 
+    vlan: 2311
+    network: 10.109.2.0/24
+  public:
+    vlan: 2312
+  vxbackend:
+    vlan: 2313
+    network: 10.240.0.0/16
+  backplane:
+    network: 10.109.1.0/24
+  gateway:
+    vlan: 2314
+    network: 10.199.0.0/22
+  storage:
+    vlan: 2315
+    network: 10.109.3.0/24
   providers:
     - name: interroute
       vlan: 23 # Vlan to internet provider network. 0 for untagged
@@ -156,36 +166,31 @@ environment:
       name: demo.greenitglobe.com
       path: /certpath
   password: 'tester'
-  subnet: 10.109.2.0
-  gateway: 10.109.2.1
   versions:
       openvcloud: production
       jumpscale: production
 
 nodes: # Environment nodes info
   cpu:
-    - name: cpu01
+    - name: cpu-01
+      ip-lsb: 11
       mgmt:
         macaddress: 0C:C4:7A:AC:11:36
-        ipaddress: 10.109.2.11
       ipmi:
-        ipaddress: 10.109.0.0
         username: ADMIN
         password: ADMIN
-      backplane:
-        ipaddress: 10.109.2.102
-      vxbackend:
-        ipaddress: 10.240.0.12/16
-      gwmgmt:
-        ipaddress: 10.199.0.12/22
+    - name: cpu-02
+      ip-lsb: 12
+      mgmt:
+        macaddress: 0C:C4:7A:AC:11:36
+      ipmi:
+        username: ADMIN
+        password: ADMIN
   storage:
-    - name: storage01
+    - name: stor-01
+      ip-lsb: 41
       mgmt:
         macaddress: 2C:60:0C:BC:26:65
-        ipaddress: 10.109.2.41
       ipmi:
-        ipaddress: 10.109.0.0
         username: admin
         password: admin
-      backplane:
-        ipaddress: 10.109.2.102
