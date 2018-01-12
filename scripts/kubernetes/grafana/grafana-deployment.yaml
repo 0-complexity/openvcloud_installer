@@ -12,12 +12,28 @@ spec:
       labels:
         app: grafana
     spec:
+      initContainers:
+      - name: grafana-init
+        command: [jspython]
+        args: ['configure-grafana.py']
+        image: openvcloud/grafana-init
+        workingDir: /var/run/scripts/grafana
+        volumeMounts:
+        - name: grafana-config
+          mountPath:  /opt/cfg/nginx/sites-enabled
+        - name:  system-config
+          mountPath:  /opt/cfg/system/system-config.yaml
+          subPath: system-config.yaml
+        - name: grafana-config
+          mountPath: /etc/grafana/
       containers:
       - name: grafana-container
         image: grafana/grafana:master
         ports:
         - containerPort: 3000
         volumeMounts:
+        - name: grafana-config
+          mountPath: /etc/grafana/
         - name: grafana-provisioning-dashboards
           mountPath: /usr/share/grafana/conf/provisioning/dashboards
         - name: grafana-provisioning-datasources
@@ -27,6 +43,11 @@ spec:
         - name: grafana-persistant
           mountPath: /var/lib/grafana
       volumes:
+      - name: grafana-config
+        emptyDir: {}
+      - name: system-config
+        configMap:
+          name: system-config
       - name: grafana-provisioning-dashboards
         configMap:
           name: grafana-provisioning-dashboards
