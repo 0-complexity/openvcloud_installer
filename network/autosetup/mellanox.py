@@ -19,14 +19,44 @@ class MellanoxConfiguration():
     def hostname(self):
         return ['hostname mellanox']
 
+    def timezone(self):
+        block = self.section('timezone')
+        device = self.config['network']['mellanox'][self.device]
+
+        block.append('clock timezone %s' % self.config['timezone'])
+        block.append('no ntp server 178.79.152.182 disable')
+        block.append('ntp server 178.79.152.182 keyID 0')
+        block.append('no ntp server 178.79.152.182 trusted-enable')
+        block.append('ntp server 178.79.152.182 version 4')
+
+        return block
+
+    def default(self):
+        block = self.section('default settings')
+        block.append('no cli default prefix-modes enable')
+        return block
+
     def mlag(self):
         block = self.section('mlag')
         device = self.config['network']['mellanox'][self.device]
 
         block.append('protocol mlag')
 
-        # port channel
-        # mlag-channel-group
+        # FIXME:
+        fixrange = [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+            21, 22, 23, 24, 25, 26, 27, 28
+        ]
+
+        for i in fixrange:
+            block.append('interface mlag-port-channel %d' % i)
+            block.append('interface mlag-port-channel %d mtu 9000 force' % i)
+
+        # inter peer link (ipl)
+        block.append('interface port-channel 1')
+        block.append('interface ethernet 1/32 channel-group 1 mode active')
+
+        block.append('no mlag shutdown')
 
         return block
 
@@ -34,7 +64,29 @@ class MellanoxConfiguration():
         block = self.section('vlans')
         device = self.config['network']['mellanox'][self.device]
 
+        block.append('interface vlan 4000')
+        block.append('interface vlan 4000 ip address 10.254.254.253 255.255.255.252')
+        block.append('dcb priority-flow-control enable force')
+
+        block.append('interface port-channel 1 ipl 1')
+        block.append('interface vlan 4000 ipl 1 peer-address 10.254.254.254')
+
         block.append('vlan %s' % device['provider']['vlan'])
+
+        for target in ['management', 'public', 'vxbackend', 'gateway-management']:
+            block.append('vlan %s' % self.config['network'][target]['vlan'])
+
+        return block
+
+    def nodes(self):
+        block = self.section('vlans')
+
+        data = {'1/1': 24}
+
+        for port, mlag in data.values(): # FIXME: nodes selector
+            block.append('interface ethernet %s mtu 9000 force' % port)
+            block.append('interface ethernet %s mlag-channel-group %d mode passive' % (port, mlag))
+            block.append('interface mlag-port-channel %d switchport mode hybrid' % mlag)
 
         return block
 
@@ -116,6 +168,8 @@ if __name__ == "__main__":
 
     config = []
     config += mellanox.hostname()
+    config += mellanox.default()
+    config += mellanox.timezone()
     config += mellanox.mlag()
     config += mellanox.vlans()
     config += mellanox.trunks()
