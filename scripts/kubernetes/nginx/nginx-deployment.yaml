@@ -51,7 +51,7 @@ spec:
           subPath: g8vdc
         - name: jslib-volume
           mountPath: /opt/code/github/web_python
-          subPath: jslib
+          subPath: web_python
       volumes:
         - name: nginx-config
           emptyDir: {}
