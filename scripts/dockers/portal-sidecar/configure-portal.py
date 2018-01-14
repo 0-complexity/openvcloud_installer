@@ -73,7 +73,7 @@ class Portal(object):
         j.do.execute(cmd2, dieOnNonZeroExitCode=False)
 
 
-    def configure_user_groups(self, service):
+    def configure_user_groups(self, portalhrd):
         ovc_environment = self.config['itsyouonline']['environment']
         gid = j.application.whoAmI.gid
         fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
@@ -120,12 +120,13 @@ class Portal(object):
         }
         for linkid, data in portal_links.iteritems():
             if data['url']:
-                service.hrd.set('instance.navigationlinks.%s' % linkid, data)
-        service.hrd.set('instance.param.cfg.defaultspace', 'vdc')
-        service.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
-        service.hrd.save()
+                portalhrd.set('instance.navigationlinks.%s' % linkid, data)
+        portalhrd.set('instance.param.cfg.defaultspace', 'vdc')
+        portalhrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
+        portalhrd.save()
         scl = j.clients.osis.getNamespace('system')
         ccl = j.clients.osis.getNamespace('cloudbroker')
+        lcl = j.clients.osis.getNamespace('libvirt')
 
         # setup user/groups
         for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3'):
@@ -150,8 +151,13 @@ class Portal(object):
             grid.id = j.application.whoAmI.gid
             grid.name = ovc_environment
             scl.grid.set(grid)
-
-        service.stop()
+        # register vnc url
+        url = 'https://novnc-{}/vnc_auto.html?token='.format(fqdn)
+        if lcl.vnc.count({'url': url, 'gid': gid}) == 0:
+            vnc = lcl.vnc.new()
+            vnc.gid = gid
+            vnc.url = url
+            lcl.vnc.set(vnc)
 
     def configure_IYO(self):
         if not self.config['itsyouonline'].get('callbackURL'):
@@ -184,10 +190,10 @@ class Portal(object):
                 'instance.oauth.client.url2': os.path.join(self.baseurl, 'v1/oauth/access_token'),
                 'instance.oauth.client.user_info_url': os.path.join(self.baseurl, 'api/users/{username}/info')
                 }
-        oauthclient = j.atyourservice.get(domain='jumpscale', name='oauth_client', instance='itsyouonline')
+        oauthclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='oauth_client', instance='itsyouonline')
         for key, val in data.items():
-            oauthclient.hrd.set(key, val)
-        oauthclient.hrd.save()
+            oauthclienthrd.set(key, val)
+        oauthclienthrd.save()
 
         # configure groups on itsyouonline
         for group in groups:
@@ -206,26 +212,24 @@ class Portal(object):
 
         # configure portal to use this oauthprovider and restart
         fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
-        portal = j.atyourservice.get(name='portal', instance='main')
-        portal.hrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
-        portal.hrd.set('instance.param.dcpm.url', fqdn)
-        portal.hrd.set('instance.param.ovs.url', 'ovs-%s' % (fqdn))
-        portal.hrd.set('instance.param.portal.url', fqdn)
-
-        portal.hrd.save()
-        j.do.execute('ln -s /opt/jumpscale7/')
-        return portal
+        portalhrd = j.application.getAppInstanceHRD(name='portal', instance='main')
+        portalhrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
+        portalhrd.set('instance.param.dcpm.url', fqdn)
+        portalhrd.set('instance.param.ovs.url', 'ovs-%s' % (fqdn))
+        portalhrd.set('instance.param.portal.url', fqdn)
+        portalhrd.save()
+        return portalhrd
 
     def patch_mail_client(self):
-        mailclient = j.atyourservice.get(domain='jumpscale', name='mailclient', instance='main')
+        mailclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='mailclient', instance='main')
         for key, value in self.config['mailclient'].items():
-            mailclient.hrd.set('instance.smtp.%s' % key, value)
-        mailclient.hrd.save()
+            mailclienthrd.set('instance.smtp.%s' % key, value)
+        mailclienthrd.save()
 
 if __name__ == '__main__':
     portal = Portal()
     portal.add_user()
-    service = portal.configure_IYO()
-    portal.configure_user_groups(service)
+    portalhrd = portal.configure_IYO()
+    portal.configure_user_groups(portalhrd)
     portal.patch_mail_client()
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')
