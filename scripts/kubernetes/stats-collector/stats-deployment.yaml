@@ -18,5 +18,5 @@ spec:
         imagePullPolicy: Always
         command: [/usr/bin/python3]
         args: ['influxdumper.py',  '--influx-host',  influxdb, '--scan-cidr', agentcontroller/32]
-        image: alichaddad/jshack
+        image: openvcloud/js9
         workingDir: /opt/code/github/jumpscale/lib9/JumpScale9Lib/tools/aggregator/
