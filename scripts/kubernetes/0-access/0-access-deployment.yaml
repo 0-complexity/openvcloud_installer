@@ -6,12 +6,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: portal
+      app: zero-access
   replicas: 1
   template:
     metadata:
       labels:
-        app: portal
+        app: zero-access
     spec:   
       containers:
       - name: 0-access-container

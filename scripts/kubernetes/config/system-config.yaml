@@ -98,17 +98,17 @@ controller:
     - hostname: be-loc-4-ctrl-01
       ip-lsb: 1
       fallback:
-        ip: 10.101.109.201/16
+        ipaddress: 10.101.109.1/16
         gateway: 10.101.0.1
     - hostname: be-loc-4-ctrl-02
       ip-lsb: 2
       fallback:
-        ip: 10.101.109.202/16
+        ipaddress: 10.101.109.2/16
         gateway: 10.101.0.1
     - hostname: be-loc-4-ctrl-03
       ip-lsb: 3
       fallback:
-        ip: 10.101.109.203/16
+        ipaddress: 10.101.109.3/16
         gateway: 10.101.0.1
 
 environment:

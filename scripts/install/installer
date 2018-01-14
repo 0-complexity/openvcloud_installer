@@ -179,6 +179,10 @@ def get_controller_host_management(config):
     for host in config['controller']['hosts']:
         yield host, host['management']['ipaddress'].split('/')[0]
 
+def get_controller_public_ips(config):
+    for host in config['controller']['hosts']:
+        yield host['fallback']['ipaddress'].split('/')[0]
+
 class Cluster:
     """
     Cluster abstraction layer to allow for easier manipulation.
@@ -256,12 +260,18 @@ class Cluster:
             raise j.exceptions.Timeout('Deploying %s took longer than expected. Exiting..')
 
     def _prepare_templates(self, scripts_dir):
-        templates = ['agentcontroller', 'osis', 'nginx', '0-access']
-        for template in templates:
-            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir,name=template)
+        def write_template(template, externalips):
+            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir, name=template)
             data = j.data.serializer.yaml.load(template_loc)
-            data['spec']['externalIPs'] = [node.executor.sshclient.addr for node in self.nodes]
+            data['spec']['externalIPs'] = externalips
             j.data.serializer.yaml.dump(template_loc, data)
+
+        templates = ['agentcontroller', 'osis', '0-access']
+        externalips = [node.executor.sshclient.addr for node in self.nodes]
+        for template in templates:
+            write_template(template, externalips)
+        write_template('nginx', list(get_controller_public_ips(self.config)))
+
         stat_template = scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = j.data.serializer.yaml.load(stat_template)
         data['spec']['template']['spec']['containers'][0]['args'][4] = self.config['network']['management']['network']
@@ -312,10 +322,6 @@ def cli():
 
 @cli.group()
 def cluster():
-    pass
-
-@cli.group()
-def node():
     pass
 
 @cli.group()
