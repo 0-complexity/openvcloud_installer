@@ -28,7 +28,10 @@ spec:
           mountPath: /etc/grafana/
       containers:
       - name: grafana-container
-        image: grafana/grafana:master
+        image: openvcloud/grafana # grafana/grafana:5.0.0
+        env:
+        - name: GF_PATHS_CONFIG
+          value: "/etc/grafana/grafana.ini"
         ports:
         - containerPort: 3000
         volumeMounts:

@@ -13,7 +13,7 @@ def adjust_grafana_config(system_config={}):
     if not system_config:
         system_config = get_config()
     template_config = "/opt/cfg/grafana/templates/grafana.ini"
-    config = '/etc/grafana/default.ini'
+    config = '/etc/grafana/grafana.ini'
     template = jinja2.Template(j.system.fs.fileGetContents(template_config))
     j.system.fs.createEmptyFile(config)
     j.system.fs.writeFile(config, template.render(**system_config))
