@@ -333,6 +333,23 @@ class Cluster:
         self.grafana_apply('{}/grafana'.format(scripts_dir))
 
     def grafana_apply(self, grafana_dir):
+        datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)
+        dashboardpath = '{}/sources/templates'.format(grafana_dir)
+        datasource = j.data.serializer.yaml.load(datasourcepath)
+        datasourcename = 'controller_{}'.format(self.config['environment']['subdomain'])
+        datasource['datasources'][0]['name'] = datasourcename
+        j.data.serializer.yaml.dump(datasourcepath, datasource)
+        for dashboardfile in j.sal.fs.listFilesInDir(dashboardpath, filter='*.json'):
+            db = j.data.serializer.json.load(dashboardfile)
+            db['id'] = None
+            db['title'] += " ({})".format(self.config['environment']['subdomain'])
+            for row in db['rows']:
+                for panel in row['panels']:
+                    panel['datasource'] = datasourcename
+            if 'templating' in db:
+                for item in db['templating']['list']:
+                    item['datasource'] = datasourcename
+            j.data.serializer.json.dump(dashboardfile, db)
         cmd = """
         cd {dir}
         export KUBECONFIG={config}
