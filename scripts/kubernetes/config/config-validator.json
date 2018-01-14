@@ -18,18 +18,8 @@
       "ssh": {
         "$id": "/properties/ssh",
         "type": "object",
-        "required": ["public-key", "private-key"],
+        "required": ["private-key"],
         "properties": {
-          "public-key": {
-            "$id": "/properties/ssh/properties/public-key",
-            "type": "string",
-            "title": "The Public-key Schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": "",
-            "examples": [
-              "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ"
-            ]
-          },
           "private-key": {
             "$id": "/properties/ssh/properties/private-key",
             "type": "string",
@@ -725,7 +715,7 @@
                         "controllers": {
                           "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers",
                           "type": "object",
-                          "required": ["ipmi", "mgmt"],
+                          "required": ["ipmi", "management"],
                           "properties": {
                             "ipmi": {
                               "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers/properties/ipmi",
@@ -737,10 +727,10 @@
                                 "1-3"
                               ]
                             },
-                            "mgmt": {
-                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers/properties/mgmt",
+                            "management": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers/properties/management",
                               "type": "string",
-                              "title": "The Mgmt Schema",
+                              "title": "The management Schema",
                               "description": "An explanation about the purpose of this instance.",
                               "default": "",
                               "examples": [
@@ -752,7 +742,7 @@
                         "cpunodes": {
                           "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes",
                           "type": "object",
-                          "required": ["ipmi", "mgmt"],
+                          "required": ["ipmi", "management"],
                           "properties": {
                             "ipmi": {
                               "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes/properties/ipmi",
@@ -764,10 +754,10 @@
                                 "7,8"
                               ]
                             },
-                            "mgmt": {
-                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes/properties/mgmt",
+                            "management": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes/properties/management",
                               "type": "string",
-                              "title": "The Mgmt Schema",
+                              "title": "The management Schema",
                               "description": "An explanation about the purpose of this instance.",
                               "default": "",
                               "examples": [
@@ -779,7 +769,7 @@
                         "stornodes": {
                           "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes",
                           "type": "object",
-                          "required": ["ipmi", "mgmt"],
+                          "required": ["ipmi", "management"],
                           "properties": {
                             "ipmi": {
                               "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes/properties/ipmi",
@@ -791,10 +781,10 @@
                                 "11-12"
                               ]
                             },
-                            "mgmt": {
-                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes/properties/mgmt",
+                            "management": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes/properties/management",
                               "type": "string",
-                              "title": "The Mgmt Schema",
+                              "title": "The management Schema",
                               "description": "An explanation about the purpose of this instance.",
                               "default": "",
                               "examples": [

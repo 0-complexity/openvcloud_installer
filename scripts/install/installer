@@ -48,12 +48,12 @@ class JumpScale7:
 
     def install_agent(self, osishost, osispassword, achost, gid):
         redisdata = {
-            'param.disk': '0',
-            'param.mem': '100',
-            'param.passwd': '',
-            'param.port': '9999',
-            'param.ip' : '0.0.0.0',
-            'param.unixsocket': '0'
+            'instance.param.disk': '0',
+            'instance.param.mem': '100',
+            'instance.param.passwd': '',
+            'instance.param.port': '9999',
+            'instance.param.ip' : '0.0.0.0',
+            'instance.param.unixsocket': '0'
         }
         self.ays_install('redis', instance='system', data=redisdata)
 
