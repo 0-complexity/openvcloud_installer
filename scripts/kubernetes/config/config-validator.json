@@ -1,0 +1,1122 @@
+{
+    "definitions": {},
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "required": ["timezone", "ssh", "mailclient", "controller", "nodes", "environment", "network", "itsyouonline"],
+    "properties": {
+      "timezone": {
+        "$id": "/properties/timezone",
+        "type": "string",
+        "title": "The Timezone Schema",
+        "description": "An explanation about the purpose of this instance.",
+        "default": "",
+        "examples": [
+          "CET"
+        ]
+      },
+      "ssh": {
+        "$id": "/properties/ssh",
+        "type": "object",
+        "required": ["public-key", "private-key"],
+        "properties": {
+          "public-key": {
+            "$id": "/properties/ssh/properties/public-key",
+            "type": "string",
+            "title": "The Public-key Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ"
+            ]
+          },
+          "private-key": {
+            "$id": "/properties/ssh/properties/private-key",
+            "type": "string",
+            "title": "The Private-key Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "-----BEGIN RSA PRIVATE KEY-----\\nMIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG\\n...\\nTZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==\\n-----END RSA PRIVATE KEY-----\\n"
+            ]
+          }
+        }
+      },
+      "itsyouonline": {
+        "$id": "/properties/itsyouonline",
+        "type": "object",
+        "required": ["callbackURL", "clientId", "environment", "clientSecret"],
+        "properties": {
+          "callbackURL": {
+            "$id": "/properties/itsyouonline/properties/callbackURL",
+            "type": "string",
+            "title": "The Callbackurl Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "https://be-g8-4.demo.greenitglobe.com/restmachine/system/oauth/authorize"
+            ]
+          },
+          "clientId": {
+            "$id": "/properties/itsyouonline/properties/clientId",
+            "type": "string",
+            "title": "The Clientid Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "greenitglobe.environments.be-g8-4"
+            ]
+          },
+          "environment": {
+            "$id": "/properties/itsyouonline/properties/environment",
+            "type": "string",
+            "title": "The Environment Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "be-g8-4"
+            ]
+          },
+          "clientSecret": {
+            "$id": "/properties/itsyouonline/properties/clientSecret",
+            "type": "string",
+            "title": "The Clientsecret Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "fwegfwefwefw-ALGwzRpSLLf"
+            ]
+          }
+        }
+      },
+      "mailclient": {
+        "$id": "/properties/mailclient",
+        "type": "object",
+        "required": ["port", "passwd", "login", "server", "sender"],
+        "properties": {
+          "port": {
+            "$id": "/properties/mailclient/properties/port",
+            "type": "integer",
+            "title": "The Port Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": 0,
+            "examples": [
+              578
+            ]
+          },
+          "passwd": {
+            "$id": "/properties/mailclient/properties/passwd",
+            "type": "string",
+            "title": "The Passwd Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "5jfgf5tjrdsd"
+            ]
+          },
+          "login": {
+            "$id": "/properties/mailclient/properties/login",
+            "type": "string",
+            "title": "The Login Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "support@dummy.com"
+            ]
+          },
+          "server": {
+            "$id": "/properties/mailclient/properties/server",
+            "type": "string",
+            "title": "The Server Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "smtp.domain.com"
+            ]
+          },
+          "sender": {
+            "$id": "/properties/mailclient/properties/sender",
+            "type": "string",
+            "title": "The Sender Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "support@env.com"
+            ]
+          }
+        }
+      },
+      "controller": {
+        "$id": "/properties/controller",
+        "type": "object",
+        "required": ["directories", "hosts"],
+        "properties": {
+          "directories": {
+            "$id": "/properties/controller/properties/directories",
+            "type": "array",
+            "items": {
+              "$id": "/properties/controller/properties/directories/items",
+              "type": "string",
+              "title": "The 0 Schema",
+              "description": "An explanation about the purpose of this instance.",
+              "default": "",
+              "examples": [
+                "/var/ovc/billing"
+              ]
+            }
+          },
+          "hosts": {
+            "$id": "/properties/controller/properties/hosts",
+            "type": "array",
+            "items": {
+              "$id": "/properties/controller/properties/hosts/items",
+              "type": "object",
+              "required": ["hostname", "fallback", "ip-lsb"],
+              "properties": {
+                "hostname": {
+                  "$id": "/properties/controller/properties/hosts/items/properties/hostname",
+                  "type": "string",
+                  "title": "The Hostname Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "be-loc-4-ctrl-01"
+                  ]
+                },
+                "fallback": {
+                  "$id": "/properties/controller/properties/hosts/items/properties/fallback",
+                  "type": "object",
+                  "required": ["ipaddress", "gateway"],
+                  "properties": {
+                    "ipaddress": {
+                      "$id": "/properties/controller/properties/hosts/items/properties/fallback/properties/ipaddress",
+                      "type": "string",
+                      "title": "The Ipaddress Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "10.101.109.1/16"
+                      ]
+                    },
+                    "gateway": {
+                      "$id": "/properties/controller/properties/hosts/items/properties/fallback/properties/gateway",
+                      "type": "string",
+                      "title": "The Gateway Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "10.101.0.1"
+                      ]
+                    }
+                  }
+                },
+                "ip-lsb": {
+                  "$id": "/properties/controller/properties/hosts/items/properties/ip-lsb",
+                  "type": "integer",
+                  "title": "The Ip-lsb Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": 0,
+                  "examples": [
+                    1
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "nodes": {
+        "$id": "/properties/nodes",
+        "type": "object",
+        "required": ["cpu", "storage"],
+        "properties": {
+          "cpu": {
+            "$id": "/properties/nodes/properties/cpu",
+            "type": "array",
+            "items": {
+              "$id": "/properties/nodes/properties/cpu/items",
+              "type": "object",
+              "required": ["name", "ip-lsb", "ipmi", "management"],
+              "properties": {
+                "name": {
+                  "$id": "/properties/nodes/properties/cpu/items/properties/name",
+                  "type": "string",
+                  "title": "The Name Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "cpu-01"
+                  ]
+                },
+                "ip-lsb": {
+                  "$id": "/properties/nodes/properties/cpu/items/properties/ip-lsb",
+                  "type": "integer",
+                  "title": "The Ip-lsb Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": 0,
+                  "examples": [
+                    11
+                  ]
+                },
+                "ipmi": {
+                  "$id": "/properties/nodes/properties/cpu/items/properties/ipmi",
+                  "type": "object",
+                  "required": ["password", "username"],
+                  "properties": {
+                    "password": {
+                      "$id": "/properties/nodes/properties/cpu/items/properties/ipmi/properties/password",
+                      "type": "string",
+                      "title": "The Password Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "ADMIN"
+                      ]
+                    },
+                    "username": {
+                      "$id": "/properties/nodes/properties/cpu/items/properties/ipmi/properties/username",
+                      "type": "string",
+                      "title": "The Username Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "ADMIN"
+                      ]
+                    }
+                  }
+                },
+                "management": {
+                  "$id": "/properties/nodes/properties/cpu/items/properties/management",
+                  "type": "object",
+                  "required": ["macaddress"],
+                  "properties": {
+                    "macaddress": {
+                      "$id": "/properties/nodes/properties/cpu/items/properties/management/properties/macaddress",
+                      "type": "string",
+                      "title": "The Macaddress Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "0C:C4:7A:AC:11:36"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "storage": {
+            "$id": "/properties/nodes/properties/storage",
+            "type": "array",
+            "items": {
+              "$id": "/properties/nodes/properties/storage/items",
+              "type": "object",
+              "required": ["name", "ip-lsb", "ipmi", "management"],
+              "properties": {
+                "name": {
+                  "$id": "/properties/nodes/properties/storage/items/properties/name",
+                  "type": "string",
+                  "title": "The Name Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "stor-01"
+                  ]
+                },
+                "ip-lsb": {
+                  "$id": "/properties/nodes/properties/storage/items/properties/ip-lsb",
+                  "type": "integer",
+                  "title": "The Ip-lsb Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": 0,
+                  "examples": [
+                    41
+                  ]
+                },
+                "ipmi": {
+                  "$id": "/properties/nodes/properties/storage/items/properties/ipmi",
+                  "type": "object",
+                  "required": ["username", "password"],
+                  "properties": {
+                    "password": {
+                      "$id": "/properties/nodes/properties/storage/items/properties/ipmi/properties/password",
+                      "type": "string",
+                      "title": "The Password Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "admin"
+                      ]
+                    },
+                    "username": {
+                      "$id": "/properties/nodes/properties/storage/items/properties/ipmi/properties/username",
+                      "type": "string",
+                      "title": "The Username Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "admin"
+                      ]
+                    }
+                  }
+                },
+                "management": {
+                  "$id": "/properties/nodes/properties/storage/items/properties/management",
+                  "type": "object",
+                  "required": ["macaddress"],
+                  "properties": {
+                    "macaddress": {
+                      "$id": "/properties/nodes/properties/storage/items/properties/management/properties/macaddress",
+                      "type": "string",
+                      "title": "The Macaddress Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "2C:60:0C:BC:26:65"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "environment": {
+        "$id": "/properties/environment",
+        "type": "object",
+        "required": ["grid", "subdomain", "basedomain", "password", "versions", "ssl"],
+        "properties": {
+          "versions": {
+            "$id": "/properties/environment/properties/versions",
+            "type": "object",
+            "required": ["openvcloud", "jumpscale"],
+            "properties": {
+              "jumpscale": {
+                "$id": "/properties/environment/properties/versions/properties/jumpscale",
+                "type": "string",
+                "title": "The Jumpscale Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "production"
+                ]
+              },
+              "openvcloud": {
+                "$id": "/properties/environment/properties/versions/properties/openvcloud",
+                "type": "string",
+                "title": "The Openvcloud Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "production"
+                ]
+              }
+            }
+          },
+          "ssl": {
+            "$id": "/properties/environment/properties/ssl",
+            "type": "object",
+            "required": ["defense", "novnc", "ovs", "root"],
+            "properties": {
+              "ovs": {
+                "$id": "/properties/environment/properties/ssl/properties/ovs",
+                "type": "object",
+                "required": ["name", "path"],
+                "properties": {
+                  "name": {
+                    "$id": "/properties/environment/properties/ssl/properties/ovs/properties/name",
+                    "type": "string",
+                    "title": "The Name Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "demo.greenitglobe.com"
+                    ]
+                  },
+                  "path": {
+                    "$id": "/properties/environment/properties/ssl/properties/ovs/properties/path",
+                    "type": "string",
+                    "title": "The Path Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "/certpath"
+                    ]
+                  }
+                }
+              },
+              "root": {
+                "$id": "/properties/environment/properties/ssl/properties/root",
+                "type": "object",
+                "required": ["name", "path"],
+                "properties": {
+                  "name": {
+                    "$id": "/properties/environment/properties/ssl/properties/root/properties/name",
+                    "type": "string",
+                    "title": "The Name Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "demo.greenitglobe.com"
+                    ]
+                  },
+                  "path": {
+                    "$id": "/properties/environment/properties/ssl/properties/root/properties/path",
+                    "type": "string",
+                    "title": "The Path Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "/certpath"
+                    ]
+                  }
+                }
+              },
+              "defense": {
+                "$id": "/properties/environment/properties/ssl/properties/defense",
+                "type": "object",
+                "required": ["name", "path"],
+                "properties": {
+                  "name": {
+                    "$id": "/properties/environment/properties/ssl/properties/defense/properties/name",
+                    "type": "string",
+                    "title": "The Name Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "demo.greenitglobe.com"
+                    ]
+                  },
+                  "path": {
+                    "$id": "/properties/environment/properties/ssl/properties/defense/properties/path",
+                    "type": "string",
+                    "title": "The Path Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "/certpath"
+                    ]
+                  }
+                }
+              },
+              "novnc": {
+                "$id": "/properties/environment/properties/ssl/properties/novnc",
+                "type": "object",
+                "required": ["name", "path"],
+                "properties": {
+                  "name": {
+                    "$id": "/properties/environment/properties/ssl/properties/novnc/properties/name",
+                    "type": "string",
+                    "title": "The Name Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "demo.greenitglobe.com"
+                    ]
+                  },
+                  "path": {
+                    "$id": "/properties/environment/properties/ssl/properties/novnc/properties/path",
+                    "type": "string",
+                    "title": "The Path Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": "",
+                    "examples": [
+                      "/certpath"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "grid": {
+            "$id": "/properties/environment/properties/grid",
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {
+                "$id": "/properties/environment/properties/grid/properties/id",
+                "type": "integer",
+                "title": "The Id Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": 0,
+                "examples": [
+                  109
+                ]
+              }
+            }
+          },
+          "subdomain": {
+            "$id": "/properties/environment/properties/subdomain",
+            "type": "string",
+            "title": "The Subdomain Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "be-g8-4"
+            ]
+          },
+          "password": {
+            "$id": "/properties/environment/properties/password",
+            "type": "string",
+            "title": "The Password Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "tester"
+            ]
+          },
+          "basedomain": {
+            "$id": "/properties/environment/properties/basedomain",
+            "type": "string",
+            "title": "The Basedomain Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "demo.greenitglobe.com"
+            ]
+          }
+        }
+      },
+      "network": {
+        "$id": "/properties/network",
+        "type": "object",
+        "required": ["management", "public", "vxbackend", "backplane", "gateway-management", "storage", "providers", "cisco", "mellanox"],
+        "properties": {
+          "management": {
+            "$id": "/properties/network/properties/management",
+            "type": "object",
+            "required": ["gateway", "vlan", "network"],
+            "properties": {
+              "gateway": {
+                "$id": "/properties/network/properties/management/properties/gateway",
+                "type": "string",
+                "title": "The Gateway Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "10.109.2.254"
+                ]
+              },
+              "vlan": {
+                "$id": "/properties/network/properties/management/properties/vlan",
+                "type": "integer",
+                "title": "The Vlan Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": 0,
+                "examples": [
+                  2311
+                ]
+              },
+              "network": {
+                "$id": "/properties/network/properties/management/properties/network",
+                "type": "string",
+                "title": "The Network Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "10.109.2.0/24"
+                ]
+              }
+            }
+          },
+          "vxbackend": {
+            "$id": "/properties/network/properties/vxbackend",
+            "type": "object",
+            "required": ["vlan", "network"],
+            "properties": {
+              "vlan": {
+                "$id": "/properties/network/properties/vxbackend/properties/vlan",
+                "type": "integer",
+                "title": "The Vlan Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": 0,
+                "examples": [
+                  2313
+                ]
+              },
+              "network": {
+                "$id": "/properties/network/properties/vxbackend/properties/network",
+                "type": "string",
+                "title": "The Network Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "10.240.0.0/16"
+                ]
+              }
+            }
+          },
+          "cisco": {
+            "$id": "/properties/network/properties/cisco",
+            "type": "array",
+            "items": {
+              "$id": "/properties/network/properties/cisco/items",
+              "type": "object",
+              "required": ["hostname", "password", "name", "management", "provider-port", "trunk-ports"],
+              "properties": {
+                "name": {
+                  "$id": "/properties/network/properties/cisco/items/properties/name",
+                  "type": "string",
+                  "title": "The Name Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "50 port switch"
+                  ]
+                },
+                "password": {
+                  "$id": "/properties/network/properties/cisco/items/properties/password",
+                  "type": "string",
+                  "title": "The Password Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "H0ndebr0k3nZijnN44tL3kk3r"
+                  ]
+                },
+                "management": {
+                  "$id": "/properties/network/properties/cisco/items/properties/management",
+                  "type": "object",
+                  "required": ["switch-ip", "ports"],
+                  "properties": {
+                    "switch-ip": {
+                      "$id": "/properties/network/properties/cisco/items/properties/management/properties/switch-ip",
+                      "type": "object",
+                      "required": ["netmask", "address"],
+                      "properties": {
+                        "netmask": {
+                          "$id": "/properties/network/properties/cisco/items/properties/management/properties/switch-ip/properties/netmask",
+                          "type": "string",
+                          "title": "The Netmask Schema",
+                          "description": "An explanation about the purpose of this instance.",
+                          "default": "",
+                          "examples": [
+                            "255.255.255.0"
+                          ]
+                        },
+                        "address": {
+                          "$id": "/properties/network/properties/cisco/items/properties/management/properties/switch-ip/properties/address",
+                          "type": "string",
+                          "title": "The Address Schema",
+                          "description": "An explanation about the purpose of this instance.",
+                          "default": "",
+                          "examples": [
+                            "10.12.2.201"
+                          ]
+                        }
+                      }
+                    },
+                    "ports": {
+                      "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports",
+                      "type": "object",
+                      "required": ["mellanox", "stornodes", "cpunodes", "controllers"],
+                      "properties": {
+                        "mellanox": {
+                          "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/mellanox",
+                          "type": "string",
+                          "title": "The Mellanox Schema",
+                          "description": "An explanation about the purpose of this instance.",
+                          "default": "",
+                          "examples": [
+                            "15,16"
+                          ]
+                        },
+                        "controllers": {
+                          "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers",
+                          "type": "object",
+                          "required": ["ipmi", "mgmt"],
+                          "properties": {
+                            "ipmi": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers/properties/ipmi",
+                              "type": "string",
+                              "title": "The Ipmi Schema",
+                              "description": "An explanation about the purpose of this instance.",
+                              "default": "",
+                              "examples": [
+                                "1-3"
+                              ]
+                            },
+                            "mgmt": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/controllers/properties/mgmt",
+                              "type": "string",
+                              "title": "The Mgmt Schema",
+                              "description": "An explanation about the purpose of this instance.",
+                              "default": "",
+                              "examples": [
+                                "4-6"
+                              ]
+                            }
+                          }
+                        },
+                        "cpunodes": {
+                          "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes",
+                          "type": "object",
+                          "required": ["ipmi", "mgmt"],
+                          "properties": {
+                            "ipmi": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes/properties/ipmi",
+                              "type": "string",
+                              "title": "The Ipmi Schema",
+                              "description": "An explanation about the purpose of this instance.",
+                              "default": "",
+                              "examples": [
+                                "7,8"
+                              ]
+                            },
+                            "mgmt": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/cpunodes/properties/mgmt",
+                              "type": "string",
+                              "title": "The Mgmt Schema",
+                              "description": "An explanation about the purpose of this instance.",
+                              "default": "",
+                              "examples": [
+                                "9,10"
+                              ]
+                            }
+                          }
+                        },
+                        "stornodes": {
+                          "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes",
+                          "type": "object",
+                          "required": ["ipmi", "mgmt"],
+                          "properties": {
+                            "ipmi": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes/properties/ipmi",
+                              "type": "string",
+                              "title": "The Ipmi Schema",
+                              "description": "An explanation about the purpose of this instance.",
+                              "default": "",
+                              "examples": [
+                                "11-12"
+                              ]
+                            },
+                            "mgmt": {
+                              "$id": "/properties/network/properties/cisco/items/properties/management/properties/ports/properties/stornodes/properties/mgmt",
+                              "type": "string",
+                              "title": "The Mgmt Schema",
+                              "description": "An explanation about the purpose of this instance.",
+                              "default": "",
+                              "examples": [
+                                "13-14"
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "hostname": {
+                  "$id": "/properties/network/properties/cisco/items/properties/hostname",
+                  "type": "string",
+                  "title": "The Hostname Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "littledavid"
+                  ]
+                },
+                "provider-port": {
+                  "$id": "/properties/network/properties/cisco/items/properties/provider-port",
+                  "type": "integer",
+                  "title": "The Provider-port Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": 0,
+                  "examples": [
+                    48
+                  ]
+                },
+                "trunk-ports": {
+                  "$id": "/properties/network/properties/cisco/items/properties/trunk-ports",
+                  "type": "object",
+                  "required": ["mellanox", "controllers"],
+                  "properties": {
+                    "mellanox": {
+                      "$id": "/properties/network/properties/cisco/items/properties/trunk-ports/properties/mellanox",
+                      "type": "string",
+                      "title": "The Mellanox Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "49,50"
+                      ]
+                    },
+                    "controllers": {
+                      "$id": "/properties/network/properties/cisco/items/properties/trunk-ports/properties/controllers",
+                      "type": "string",
+                      "title": "The Controllers Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "45-47"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "public": {
+            "$id": "/properties/network/properties/public",
+            "type": "object",
+            "required": ["gateway", "vlan"],
+            "properties": {
+              "gateway": {
+                "$id": "/properties/network/properties/public/properties/gateway",
+                "type": "string",
+                "title": "The Gateway Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "223.55.12.56"
+                ]
+              },
+              "vlan": {
+                "$id": "/properties/network/properties/public/properties/vlan",
+                "type": "integer",
+                "title": "The Vlan Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": 0,
+                "examples": [
+                  2312
+                ]
+              }
+            }
+          },
+          "providers": {
+            "$id": "/properties/network/properties/providers",
+            "type": "array",
+            "items": {
+              "$id": "/properties/network/properties/providers/items",
+              "type": "object",
+              "required": ["vlan", "name"],
+              "properties": {
+                "name": {
+                  "$id": "/properties/network/properties/providers/items/properties/name",
+                  "type": "string",
+                  "title": "The Name Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "interroute"
+                  ]
+                },
+                "vlan": {
+                  "$id": "/properties/network/properties/providers/items/properties/vlan",
+                  "type": "integer",
+                  "title": "The Vlan Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": 0,
+                  "examples": [
+                    23
+                  ]
+                }
+              }
+            }
+          },
+          "mellanox": {
+            "$id": "/properties/network/properties/mellanox",
+            "type": "object",
+            "properties": {
+              "mellanox-2": {
+                "$id": "/properties/network/properties/mellanox/properties/mellanox-2",
+                "type": "object",
+                "required": ["provider", "mlag", "lacp-port-ranges"],
+                "properties": {
+                  "provider": {
+                    "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/provider",
+                    "type": "object",
+                    "required": ["port", "vlan"],
+                    "properties": {
+                      "port": {
+                        "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/provider/properties/port",
+                        "type": "integer",
+                        "title": "The Port Schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": 0,
+                        "examples": [
+                          48
+                        ]
+                      },
+                      "vlan": {
+                        "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/provider/properties/vlan",
+                        "type": "integer",
+                        "title": "The Vlan Schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": 0,
+                        "examples": [
+                          23
+                        ]
+                      }
+                    }
+                  },
+                  "lacp-port-ranges": {
+                    "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/lacp-port-ranges",
+                    "type": "array",
+                    "items": {
+                      "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/lacp-port-ranges/items",
+                      "type": "string",
+                      "title": "The 0 Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "3 - 48"
+                      ]
+                    }
+                  },
+                  "mlag": {
+                    "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/mlag",
+                    "type": "array",
+                    "items": {
+                      "$id": "/properties/network/properties/mellanox/properties/mellanox-2/properties/mlag/items",
+                      "type": "integer",
+                      "title": "The 0 Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": 0,
+                      "examples": [
+                        1
+                      ]
+                    }
+                  }
+                }
+              },
+              "mellanox-1": {
+                "$id": "/properties/network/properties/mellanox/properties/mellanox-1",
+                "type": "object",
+                "required": ["provider", "mlag", "lacp-port-ranges"],
+                "properties": {
+                  "provider": {
+                    "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/provider",
+                    "type": "object",
+                    "required": ["vlan", "port"],
+                    "properties": {
+                      "port": {
+                        "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/provider/properties/port",
+                        "type": "integer",
+                        "title": "The Port Schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": 0,
+                        "examples": [
+                          46
+                        ]
+                      },
+                      "vlan": {
+                        "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/provider/properties/vlan",
+                        "type": "integer",
+                        "title": "The Vlan Schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": 0,
+                        "examples": [
+                          23
+                        ]
+                      }
+                    }
+                  },
+                  "lacp-port-ranges": {
+                    "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/lacp-port-ranges",
+                    "type": "array",
+                    "items": {
+                      "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/lacp-port-ranges/items",
+                      "type": "string",
+                      "title": "The 0 Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": "",
+                      "examples": [
+                        "1 - 45"
+                      ]
+                    }
+                  },
+                  "mlag": {
+                    "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/mlag",
+                    "type": "array",
+                    "items": {
+                      "$id": "/properties/network/properties/mellanox/properties/mellanox-1/properties/mlag/items",
+                      "type": "integer",
+                      "title": "The 0 Schema",
+                      "description": "An explanation about the purpose of this instance.",
+                      "default": 0,
+                      "examples": [
+                        47
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "backplane": {
+            "$id": "/properties/network/properties/backplane",
+            "type": "object",
+            "required": ["network"],
+            "properties": {
+              "network": {
+                "$id": "/properties/network/properties/backplane/properties/network",
+                "type": "string",
+                "title": "The Network Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "10.109.1.0/24"
+                ]
+              }
+            }
+          },
+          "gateway-management": {
+            "$id": "/properties/network/properties/gateway-management",
+            "type": "object",
+            "required": ["vlan", "network"],
+            "properties": {
+              "vlan": {
+                "$id": "/properties/network/properties/gateway-management/properties/vlan",
+                "type": "integer",
+                "title": "The Vlan Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": 0,
+                "examples": [
+                  2314
+                ]
+              },
+              "network": {
+                "$id": "/properties/network/properties/gateway-management/properties/network",
+                "type": "string",
+                "title": "The Network Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "10.199.0.0/22"
+                ]
+              }
+            }
+          },
+          "storage": {
+            "$id": "/properties/network/properties/storage",
+            "type": "object",
+            "required": ["vlan", "network"],
+            "properties": {
+              "vlan": {
+                "$id": "/properties/network/properties/storage/properties/vlan",
+                "type": "integer",
+                "title": "The Vlan Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": 0,
+                "examples": [
+                  2315
+                ]
+              },
+              "network": {
+                "$id": "/properties/network/properties/storage/properties/network",
+                "type": "string",
+                "title": "The Network Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": "",
+                "examples": [
+                  "10.109.3.0/24"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }

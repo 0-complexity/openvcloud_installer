@@ -4,7 +4,10 @@ import netaddr
 import click
 import sys
 import time
+import jsonschema
+import json
 
+REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
 AYSCONFIG = '''
 metadata.jumpscale             =
     branch:'{version}',
@@ -176,8 +179,27 @@ def prepare_config(config_path):
             if key not in node:
                 node[key] = {}
             node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
-
+        
     config = j.data.serializer.yaml.load(config_path)
+    validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
+    try:
+        jsonschema.validate(config, validator)
+    except Exception as error:
+        message = error.message
+        tree = ''
+        for seq in error.path:
+            if isinstance(seq, int):
+                tree += '/<sequence {}>'.format(seq)
+            else:
+                tree += "/{}".format(seq)
+
+        if  error.validator == 'type':
+            message = '{msg} at {tree}'.format(msg=error.message, tree=tree)
+        elif error.validator == 'required':
+            missing_key = error.validator_value[-1]
+            message = "Missing key in config at {tree}/{key}. Please check example config for reference.".format(key=missing_key, tree=tree)
+        raise j.exceptions.RuntimeError(message)
+    
     for key, value in config['network'].items():
         if 'network' in value:
             for cat, nodes in config['nodes'].items():
@@ -297,8 +319,9 @@ class Cluster:
         finally:
             j.sal.fs.removeDirTree(tmpdir)
 
-    def kub_client_apply(self, scripts_dir='/opt/code/github/0-complexity/openvcloud_installer/templates/'):
-        self.prefab.core.copyTree('/opt/code/github/0-complexity/openvcloud_installer/scripts/kubernetes', scripts_dir)
+    def kub_client_apply(self, scripts_dir='{}/templates/'):
+        scripts_dir = scripts_dir.format(REPO_PATH)
+        self.prefab.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), scripts_dir)
         self._prepare_templates(scripts_dir)
         self.write_system_config()
 
