@@ -1,4 +1,4 @@
-instance.param.password        = 'root'
+instance.param.password        = 'admin'
 instance.param.url             = 'http://grafana:3000'
 instance.param.username        = 'admin'
 
