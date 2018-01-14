@@ -88,7 +88,7 @@ class JumpScale7:
         cmd = 'ays install -d {} -n {} -i {} --data "{}"'.format(domain, package, instance, datastr)
         self.prefab.core.run(cmd)
 
-    def install_compute_node(self, netinfo, masterhost, masterpassword, gid):
+    def install_compute_node(self, netinfo, fqdn, masterhost, masterpassword, gid):
         data_net = {
             'netconfig.public_backplane.interfacename': 'backplane1',
             'netconfig.gw_mgmt_backplane.interfacename': 'backplane1',
@@ -107,8 +107,8 @@ class JumpScale7:
         }
 
         portal_client = {
-            'param.addr' : masterhost.split(',')[0],
-            'param.port': '82',
+            'param.addr' : fqdn,
+            'param.port': '443',
             'param.secret': masterpassword,
         }
 
@@ -403,7 +403,8 @@ def deploy_cpu(config, node_name):
         'gwmgmt_ip': cpunode['gateway-management']['ipaddress'],
 
     }
-    jumpscale.install_compute_node(netinfo, hostips, password, gid)
+    fqdn = '{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
+    jumpscale.install_compute_node(netinfo, fqdn, hostips, password, gid)
 
 
 @storage.command('deploy')

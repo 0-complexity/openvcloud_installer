@@ -1,5 +1,5 @@
-instance.param.password        = 'rooter'
-instance.param.url             = 'http://127.0.0.1:3000'
+instance.param.password        = 'root'
+instance.param.url             = 'http://grafana:3000'
 instance.param.username        = 'admin'
 
 service.domain                 = 'jumpscale'
