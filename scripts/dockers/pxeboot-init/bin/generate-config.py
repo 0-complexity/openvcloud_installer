@@ -14,7 +14,7 @@ with open('/etc/global/system-config.yaml', 'r') as f:
 config = yaml.load(configfile)
 domain = "%s.%s" % (config['environment']['basedomain'], config['environment']['subdomain'])
 gateway = intf.get('mgmt')
-subnet = config['network']['management']
+subnet = config['network']['management']['network'].split('/')[0]
 
 """
 dhcphosts file

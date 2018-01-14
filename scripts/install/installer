@@ -100,11 +100,21 @@ class JumpScale7:
         }
 
         data_cpu = {
-            'param.rootpasswd': masterpassword,
-            'param.master.addr': masterhost,
+            'param.rootpasswd': '',
+            'param.master.addr': '',
             'param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
             'param.grid.id': gid,
         }
+
+        portal_client = {
+            'param.addr' : masterhost.split(',')[0],
+            'param.port': '82',
+            'param.secret': masterpassword,
+        }
+
+        print('Install portal client')
+        self.ays_install('portal_client', domain='jumpscale', instance='main', data=portal_client)
+
 
         print('installing network')
         self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
