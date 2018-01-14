@@ -47,7 +47,11 @@ spec:
           mountPath: /opt/cfg/nginx/ssl/defense
           readOnly: true
         - name: g8vdc-volume
-          mountPath: /opt/code/github/
+          mountPath: /opt/code/github/g8vdc
+          subPath: g8vdc
+        - name: jslib-volume
+          mountPath: /opt/code/github/web_python
+          subPath: web_python
       volumes:
         - name: nginx-config
           emptyDir: {}
@@ -69,5 +73,9 @@ spec:
         - name: g8vdc-volume
           gitRepo:
             repository: "https://github.com/0-complexity/g8vdc.git"
+        - name: jslib-volume
+          gitRepo:
+            repository: "https://docs.greenitglobe.com/binary/web_python.git"
+
 
 
