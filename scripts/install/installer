@@ -182,6 +182,19 @@ def cpu():
 def storage():
     pass
 
+
+@cluster.command('writeconfig')
+@click.option('--config', help='Config file to deploy the cluster')
+def write_system_config(config):
+    """
+    Write or update system-config in kubernetes configmap based on yaml file
+    """
+    if not config:
+        raise j.exceptions.Input('Please specify a config file')
+    cluster = Cluster(config)
+    cluster.write_system_config()
+
+
 @cluster.command('deploy')
 @click.option('--config', help='Config file to deploy the cluster')
 @click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
@@ -294,26 +307,28 @@ class Cluster:
     """
     def __init__(self, config_path):
         self.config = prepare_config(config_path)
-        self.k8s_config = '/tmp/kubelet.conf'
+        self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
         self.join_line = ''
         self.prefab = j.tools.prefab.local
-        self._prepare_config()
-        self.nodes = self._nodes_prefab()
+        self._nodes = None
 
-    def _nodes_prefab(self):
-        nodes = []
-        j.clients.ssh.start_ssh_agent()
-        key = self.config['ssh']['private-key']
-        self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
-        for host, address in get_controller_host_management(self.config):
-            executor = j.tools.executor.getSSHBased(address, usecache=False)
-            nodes.append(j.tools.prefab.get(executor))
-        return nodes
+    @property
+    def nodes(self):
+        if self._nodes is None:
+            nodes = []
+            j.clients.ssh.start_ssh_agent()
+            key = self.config['ssh']['private-key']
+            self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
+            for host, address in get_controller_host_management(self.config):
+                executor = j.tools.executor.getSSHBased(address, usecache=False)
+                nodes.append(j.tools.prefab.get(executor))
+            self._nodes = nodes
+        return self._nodes
 
-    def _get_cidr(self):
-        addr = self.nodes[0].executor.sshclient.addr
-        net = netaddr.IPNetwork(addr)
-        return str(net.cidr)
+    def kubectl(self, *args):
+        cmd = "kubectl --kubeconfig {} ".format(self.k8s_config)
+        cmd += " ".join(args)
+        return self.prefab.core.run(cmd)
 
     def install_kubernetes_cluster(self):
         """
@@ -333,14 +348,14 @@ class Cluster:
         cluster. Creating the relevant deployments, services, and mounts
         TODO
         """
-        if not self.prefab.core.file_exists('/usr/local/bin/kubeclt'):
+        if not self.prefab.core.file_exists('/usr/local/bin/kubectl'):
             self.prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
         directories = self.config['controller'].get('directories')
         for node in self.nodes:
             for directory in directories:
                 node.core.dir_ensure(directory, mode='777')
         for key, value in self.config['environment']['ssl'].items():
-            self.prefab.core.run('kubectl create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=value['path']))
+            self.kubectl('create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=value['path']))
         self.kub_client_apply()
 
     def add_node(self, address):
@@ -356,12 +371,12 @@ class Cluster:
 
     # Not ready yet do not use
     def _apply_deploy(self, template):
-        self.prefab.core.run('kubectl apply -f {template}'.format(template=template))
+        self.kubectl('apply -f {template}'.format(template=template))
         template_name = j.sal.fs.getBaseName(template)
         timeout = time.time() + 240
         print('Waiting for deployment %s to be ready..' % template_name)
         while time.time() < timeout:
-            _, out, _ = self.prefab.core.run('kubectl get deploy -o json')
+            _, out, _ = self.kubectl('get deploy -o json')
             ready = False
             for item in out['items']:
                 if item['metadata']['name'] == template_name:
@@ -382,36 +397,40 @@ class Cluster:
             j.data.serializer.yaml.dump(template_loc, data)
         stat_template = scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = j.data.serializer.yaml.load(stat_template)
-        data['spec']['template']['spec']['containers'][0]['args'][4] = self._get_cidr()
+        data['spec']['template']['spec']['containers'][0]['args'][4] = self.config['network']['management']['network']
         j.data.serializer.yaml.dump(stat_template, data)
+
+    def write_system_config(self):
+        tmpfile = j.sal.fs.getTmpFilePath()
+        try:
+            j.data.serializer.yaml.dump(tmpfile, self.config)
+            self.kubectl('create configmap system-config --from-file {path}'.format(
+                            path=tmpfile))
+        finally:
+            j.sal.fs.remove(tmpfile)
 
     def kub_client_apply(self, scripts_dir='/opt/code/github/0-complexity/openvcloud_installer/templates/'):
         self.prefab.core.copyTree('/opt/code/github/0-complexity/openvcloud_installer/scripts/kubernetes', scripts_dir)
         self._prepare_templates(scripts_dir)
+        self.write_system_config()
 
-        self.prefab.core.run('kubectl apply -f {path}/rbac.yaml'.format(path=scripts_dir))
-        tmpfile = j.sal.fs.getTmpFilePath()
-        try:
-            j.data.serializer.yaml.dump(tmpfile, self.config)
-            self.prefab.core.run('kubectl create configmap system-config --from-file {path}'.format(
-                            path=tmpfile))
-        finally:
-            j.sal.fs.remove(tmpfile)
+        self.kubectl('apply -f {path}/rbac.yaml'.format(path=scripts_dir))
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access']
         for template in templates:
             template_file = scripts_dir + template
-            self.prefab.core.run('kubectl apply -f {template}'.format(template=template_file))
+            self.kubectl('apply -f {template}'.format(template=template_file))
         self.grafana_apply('{}/grafana'.format(scripts_dir))
 
     def grafana_apply(self, grafana_dir):
         cmd = """
         cd {dir}
+        export KUBECONFIG={config}
         kubectl create configmap grafana-provisioning-datasources --from-file=provisioning/datasources
         kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards
         kubectl create configmap grafana-dashboards --from-file=sources/templates
         kubectl apply -f grafana-service.yaml
         kubectl apply -f grafana-deployment.yaml
-        """.format(dir=grafana_dir)
+        """.format(config=self.k8s_config, dir=grafana_dir)
         self.prefab.core.execute_bash(cmd)
 
 if __name__ == '__main__':
