@@ -2,10 +2,13 @@
 from js9 import j
 import netaddr
 import click
+import itertools
+import os
 import sys
 import time
 import jsonschema
 
+REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
 AYSCONFIG = '''
 metadata.jumpscale             =
@@ -206,20 +209,24 @@ def prepare_config(config_path):
             _helper(config['controller']['hosts'])
     return config
 
-def get_controller_host_management(config):
+def get_controller_management_ips(config):
     for host in config['controller']['hosts']:
-        yield host, host['management']['ipaddress'].split('/')[0]
+        yield host['management']['ipaddress'].split('/')[0]
 
 def get_controller_public_ips(config):
     for host in config['controller']['hosts']:
         yield host['fallback']['ipaddress'].split('/')[0]
 
-class Cluster:
+class AbstractConfig:
+    def __init__(self, config_path):
+        self.config = prepare_config(config_path)
+
+class Cluster(AbstractConfig):
     """
     Cluster abstraction layer to allow for easier manipulation.
     """
     def __init__(self, config_path):
-        self.config = prepare_config(config_path)
+        super().__init__(config_path)
         self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
         self.join_line = ''
         self.prefab = j.tools.prefab.local
@@ -232,16 +239,20 @@ class Cluster:
             j.clients.ssh.start_ssh_agent()
             key = self.config['ssh']['private-key']
             self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
-            for host, address in get_controller_host_management(self.config):
+            for address in get_controller_public_ips(self.config):
                 executor = j.tools.executor.getSSHBased(address, usecache=False)
                 nodes.append(j.tools.prefab.get(executor))
             self._nodes = nodes
         return self._nodes
 
+    @property
+    def first_node(self):
+        return self.nodes[0]
+
     def kubectl(self, *args):
-        cmd = "kubectl --kubeconfig {} ".format(self.k8s_config)
+        cmd = "kubectl "
         cmd += " ".join(args)
-        return self.prefab.core.run(cmd)
+        return self.first_node.core.run(cmd)
 
     def install_kubernetes_cluster(self):
         """
@@ -249,11 +260,23 @@ class Cluster:
         """
         for node in self.nodes:
             node.core.run('swapoff -a')
-        k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(self.nodes, unsafe=True, reset=True)
-        self.prefab.core.file_write(self.k8s_config, k8s_config_data)
+
+        managementips = list(get_controller_management_ips(self.config))
+        k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(
+                self.nodes, unsafe=True, reset=True, external_ips=managementips)
         self.prefab.core.dir_ensure('/root/.kube')
+        self.prefab.core.file_write(self.k8s_config, k8s_config_data)
         if not self.prefab.core.file_exists('/root/.kube/config'):
             self.prefab.core.file_write('/root/.kube/config', k8s_config_data)
+
+    def clone_repo(self):
+        for node in self.nodes:
+            node.tools.git.pullRepo(REPO_URL)
+
+    def _install_kubectl(self, prefab):
+        if not prefab.core.file_exists('/usr/local/bin/kubectl'):
+            prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
+
 
     def install_controller(self):
         """
@@ -261,14 +284,35 @@ class Cluster:
         cluster. Creating the relevant deployments, services, and mounts
         TODO
         """
-        if not self.prefab.core.file_exists('/usr/local/bin/kubectl'):
-            self.prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
+
+        for node in self.nodes:
+            self._install_kubectl(node)
+        self._install_kubectl(self.prefab)
+        self.clone_repo()
+
         directories = self.config['controller'].get('directories')
         for node in self.nodes:
             for directory in directories:
                 node.core.dir_ensure(directory, mode='777')
-        for key, value in self.config['environment']['ssl'].items():
-            self.kubectl('create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=value['path']))
+
+        copiedpaths = {}
+        try:
+            for key, value in self.config['environment']['ssl'].items():
+                path = os.path.join(value['path'], '')
+                if path not in copiedpaths:
+                    tmpdir = self.first_node.core.file_get_tmp_path()
+                    # make sure tmpdir has trailing slash
+                    tmpdir = os.path.join(tmpdir, '')
+                    self.first_node.core.dir_ensure(tmpdir)
+                    self.first_node.core.upload(path, tmpdir)
+                    copiedpaths[path] = tmpdir
+                else:
+                    tmpdir = copiedpaths[path]
+                self.kubectl('create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=tmpdir))
+        finally:
+            for tmpdir in copiedpaths.values():
+                self.first_node.core.dir_remove(tmpdir)
+
         self.kub_client_apply()
 
     # Not ready yet do not use
@@ -290,12 +334,20 @@ class Cluster:
         else:
             raise j.exceptions.Timeout('Deploying %s took longer than expected. Exiting..')
 
+    def dump(self, location, data, dumper=j.data.serializer.yaml.dumps):
+        data = dumper(data)
+        self.first_node.core.file_write(location, data)
+
+    def load(self, location, loader=j.data.serializer.yaml.loads):
+        data = self.first_node.core.file_read(location)
+        return loader(data)
+
     def _prepare_templates(self, scripts_dir):
         def write_template(template, externalips):
             template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir, name=template)
-            data = j.data.serializer.yaml.load(template_loc)
+            data = self.load(template_loc)
             data['spec']['externalIPs'] = externalips
-            j.data.serializer.yaml.dump(template_loc, data)
+            self.dump(template_loc, data)
 
         templates = ['agentcontroller', 'osis', '0-access']
         externalips = [node.executor.sshclient.addr for node in self.nodes]
@@ -304,23 +356,24 @@ class Cluster:
         write_template('nginx', list(get_controller_public_ips(self.config)))
 
         stat_template = scripts_dir + '/stats-collector/stats-deployment.yaml'
-        data = j.data.serializer.yaml.load(stat_template)
+        data = self.load(stat_template)
         data['spec']['template']['spec']['containers'][0]['args'][4] = self.config['network']['management']['network']
-        j.data.serializer.yaml.dump(stat_template, data)
+        self.dump(stat_template, data)
 
     def write_system_config(self):
-        tmpdir = j.sal.fs.getTmpDirPath()
+        tmpdir = self.first_node.core.file_get_tmp_path()
+        self.first_node.core.dir_ensure(tmpdir)
         tmpfile = j.sal.fs.joinPaths(tmpdir, 'system-config.yaml')
         try:
-            j.data.serializer.yaml.dump(tmpfile, self.config)
+            self.dump(tmpfile, self.config)
             self.kubectl('create configmap system-config --from-file {path}'.format(
                             path=tmpfile))
         finally:
-            j.sal.fs.removeDirTree(tmpdir)
+            self.first_node.core.dir_remove(tmpdir)
 
     def kub_client_apply(self, scripts_dir='{}/templates/'):
         scripts_dir = scripts_dir.format(REPO_PATH)
-        self.prefab.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), scripts_dir)
+        self.first_node.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), scripts_dir)
         self._prepare_templates(scripts_dir)
         self.write_system_config()
 
@@ -334,12 +387,12 @@ class Cluster:
     def grafana_apply(self, grafana_dir):
         datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)
         dashboardpath = '{}/sources/templates'.format(grafana_dir)
-        datasource = j.data.serializer.yaml.load(datasourcepath)
+        datasource = self.load(datasourcepath)
         datasourcename = 'controller_{}'.format(self.config['environment']['subdomain'])
         datasource['datasources'][0]['name'] = datasourcename
-        j.data.serializer.yaml.dump(datasourcepath, datasource)
+        self.dump(datasourcepath, datasource)
         for dashboardfile in j.sal.fs.listFilesInDir(dashboardpath, filter='*.json'):
-            db = j.data.serializer.json.load(dashboardfile)
+            db = self.load(dashboardfile, j.data.serializer.json.loads)
             db['id'] = None
             db['title'] += " ({})".format(self.config['environment']['subdomain'])
             for row in db['rows']:
@@ -348,17 +401,39 @@ class Cluster:
             if 'templating' in db:
                 for item in db['templating']['list']:
                     item['datasource'] = datasourcename
-            j.data.serializer.json.dump(dashboardfile, db)
+            self.dump(dashboardfile, db, j.data.serializer.json.dumps)
         cmd = """
         cd {dir}
-        export KUBECONFIG={config}
         kubectl create configmap grafana-provisioning-datasources --from-file=provisioning/datasources
         kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards
         kubectl create configmap grafana-dashboards --from-file=sources/templates
         kubectl apply -f grafana-service.yaml
         kubectl apply -f grafana-deployment.yaml
         """.format(config=self.k8s_config, dir=grafana_dir)
-        self.prefab.core.execute_bash(cmd)
+        self.first_node.core.execute_bash(cmd)
+
+
+class PNode(AbstractConfig):
+    def __init__(self, config_path, name):
+        super().__init__(config_path)
+        self._node = None
+
+    @property
+    def node(self):
+        if self._node is None:
+            for node in itertools.chain(self.config['nodes']['cpu'], self.config['nodes']['storage']):
+                if node['name'] == self.name:
+                    self._node = node
+                    return node
+            raise LookupError("Failed to find node with name {}".format(self.name))
+        return self._node
+
+    def impicommand(self, *args):
+        cmd = 'ipmitool -A LAN'
+
+    def reboot(self):
+        pass
+
 
 
 ###                    ###
@@ -430,7 +505,7 @@ def deploy_cpu(config, node_name):
     gid = config['environment']['grid']['id']
     jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
     controllerips = []
-    for host, address in get_controller_host_management(config):
+    for address in get_controller_management_ips(config):
         controllerips.append(address)
 
     hostips = ','.join(controllerips)
@@ -466,7 +541,7 @@ def deploy_storage(config, node_name):
     gid = config['environment']['grid']['id']
     jumpscale.install_core(versions['jumpscale'], versions['openvcloud'])
     controllerips = []
-    for host, address in get_controller_host_management(config):
+    for address in get_controller_management_ips(config):
         controllerips.append(address)
 
     hostips = ','.join(controllerips)
