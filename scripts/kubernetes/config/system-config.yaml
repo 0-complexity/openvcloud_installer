@@ -83,8 +83,8 @@ ssh:
     MIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG
     ...
     TZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==
-    -----END RSA PRIVATE KEY-----
-  public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ
+    -----END RSA PRIVATE KEY----- # key to be used for authorization on the nodes
+  public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ # corresponding public key
 
 controller:
   directories: # required directories for nodes in cluster
@@ -113,13 +113,13 @@ controller:
 
 environment:
   grid:
-    id: 109
-  subdomain: be-g8-4
+    id: 109 # grid id
+  subdomain: be-g8-4 # environement location
   basedomain: demo.greenitglobe.com
-  ssl:
+  ssl: # certificate locations depending on the case can all be the same although all four sections needs to be defined
     root:
       name: demo.greenitglobe.com
-      path: /certpath
+      path: /certpath # location of certificate
     novnc:
       name: demo.greenitglobe.com
       path: /certpath
