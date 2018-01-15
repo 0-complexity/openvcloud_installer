@@ -19,6 +19,8 @@ spec:
         volumeMounts:
         - name: pxeboot-root
           mountPath: /pxeboot
+        securityContext:
+          privileged: true
         lifecycle:
           preStop:
             exec:
