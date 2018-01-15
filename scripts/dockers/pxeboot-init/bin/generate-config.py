@@ -13,7 +13,16 @@ with open('/etc/global/system-config.yaml', 'r') as f:
 
 config = yaml.load(configfile)
 domain = "%s.%s" % (config['environment']['basedomain'], config['environment']['subdomain'])
-gateway = intf.get('mgmt')
+
+netmask = "24" # default to /24
+
+if "/" not in config['network']['management']['network']:
+    print("[-] WARNING: no cidr netmask specified on management network, fallback to /%s" % netmask)
+
+else:
+    netmask = config['network']['management']['network'].split('/')[1]
+
+gateway = "%s/%s" % (config['network']['management']['gateway'], netmask)
 subnet = config['network']['management']['network'].split('/')[0]
 
 """
@@ -85,3 +94,10 @@ print("Public key: %s" % key.stdout.strip())
 with open(os.path.join(imageroot, 'pubkey'), 'w') as f:
     f.write(key.stdout.decode('utf-8'))
 
+"""
+floating gateway ip
+"""
+gatewayfile = os.path.join(configroot, 'gateway-ip-address')
+
+with open(gatewayfile, 'w') as f:
+    f.write(gateway)

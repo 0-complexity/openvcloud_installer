@@ -4,3 +4,10 @@ cp -rv /source/* /opt/pxeboot/
 
 echo "Generating config files"
 python3 /usr/local/bin/generate-config.py
+
+echo "Reading network configuration"
+
+gw=$(cat /opt/pxeboot/conf/gateway-ip-address)
+echo "Gateway address: ${gw}"
+
+ip a add $gw dev mgmt
