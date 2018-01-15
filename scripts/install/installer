@@ -5,7 +5,6 @@ import click
 import sys
 import time
 import jsonschema
-import json
 
 REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
 AYSCONFIG = '''
