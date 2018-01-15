@@ -178,7 +178,7 @@ def prepare_config(config_path):
             if key not in node:
                 node[key] = {}
             node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
-        
+
     config = j.data.serializer.yaml.load(config_path)
     validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
     try:
@@ -198,7 +198,7 @@ def prepare_config(config_path):
         elif validator == 'required':
             message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
         raise j.exceptions.RuntimeError(message)
-    
+
     for key, value in config['network'].items():
         if 'network' in value:
             for nodes in config['nodes'].values():
@@ -325,7 +325,7 @@ class Cluster:
         self.write_system_config()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=scripts_dir))
-        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access']
+        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access', 'management']
         for template in templates:
             template_file = scripts_dir + template
             self.kubectl('apply -f {template}'.format(template=template_file))
