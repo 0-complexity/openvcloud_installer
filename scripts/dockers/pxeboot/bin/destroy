@@ -1,5 +1,5 @@
 #!/bin/sh
-gw=$(cat /opt/pxeboot/conf/gateway-ip-address)
+gw=$(cat /pxeboot/conf/gateway-ip-address)
 
 echo "Removing gateway ${gw} from management interface"
 ip a del ${gw} dev mgmt

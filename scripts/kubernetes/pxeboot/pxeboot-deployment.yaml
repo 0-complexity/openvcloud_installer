@@ -20,7 +20,9 @@ spec:
         - name: pxeboot-root
           mountPath: /pxeboot
         securityContext:
-          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN
         lifecycle:
           preStop:
             exec:
@@ -33,6 +35,10 @@ spec:
       initContainers:
       - name: pxeboot-init
         image: openvcloud/pxeboot-init
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
         command:
         - bash
         - /usr/local/bin/pxeboot-init
