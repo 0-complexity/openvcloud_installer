@@ -184,24 +184,24 @@ def prepare_config(config_path):
     try:
         jsonschema.validate(config, validator)
     except Exception as error:
-        message = error.message
+        message = getattr(error, "message", str(type(error)))
         tree = ''
-        for seq in error.path:
+        for seq in getattr(error, "path", list()):
             if isinstance(seq, int):
                 tree += '/<sequence {}>'.format(seq)
             else:
                 tree += "/{}".format(seq)
 
-        if  error.validator == 'type':
-            message = '{msg} at {tree}'.format(msg=error.message, tree=tree)
-        elif error.validator == 'required':
-            missing_key = error.validator_value[-1]
-            message = "Missing key in config at {tree}/{key}. Please check example config for reference.".format(key=missing_key, tree=tree)
+        validator = getattr(error, "validator")
+        if  validator == 'type':
+            message = '{msg} at {tree}'.format(msg=message, tree=tree)
+        elif validator == 'required':
+            message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
         raise j.exceptions.RuntimeError(message)
     
     for key, value in config['network'].items():
         if 'network' in value:
-            for cat, nodes in config['nodes'].items():
+            for nodes in config['nodes'].values():
                 _helper(nodes)
             _helper(config['controller']['hosts'])
     return config
