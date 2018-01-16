@@ -20,7 +20,8 @@ if "/" not in config['network']['management']['network']:
 else:
     netmask = config['network']['management']['network'].split('/')[1]
 
-gateway = "%s/%s" % (config['network']['management']['gateway'], netmask)
+gateway = config['network']['management']['gateway']
+gatewaycidr = "%s/%s" % (gateway, netmask)
 mgmtsubnet = config['network']['management']['network'].split('/')[0]
 ipmisubnet = config['network']['ipmi']['network'].split('/')[0]
 
@@ -116,4 +117,4 @@ floating gateway ip
 gatewayfile = os.path.join(configroot, 'gateway-ip-address')
 
 with open(gatewayfile, 'w') as f:
-    f.write(gateway)
+    f.write(gatewaycidr)
