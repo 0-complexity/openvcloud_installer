@@ -4,7 +4,7 @@ DISK2=""
 DISK=""
 ONEDISK=0
 # get networking config in order
-MOBO=`sudo dmidecode -t 2 | awk '/Product Name:/{print $3}'`
+MOBO=`dmidecode -t 2 | awk '/Product Name:/{print $3}'`
 # OSIMAGE="ubuntu-16.04.3-20171028.tgz"
 OSIMAGE="ubuntu-16.04.3-20171130.tgz"
 case "$MOBO" in
@@ -293,6 +293,13 @@ function untarit(){
     URL="${OURFILESERVER}/${OSIMAGE}"
     # get the 'image' and pour it in the mountpoint
     wget -qO - $URL | tar --numeric-owner -zxf - -C /mnt
+	if [ ${PIPESTATUS[0]} -ne 0 ] ; then
+		echo "wget of ${URL} failed!"
+		exit 1
+	elif [ ${PIPESATUS[1]} -ne 0 ] ; then
+		echo "Untarring of ${OSIMAGE} failed!"
+		exit 1
+	fi
 	# add btrfs balance in crontab (every sunday @04:13)
     echo "13 4 * * 1 /bin/btrfs balance start -dusage=80 /" >> /mnt/var/spool/cron/crontabs/root
 }
@@ -559,7 +566,6 @@ eval $( cat /proc/cmdline ) &> /dev/null
 LSBIP=$(echo $IPV4ADDR | awk -F . '{printf "%02d",$4}')
 BKPLNIP=`echo $IPV4ADDR | awk -F . '{print $1"."$2"."$3-1"."$4}'`
 STORIP=`echo $IPV4ADDR | awk -F . '{print $1"."$2"."$3+1"."$4}'`
-STORMAC="80:22:c0:ff:ee:${LSBIP}"
 HOSTNUM=`echo $IPV4ADDR | awk -F . '{printf "%02d",$4 - 100}'`
 AYSHOSTNAME=${HOSTNAME,,}.${DNSDOMAIN,,}
 OURFILESERVER=$fullroot
