@@ -173,6 +173,9 @@ class JumpScale7:
                 # temp.consume('node', node.instance)
                 # temp.install(deps=True)
 
+def get_ipaddress(net):
+    return str(netaddr.IPNetwork(net).ip)
+
 def prepare_config(config_path):
     def _helper(nodes):
         for node in nodes:
@@ -211,24 +214,15 @@ def prepare_config(config_path):
 
 def get_controller_management_ips(config):
     for host in config['controller']['hosts']:
-        yield host['management']['ipaddress'].split('/')[0]
+        yield get_ipaddress(host['management']['ipaddress'])
 
 def get_controller_public_ips(config):
     for host in config['controller']['hosts']:
-        yield host['fallback']['ipaddress'].split('/')[0]
+        yield get_ipaddress(host['fallback']['ipaddress'])
 
 class AbstractConfig:
-    def __init__(self, config_path):
-        self.config = prepare_config(config_path)
-
-class Cluster(AbstractConfig):
-    """
-    Cluster abstraction layer to allow for easier manipulation.
-    """
-    def __init__(self, config_path):
-        super().__init__(config_path)
-        self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
-        self.join_line = ''
+    def __init__(self, config):
+        self.config = config
         self.prefab = j.tools.prefab.local
         self._nodes = None
 
@@ -253,6 +247,33 @@ class Cluster(AbstractConfig):
         cmd = "kubectl "
         cmd += " ".join(args)
         return self.first_node.core.run(cmd)
+
+    def get_node_from_appname(self, appname):
+        status, output, _ = self.kubectl("get pods -o json")
+        data = j.data.serializer.json.loads(output)
+        for pod in data['items']:
+            if pod['metadata']['labels'].get('app') != appname:
+                continue
+            hostip = pod['status']['hostIP']
+            for node in self.nodes:
+                netinfo = node.system.net.getInfo()
+                for nic in netinfo:
+                    for ip in nic['ip']:
+                        if ip == hostip:
+                            return node
+
+            raise LookupError("Could not find host with IP {}".format(hostip))
+        raise LookupError("Could not find appname {}".appname)
+
+
+class Cluster(AbstractConfig):
+    """
+    Cluster abstraction layer to allow for easier manipulation.
+    """
+    def __init__(self, config_path):
+        super().__init__(config_path)
+        self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
+        self.join_line = ''
 
     def install_kubernetes_cluster(self):
         """
@@ -414,9 +435,11 @@ class Cluster(AbstractConfig):
 
 
 class PNode(AbstractConfig):
-    def __init__(self, config_path, name):
-        super().__init__(config_path)
+    def __init__(self, config, name):
+        super().__init__(config)
         self._node = None
+        self.name = name
+        self.managementip = get_ipaddress(self.node['management']['ipaddress'])
 
     @property
     def node(self):
@@ -428,12 +451,50 @@ class PNode(AbstractConfig):
             raise LookupError("Failed to find node with name {}".format(self.name))
         return self._node
 
-    def impicommand(self, *args):
-        cmd = 'ipmitool -A LAN'
+    def ipmi(self, *args):
+        ipmiip = get_ipaddress(self.node['ipmi']['ipaddress'])
+        cmd = "ipmitool -I lanplus -H {} -U {} -P {} ".format(ipmiip, self.node['ipmi']['username'], self.node['ipmi']['password'])
+        cmd += " ".join(args)
+        self.first_node.core.run(cmd)
 
     def reboot(self):
-        pass
+        self.ipmi('chassis power cycle')
 
+    def is_up(self):
+        return j.sal.nettools.tcpPortConnectionTest(self.managementip, 22)
+
+    def wait_up(self, timeout=300):
+        j.sal.nettools.waitConnectionTest(self.managementip, 22, timeout)
+        if not self.is_up():
+            raise RuntimeError('Node did not come up in {}seconds'.format(timeout))
+
+    def enable_pxe(self):
+        prefab = self.get_node_from_appname('pxeboot')
+        self.ipmi('chassis bootdev pxe')
+        macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
+        dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
+        src = '../../conf/tftp-911boot'
+        prefab.core.file_link(src, dst)
+
+    def disable_pxe(self):
+        prefab = self.get_node_from_appname('pxeboot')
+        macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
+        dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
+        prefab.core.file_remove(dst)
+
+    def install_os(self):
+        self.enable_pxe()
+        self.reboot()
+        time.sleep(20)
+        self.wait_up()
+        prefab = j.tools.prefab.getFromSSH(self.managementip)
+        status, output, err = prefab.core.run('/root/tools/Install')
+        if status != 0:
+            raise RuntimeError('Failed to install OS')
+        self.disable_pxe()
+        self.reboot()
+        time.sleep(20)
+        self.wait_up()
 
 
 ###                    ###
@@ -441,11 +502,20 @@ class PNode(AbstractConfig):
 ###                    ###
 
 @click.group()
-def cli():
-    pass
+@click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
+@click.pass_context
+def cli(ctx, config):
+    if not config:
+        raise j.exceptions.Input('Please specify a config file')
+    config = prepare_config(config)
+    ctx.obj = config
 
 @cli.group()
 def cluster():
+    pass
+
+@cli.group()
+def node():
     pass
 
 @cli.group()
@@ -457,28 +527,36 @@ def storage():
     pass
 
 
+@node.command('action')
+@click.option('--name', help='Node name')
+@click.argument('action')
+@click.pass_context
+def node_action(ctx, name, action):
+    """
+    Execute command for node
+    """
+    cluster = PNode(ctx.obj, name)
+    getattr(cluster, action)()
+
+
 @cluster.command('writeconfig')
-@click.option('--config', help='Config file to deploy the cluster')
-def write_system_config(config):
+@click.pass_context
+def write_system_config(ctx):
     """
     Write or update system-config in kubernetes configmap based on yaml file
     """
-    if not config:
-        raise j.exceptions.Input('Please specify a config file')
-    cluster = Cluster(config)
+    cluster = Cluster(ctx.obj)
     cluster.write_system_config()
 
 
 @cluster.command('deploy')
-@click.option('--config', help='Config file to deploy the cluster')
 @click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
-def deploy_cluster(config, configure_cluster):
+@click.pass_context
+def deploy_cluster(ctx, configure_cluster):
     """
     Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
     """
-    if not config:
-        raise j.exceptions.Input('Please specify a config file')
-    cluster = Cluster(config)
+    cluster = Cluster(ctx.obj)
     if configure_cluster:
         cluster.install_kubernetes_cluster()
     cluster.install_controller()
@@ -486,10 +564,10 @@ def deploy_cluster(config, configure_cluster):
 
 
 @cpu.command('deploy')
-@click.option('--config', help='Config file to deploy the cluster')
 @click.option('--node-name', help='Node name to configure')
-def deploy_cpu(config, node_name):
-    config = prepare_config(config)
+@click.pass_context
+def deploy_cpu(ctx, node_name):
+    config = ctx.obj
     for cpunode in config['nodes']['cpu']:
         if cpunode['name'] == node_name:
             break
@@ -497,7 +575,7 @@ def deploy_cpu(config, node_name):
         print('Could not find node with name {}'.format(node_name))
         sys.exit(1)
 
-    ip = cpunode['management']['ipaddress'].split('/')[0]
+    ip = get_ipaddress(cpunode['management']['ipaddress'])
     prefab = j.tools.prefab.getFromSSH(ip)
     jumpscale = JumpScale7(prefab)
     versions = config['environment']['versions']
@@ -522,10 +600,10 @@ def deploy_cpu(config, node_name):
 
 
 @storage.command('deploy')
-@click.option('--config', help='Config file to deploy the cluster')
 @click.option('--node-name', help='Node name to configure')
-def deploy_storage(config, node_name):
-    config = prepare_config(config)
+@click.pass_context
+def deploy_storage(ctx, node_name):
+    config = ctx.obj
     for storage_node in config['nodes']['storage']:
         if storage_node['name'] == node_name:
             break
@@ -533,7 +611,7 @@ def deploy_storage(config, node_name):
         print('Could not find node with name {}'.format(node_name))
         sys.exit(1)
 
-    ip = storage_node['management']['ipaddress'].split('/')[0]
+    ip = get_ipaddress(storage_node['management']['ipaddress'])
     prefab = j.tools.prefab.getFromSSH(ip)
     jumpscale = JumpScale7(prefab)
     versions = config['environment']['versions']
