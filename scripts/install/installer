@@ -488,7 +488,7 @@ class PNode(AbstractConfig):
         time.sleep(20)
         self.wait_up()
         prefab = j.tools.prefab.getFromSSH(self.managementip)
-        status, output, err = prefab.core.run('/root/tools/Install')
+        status, output, err = prefab.core.run('cd /root/tools/; ./Install')
         if status != 0:
             raise RuntimeError('Failed to install OS')
         self.disable_pxe()
