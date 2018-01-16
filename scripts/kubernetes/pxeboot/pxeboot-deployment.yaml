@@ -32,6 +32,8 @@ spec:
         volumeMounts:
         - name: pxeboot-images
           mountPath: /www
+        - name: pxeboot-root
+          mountPath: /pxeboot
       initContainers:
       - name: pxeboot-init
         image: openvcloud/pxeboot-init

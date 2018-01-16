@@ -1,5 +1,5 @@
 #!/bin/ash
 set -ex
 
-addr=$(ip -o a sh dev mgmt | awk -F'[[:space:]/]' '/inet / { print $7 }')
+addr=$(cat /pxeboot/conf/gateway-ip-address)
 httpd -f -v -p "${addr}:8080" -h /www
