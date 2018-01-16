@@ -480,7 +480,7 @@ class PNode(AbstractConfig):
         prefab = self.get_node_from_appname('pxeboot')
         macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
         dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
-        prefab.core.file_remove(dst)
+        prefab.core.file_unlink(dst)
 
     def install_os(self):
         self.enable_pxe()
