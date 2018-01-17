@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentcontroller
+  labels:
+    name: agentcontroller
+spec:
+  type: NodePort
+  ports:
+  - name: main-port
+    port: 4444
+  - name: jsagent-port
+    port: 4446
+  - name: redis-port
+    port: 9999
+  selector:
+    app: agentcontroller

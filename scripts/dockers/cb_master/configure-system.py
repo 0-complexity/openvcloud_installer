@@ -2,6 +2,7 @@ from JumpScale import j
 import yaml
 import pprint
 import os
+import argparse
 
 
 def get_config():
@@ -10,8 +11,7 @@ def get_config():
     return data
 
 
-
-if __name__ == '__main__':
+def configure(roles):
     config = get_config()
     gid = int(config['environment']['grid']['id'])
     print("[+] set gid to: %s" % gid)
@@ -23,11 +23,15 @@ if __name__ == '__main__':
     osis_service = j.atyourservice.get(domain='jumpscale', name='osis', instance='main')
     osis_client_service = j.atyourservice.get(domain='jumpscale', name='osis_client', instance='main')
     portal_service = j.atyourservice.get(domain='jumpscale', name='portal', instance='main')
+    jsagent_service = j.atyourservice.get(domain='jumpscale', name='jsagent', instance='main')
 
     for portal_client_service in portal_client_services:
         portal_client_service.hrd.set('instance.param.secret', password)
         portal_client_service.hrd.save()
 
+    roles = roles.split(',')
+    jsagent_service.hrd.set('instance.grid.node.roles', roles)
+    jsagent_service.hrd.save()
     agentcontroller_service.hrd.set('instance.agentcontroller.client.passwd', password)
     agentcontroller_service.hrd.save()
     osis_service.hrd.set('instance.param.osis.superadmin.passwd', password)
@@ -39,3 +43,11 @@ if __name__ == '__main__':
     portal_service.hrd.save()
 
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')
+
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--roles', defualt='node')
+    args = parser.parse_args()
+    configure(args.roles)
