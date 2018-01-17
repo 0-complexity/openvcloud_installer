@@ -457,7 +457,8 @@ class Cluster(AbstractConfig):
         self.write_system_config()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=scripts_dir))
-        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller', 'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access', 'management']
+        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller',
+                     'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access', 'management', 'controller-jsagent']
         for template in templates:
             template_file = scripts_dir + template
             self.kubectl('apply -f {template}'.format(template=template_file))
