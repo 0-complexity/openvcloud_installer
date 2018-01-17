@@ -17,7 +17,7 @@ spec:
       - name: system-init
         imagePullPolicy: Always
         command: [/bin/bash]
-        args: ['-c', 'jspython /var/run/scripts/system/configure-system.py && jspython /var/run/scripts/portal/configure-portal.py']
+        args: ['-c', 'jspython /var/run/scripts/system/configure-system.py --machineguid 000000000003 && jspython /var/run/scripts/portal/configure-portal.py']
         image: openvcloud/portal7
         workingDir: /var/run/scripts/system
         volumeMounts:
