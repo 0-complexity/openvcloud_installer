@@ -10,7 +10,7 @@ with open('/etc/global/system-config.yaml', 'r') as f:
     configfile = f.read()
 
 config = yaml.load(configfile)
-domain = "%s.%s" % (config['environment']['subdomain'], config['environment']['basedomain'])
+domain = config['environment']['subdomain']
 
 netmask = "24" # default to /24
 

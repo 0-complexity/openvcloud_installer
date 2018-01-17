@@ -371,7 +371,7 @@ class Cluster(AbstractConfig):
             self.dump(template_loc, data)
 
         templates = ['agentcontroller', 'osis', '0-access']
-        externalips = [node.executor.sshclient.addr for node in self.nodes]
+        externalips = list(get_controller_management_ips(self.config))
         for template in templates:
             write_template(template, externalips)
         write_template('nginx', list(get_controller_public_ips(self.config)))
@@ -564,15 +564,15 @@ def deploy_cluster(ctx, configure_cluster):
 
 
 @cpu.command('deploy')
-@click.option('--node-name', help='Node name to configure')
+@click.option('--name', help='Node name to configure')
 @click.pass_context
-def deploy_cpu(ctx, node_name):
+def deploy_cpu(ctx, name):
     config = ctx.obj
     for cpunode in config['nodes']['cpu']:
-        if cpunode['name'] == node_name:
+        if cpunode['name'] == name:
             break
     else:
-        print('Could not find node with name {}'.format(node_name))
+        print('Could not find node with name {}'.format(name))
         sys.exit(1)
 
     ip = get_ipaddress(cpunode['management']['ipaddress'])
@@ -600,15 +600,15 @@ def deploy_cpu(ctx, node_name):
 
 
 @storage.command('deploy')
-@click.option('--node-name', help='Node name to configure')
+@click.option('--name', help='Node name to configure')
 @click.pass_context
-def deploy_storage(ctx, node_name):
+def deploy_storage(ctx, name):
     config = ctx.obj
     for storage_node in config['nodes']['storage']:
-        if storage_node['name'] == node_name:
+        if storage_node['name'] == name:
             break
     else:
-        print('Could not find node with name {}'.format(node_name))
+        print('Could not find node with name {}'.format(name))
         sys.exit(1)
 
     ip = get_ipaddress(storage_node['management']['ipaddress'])
