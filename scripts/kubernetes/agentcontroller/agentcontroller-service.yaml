@@ -9,9 +9,5 @@ spec:
   ports:
   - name: main-port
     port: 4444
-  - name: jsagent-port
-    port: 4446
-  - name: redis-port
-    port: 9999
   selector:
     app: agentcontroller

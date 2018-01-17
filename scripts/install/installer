@@ -37,8 +37,12 @@ class JumpScale7:
             if node['name'] == name:
                 break
         else:
-            print('Could not find node with name {}'.format(name))
-            sys.exit(1)
+            for node in config['controller']['hosts']:
+                if node['hostname'] == name:
+                    break
+            else:
+                print('Could not find node with name {}'.format(name))
+                sys.exit(1)
 
         ip = get_ipaddress(node['management']['ipaddress'])
         prefab = j.tools.prefab.getFromSSH(ip)
@@ -114,6 +118,10 @@ class JumpScale7:
             datastr += "{}:{} ".format(key, value)
         cmd = 'ays install -d {} -n {} -i {} --data "{}"'.format(domain, package, instance, datastr)
         self.prefab.core.run(cmd)
+
+    def install_controller(self):
+        self.install_core()
+        self.install_agent()
 
     def install_compute_node(self):
         self.install_core()
@@ -573,6 +581,10 @@ def cpu():
     pass
 
 @cli.group()
+def controller():
+    pass
+
+@cli.group()
 def storage():
     pass
 
@@ -632,6 +644,14 @@ def deploy_cluster(ctx, configure_cluster):
 def deploy_cpu(ctx, name):
     jumpscale = JumpScale7(ctx.obj, name)
     jumpscale.install_compute_node()
+
+
+@controller.command('deploy')
+@click.option('--name', help='Node name to configure')
+@click.pass_context
+def deploy_controller(ctx, name):
+    jumpscale = JumpScale7(ctx.obj, name)
+    jumpscale.install_controller()
 
 
 @storage.command('deploy')
