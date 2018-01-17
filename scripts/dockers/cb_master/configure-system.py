@@ -48,6 +48,6 @@ def configure(roles):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--roles', defualt='node')
+    parser.add_argument('--roles', default='node')
     args = parser.parse_args()
     configure(args.roles)
