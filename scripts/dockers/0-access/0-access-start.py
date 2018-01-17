@@ -13,7 +13,8 @@ args = namedtuple('Arguments', ['organization', 'client_secret', 'uri', 'port', 
 args.organization = "%s.0-access" % cfg['itsyouonline']['clientId']
 args.client_secret = cfg['itsyouonline']['clientSecret']
 args.uri = "https://%s.%s/0-access" % (cfg['environment']['subdomain'], cfg['environment']['basedomain'])
-args.port = 7022
+args.ssh_port = 7022
+args.port = 5000
 args.ssh_ip = '127.0.0.1'
 args.session_timeout = 3600
 
