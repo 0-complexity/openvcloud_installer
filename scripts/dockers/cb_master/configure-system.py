@@ -11,11 +11,19 @@ def get_config():
     return data
 
 
-def configure(roles):
+def configure(roles, machineguid):
+    """
+    configures the js7 node.
+    """
     config = get_config()
     gid = int(config['environment']['grid']['id'])
     print("[+] set gid to: %s" % gid)
+    roles = roles.split(',')
     j.application.config.set('grid.id', gid)
+    j.application.config.set('grid.node.id', '')
+    if machineguid:
+        j.application.config.set('grid.node.machineguid', machineguid)
+
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/system/', '/opt/cfg/system/')
     password = config['environment']['password']
     portal_client_services = j.atyourservice.findServices(domain='jumpscale', name='portal_client')
@@ -29,9 +37,6 @@ def configure(roles):
         portal_client_service.hrd.set('instance.param.secret', password)
         portal_client_service.hrd.save()
 
-    roles = roles.split(',')
-    jsagent_service.hrd.set('instance.grid.node.roles', roles)
-    jsagent_service.hrd.save()
     agentcontroller_service.hrd.set('instance.agentcontroller.client.passwd', password)
     agentcontroller_service.hrd.save()
     osis_service.hrd.set('instance.param.osis.superadmin.passwd', password)
@@ -49,5 +54,6 @@ def configure(roles):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--roles', default='node')
+    parser.add_argument('--machineguid', default=None)
     args = parser.parse_args()
-    configure(args.roles)
+    configure(args.roles, args.machineguid)
