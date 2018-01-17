@@ -128,6 +128,12 @@ class Portal(object):
         ccl = j.clients.osis.getNamespace('cloudbroker')
         lcl = j.clients.osis.getNamespace('libvirt')
 
+        # update cloudbroker service
+        cloudbrokerhrd = j.application.getAppInstanceHRD(name='cloudbroker', domain='openvcloud', instance='main')
+        cloudbrokerhrd.set('instance.cloudbroker.portalurl', 'https://{}'.format(fqdn))
+        cloudbrokerhrd.set('instance.openvcloud.cloudbroker.defense_proxy', 'https://defense-{}'.format(fqdn))
+        cloudbrokerhrd.save()
+
         # setup user/groups
         for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3', '0-access'):
             if not scl.group.search({'id': groupname})[0]:
