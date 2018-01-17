@@ -135,16 +135,10 @@ class JumpScale7:
         }
 
         data_cpu = {
-            'param.rootpasswd': '',
-            'param.master.addr': '',
-            'param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
-            'param.grid.id': self.gid,
-        }
-
-        portal_client = {
-            'param.addr' : self.fqdn,
-            'param.port': '443',
-            'param.secret': self.password,
+            'instance.param.rootpasswd': self.password,
+            'instance.param.master.addr': '',
+            'instance.param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
+            'instance.param.grid.id': self.gid,
         }
 
         self.install_portal_client()
