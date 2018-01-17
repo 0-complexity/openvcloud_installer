@@ -1,3 +1,4 @@
 npyscreen==4.10.5
 pycrypto==2.6.1
 requests==2.18.4
+pyyaml==3.10
