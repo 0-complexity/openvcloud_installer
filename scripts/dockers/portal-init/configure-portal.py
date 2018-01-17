@@ -158,6 +158,31 @@ class Portal(object):
             vnc.gid = gid
             vnc.url = url
             lcl.vnc.set(vnc)
+        # register sizes
+        sizecbs = [('10GB at SSD Speed, Unlimited Transfer - 7.5 USD/month', 512, 1),
+                 ('10GB at SSD Speed, Unlimited Transfer - 15 USD/month', 1024, 1),
+                 ('10GB at SSD Speed, Unlimited Transfer - 18 USD/month', 2048, 2),
+                 ('10GB at SSD Speed, Unlimited Transfer - 36 USD/month', 4096, 2),
+                 ('10GB at SSD Speed, Unlimited Transfer - 70 USD/month', 8192, 4),
+                 ('10GB at SSD Speed, Unlimited Transfer - 140 USD/month', 16384, 8)]
+        disksizes = [10, 20, 50, 100, 250, 500, 1000, 2000]
+        for sizecb in sizecbs:
+            if ccl.size.count({'memory': sizecb[1], 'vcpus': sizecb[2]}) == 0:
+                size = ccl.size.new()
+                size.name = sizecb[0]
+                size.memory = sizecb[1]
+                size.vcpus = sizecb[2]
+                size.disks = disksizes
+                size.gids = [gid]
+                ccl.size.set(size)
+        # register network ids
+        newrange = set(range(int(100), int(1000) + 1))
+        if not lcl.networkids.exists(gid):
+            networkids = {
+                'id': gid,
+                'networkids': list(newrange)
+            }
+            lcl.networkids.set(networkids)
 
     def configure_IYO(self):
         if not self.config['itsyouonline'].get('callbackURL'):
