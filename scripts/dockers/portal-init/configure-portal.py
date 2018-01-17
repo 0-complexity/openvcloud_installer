@@ -86,13 +86,13 @@ class Portal(object):
             },
             'vdc': {
                 'name': 'End User',
-                'url': fqdn,
+                'url': 'https://{}'.format(fqdn),
                 'scope': 'user',
                 'theme': 'dark',
                 'external': 'true'},
             'ovs': {
                 'name': 'Storage',
-                'url': 'ovs-%s' % (fqdn),
+                'url': 'https://ovs-%s' % (fqdn),
                 'scope': 'ovs_admin',
                 'theme': 'light',
                 'external': 'true'},
@@ -129,7 +129,7 @@ class Portal(object):
         lcl = j.clients.osis.getNamespace('libvirt')
 
         # setup user/groups
-        for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3'):
+        for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3', '0-access'):
             if not scl.group.search({'id': groupname})[0]:
                 group = scl.group.new()
                 group.gid = gid
@@ -166,7 +166,7 @@ class Portal(object):
             raise RuntimeError('environment is not set')
         callbackURL = self.config['itsyouonline']['callbackURL']
         environment = self.config['itsyouonline']['environment']
-        groups = ['admin', 'level1', 'level2', 'level3', 'ovs_admin', 'user']
+        groups = ['admin', 'level1', 'level2', 'level3', 'ovs_admin', 'user', '0-access']
 
         # register api key
         apikeyname = 'openvcloud-{}'.format(environment)
@@ -177,7 +177,7 @@ class Portal(object):
         apikey = self.configure_api_key(apikey)
 
         # install oauth_client
-        scopes = ['user:name', 'user:email']
+        scopes = ['user:name', 'user:email', 'user:publickey:ssh']
         for group in groups:
             scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
 
