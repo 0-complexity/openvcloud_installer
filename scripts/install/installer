@@ -661,11 +661,6 @@ def deploy_storage(ctx, name):
     jumpscale = JumpScale7(ctx.obj, name)
     jumpscale.install_storage_node()
 
-def build_images():
-    """
-    build the releveant images that will be used to run the deployments
-    TODO
-    """
 
 
 if __name__ == '__main__':
