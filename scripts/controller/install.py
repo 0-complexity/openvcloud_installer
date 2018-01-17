@@ -10,7 +10,7 @@ import npyscreen
 from Crypto.Cipher import AES
 import requests
 
-KUSIMAMIA_URL = "http://localhost:20000"
+MENEJA_URL = "https://meneja.gig.tech"
 
 app_result = dict()
 
@@ -20,13 +20,13 @@ class App(npyscreen.NPSApp):
         # Authorize
         form = npyscreen.ActionForm(name="GIG.tech controller installer - authenticate")
         form.add(npyscreen.Pager, values=[
-            "To use this program you need to have the Kusimamia",
+            "To use this program you need to have the Meneja",
             "authentication key on the system.",
-            "Select the Kusimamia authorization key file",
+            "Select the Meneja authorization key file",
             "and enter your password you set when you downloaded",
-            "your authentication keyfile from https://kusimamia.gig.tech"
+            "your authentication keyfile from https://meneja.gig.tech"
         ], max_height=6)
-        keyfile = form.add(npyscreen.TitleFilenameCombo, name="Select Kusimamia auth key file:")
+        keyfile = form.add(npyscreen.TitleFilenameCombo, name="Select Meneja auth key file:")
         password = form.add(npyscreen.TitlePassword, name="Enter auth key file password:")
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
         def cancel():
@@ -64,7 +64,7 @@ class App(npyscreen.NPSApp):
             response.raise_for_status()
             jwt = response.text
             # Downloading environments
-            response = requests.get("%s/environments" % KUSIMAMIA_URL,
+            response = requests.get("%s/environments" % MENEJA_URL,
                 headers={"Authorization": "bearer %s" % jwt})
             response.raise_for_status()
             environments = response.json()
@@ -118,7 +118,7 @@ class App(npyscreen.NPSApp):
         def cancel():
             self.select_environment(jwt, environments)
         def ok():
-            response = requests.get("%s/download/controller/config/%s/%s" % (KUSIMAMIA_URL, org, env),
+            response = requests.get("%s/download/controller/config/%s/%s" % (MENEJA_URL, org, env),
                 headers={"Authorization": "bearer %s" % jwt},
                 stream=True)
             response.raise_for_status()
