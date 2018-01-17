@@ -12,7 +12,7 @@ from Crypto.Cipher import AES
 import requests
 import subprocess
 
-KUSIMAMIA_URL = "http://localhost:20000"
+MENEJA_URL = "https://meneja.gig.tech"
 
 app_result = dict()
 
@@ -23,13 +23,13 @@ class App(npyscreen.NPSApp):
         # Authorize
         form = npyscreen.ActionForm(name="GIG.tech controller installer - authenticate")
         form.add(npyscreen.Pager, values=[
-            "To use this program you need to have the Kusimamia",
+            "To use this program you need to have the Meneja",
             "authentication key on the system.",
-            "Select the Kusimamia authorization key file",
+            "Select the Meneja authorization key file",
             "and enter your password you set when you downloaded",
-            "your authentication keyfile from https://kusimamia.gig.tech"
+            "your authentication keyfile from https://meneja.gig.tech"
         ], max_height=6)
-        keyfile = form.add(npyscreen.TitleFilenameCombo, name="Select Kusimamia auth key file:")
+        keyfile = form.add(npyscreen.TitleFilenameCombo, name="Select Meneja auth key file:")
         password = form.add(npyscreen.TitlePassword, name="Enter auth key file password:")
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
@@ -124,7 +124,7 @@ class App(npyscreen.NPSApp):
             "Select an installation type"
         ], max_height=2)
         installation_type = form.add(npyscreen.TitleSelectOne, name="Select the type of installation to preform",
-                                     values=['node', 'cluster', 'image', 'controller'],
+                                     values=['node', 'cluster', 'image', 'controller', 'jsagent'],
                                      selectable=True, scroll_exit=True, max_height=5)
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
@@ -313,6 +313,52 @@ class App(npyscreen.NPSApp):
         form.on_ok = ok
         form.edit()
 
+    def jsagent_selection(self, config):
+        form = npyscreen.ActionForm(name="GIG.tech controller installer - Image installation")
+        controllers_hostnames = []
+        for controller in config['hosts']:
+            controllers_hostnames.append(controller['hostname'])
+
+        controllers = form.add(npyscreen.TitleMultiSelect,
+                               name="Please select controller nodes to install jsagent:",
+                               values=controllers_hostnames, max_height=5)
+        errormessage = form.add(npyscreen.FixedText, color="DANGER")
+
+        def cancel():
+            return
+
+        def ok():
+            if not controllers:
+                errormessage.value = "Please Image template name."
+                form.edit()
+                return
+            marked_controllers = controllers.get_value()
+            errormessage.value = ""
+            # invoke install
+            app_result['jsagents'] = marked_controllers
+            self.confirm_jsagent_popup(config, marked_controllers)
+        form.on_cancel = cancel
+        form.on_ok = ok
+        form.edit()
+
+    def confirm_jsagent_popup(self, config, controller):
+        org = app_result['org']
+        env = app_result['env']
+        form = npyscreen.ActionPopup(name="GIG.tech controller installer - confirm installation")
+        form.add(npyscreen.Pager, values=[
+            "Please confirm installation settings:",
+            "  partner: %s" % org,
+            "  environment: %s" % env,
+            "  jsagent on node: %s" %  controller], max_height=5)
+
+        def cancel():
+            self.jsagent_selection(config)
+
+        def ok():
+            pass
+        form.on_cancel = cancel
+        form.on_ok = ok
+        form.edit()
 
 if __name__ == "__main__":
     app = App()
@@ -321,11 +367,12 @@ if __name__ == "__main__":
         action = app_result.get("action")
         processes = []
         if action == "node":
+            logs = "/var/log/nodes" % app_result['env']
             # install node from install script in repo
-            if not os.path.exists("/var/log/nodes"):
-                os.makedirs("/var/log/nodes/")
+            if not os.path.exists(logs):
+                os.makedirs(logs)
             for node in app_result["cpu_nodes"]:
-                fd = open("/var/log/nodes/%s.log" % node, 'w+')
+                fd = open("%s/%s.log" % (logs, node), 'w+')
                 processes.append((subprocess.Popen(
                     ['python3',
                      '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
@@ -334,7 +381,7 @@ if __name__ == "__main__":
                      'deploy',
                      '--name=%s' % node], stdout=fd, stderr=fd), node, fd))
             for node in app_result["storage_nodes"]:
-                fd = open("/var/log/nodes/%s.log" % node, 'w+')
+                fd = open("%s/%s.log" % (logs, node), 'w+')
                 processes.append((subprocess.Popen(
                     ['python3',
                      '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
@@ -347,17 +394,25 @@ if __name__ == "__main__":
             processes.append((subprocess.Popen(["/root/tools/CtrlInstall", app_result["controller"]],
                                               stdout=fd, stderr=fd), app_result["controller"], fd))
         if action == "image":
-            fd = open("/var/log/nodes/image_%s.log" % app_result["image"], 'w+')
+            fd = open("%s/image_%s.log" % (logs, app_result["image"]), 'w+')
             processes.append((subprocess.Popen(['python3',
                                                '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
                                                'image',
                                                'deploy',
                                                '—name=%s'% app_result["image"]],
                                               stdout=fd, stderr=fd), app_result["image"], fd))
+        if action == "jsagent":
+            fd = open("%s/jsagent_%s.log" % (logs, app_result["jsagent"]), 'w+')
+            processes.append((subprocess.Popen(['python3',
+                                               '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
+                                               'controller',
+                                               'deploy',
+                                               '—name=%s'% app_result["jsagent"]],
+                                              stdout=fd, stderr=fd), app_result["jsagent"], fd))
         for process in processes:
             print("[+] Installing %s" % process[1])
             if process[0].wait() != 0:
-                print("Error: an error occured check /var/logs/nodes/%s" % process[1])
+                print("Error: an error occured check under /var/log/%s/" % app_result['env'] )
             process[2].close()
 
     except KeyboardInterrupt:
