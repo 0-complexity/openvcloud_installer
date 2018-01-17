@@ -5,6 +5,7 @@ import click
 import itertools
 import os
 import requests
+import random
 import sys
 import time
 import jsonschema
@@ -574,6 +575,19 @@ def cpu():
 @cli.group()
 def storage():
     pass
+
+@cli.group()
+def image():
+    pass
+
+
+@image.command('deploy')
+@click.option('--name', help='Image name')
+@click.pass_context
+def image_deploy(ctx, name):
+    storage = random.choice(ctx.obj['nodes']['storage'])
+    jumpscale = JumpScale7(ctx.obj, storage['name'])
+    jumpscale.ays_install(name, 'openvcloud')
 
 
 @node.command('action')
