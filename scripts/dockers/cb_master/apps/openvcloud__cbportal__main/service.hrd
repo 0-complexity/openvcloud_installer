@@ -1,0 +1,33 @@
+instance.openvcloud.cloudbroker.notifysupport = '0'
+instance.openvcloud.cloudbroker.signupcredit = '5'
+instance.openvcloud.supportemail = 'support@greenitglobe.com'
+instance.portal.instance       = 'main'
+
+service.dependencies.1         =
+    name:'portal',
+
+service.dependencies.2         =
+    instnace:'cloudbroker',
+    name:'portal_client',
+
+service.domain                 = 'openvcloud'
+service.git.export.1           =
+    branch:'2.2.0',
+    dest:'/opt/jumpscale7/apps/portals/main/base/',
+    link:'True',
+    source:'apps/cbportal/base/*',
+    url:'https://github.com/0-complexity/openvcloud.git',
+
+service.git.export.2           =
+    branch:'2.2.0',
+    dest:'/opt/jumpscale7/apps/portals/main/templates/',
+    link:'True',
+    source:'apps/cbportal/templates/*',
+    url:'https://github.com/0-complexity/openvcloud.git',
+
+service.git.url                = 'https://github.com/0-complexity/openvcloud.git'
+service.installed.checksum     = 'bafac232fda2869e1827409e8ae20677'
+service.instance               = 'main'
+service.name                   = 'cbportal'
+service.platform.supported     =
+    'generic',
