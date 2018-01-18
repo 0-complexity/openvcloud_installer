@@ -20,7 +20,7 @@ def replace_vars(path):
 
 class ServiceMigration:
     def __init__(self):
-        pass
+        self.clonedurls = {}
 
     def services(self):
         data = {}
@@ -65,7 +65,11 @@ class ServiceMigration:
             'tag': service.get('tag')
         }
 
-        repo = j.do.pullGitRepo(**settings)
+        if settings['url'] not in self.clonedurls:
+            repo = j.do.pullGitRepo(**settings)
+            self.clonedurls[settings['url']] = repo
+        else:
+            repo = self.clonedurls[settings['url']]
 
         src = "%s/%s" % (repo, service['source'])
         src = src.replace("//", "/")
