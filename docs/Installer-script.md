@@ -28,7 +28,7 @@ The script([here](../scripts/install/installer)) has the following commands:
 To deploy the cluster run the command:
 
 ```bash
-installer cluster deploy --config system-config.yaml --configure-cluster
+installer --config system-config.yaml cluster deploy  --configure-cluster
 ```
 
 - `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
@@ -47,24 +47,94 @@ The command `cluster writeconfig` is used to create `configmap` from the specifi
 installer cluster writeconfig --config system-config.yaml
 ```
 
+
+### node
+
+This is used to exec ipmi commands on cpu/storage nodes:
+
+```bash
+installer --config system-config.yaml node deploy --name node_name <action>
+```
+
+- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
+- `--name` name of the cpu/storage node to apply on ipmi commands. This needs to be in the config file
+- **action** to to use can be :
+    - `reboot` : Reboots the specified node.
+    - `is_up` : Check that the and node is up and running.
+    - `wait_up` : Wait till the node is up and running.
+    - `enable_pxe` : Enable pxe on node.
+    - `disable_pxe` : Disable pxe on node.
+    - `install_os` : Install os on node.
+
+
 ### cpu
+-------
 
-This is used to deploy cpu nodes:
+This is used to configure cpu nodes:
 
 ```bash
-installer cpu deploy --config system-config.yaml --node-name cpu-01
+installer --config system-config.yaml cpu deploy --name node_name
+```
+- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
+- `--name` name of the cpu node to be cofigured. This needs to be in the config file
+
+
+### **Storage**
+-------
+
+This is used to configure storage nodes:
+
+```bash
+installer --config system-config.yaml storage deploy --name node_name
 ```
 
 - `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
-- `--node-name` name of the cpu node needs to be specified in the config file
+- `--name` name of the storage node to be cofigured. This needs to be in the config file
 
-### storage
+### **Image**
+-------
 
-This is used to deploy storage nodes:
+This is used to to install image on the cluster:
 
 ```bash
-installer storage deploy --config system-config.yaml --node-name stor-01
+installer --config system-config.yaml image deploy --name image_name
+```
+- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
+- `--name` name of Ays template of the image package to use
+
+
+
+### **Controller**
+-------
+
+This is used to install jsagent on controller node:
+
+```bash
+installer --config system-config.yaml controller deploy --name controller_node_hostname
 ```
 
 - `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
-- `--node-name` name of the storage node needs to be specified in the config file
+- `--name` name of the controller node. This needs to be specified in the config file
+
+
+### **Resource**
+-------
+
+This is used handle kubernetes resource files:
+
+ - Write or update system-config in kubernetes configmap based on yaml file:
+```bash
+installer --config system-config.yaml resources writeconfig
+```
+
+ - Rewrite kube resources from template:
+```bash
+installer --config system-config.yaml resources write
+```
+
+ - Rewrite kube resources from template:
+```bash
+installer --config system-config.yaml resources deploy
+```
+
+- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
