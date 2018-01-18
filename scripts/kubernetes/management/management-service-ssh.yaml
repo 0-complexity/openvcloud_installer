@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: management-ssh
+  labels:
+    name: management-ssh
+spec:
+  type: ClusterIP
+  ports:
+  - name: ssh
+    targetPort: 2205
+    port: 22
+
+  selector:
+    app: management
