@@ -42,7 +42,7 @@ spec:
           mountPath: /opt/jumpscale7/hrd/system/
         - name:  apps-hrd
           mountPath: /opt/jumpscale7/hrd/apps/
-      - name: jsagent
+      - name: jsagent-container
         imagePullPolicy: Always
         command: [jspython]
         args: ['jsagent.py', '-i', 'main']

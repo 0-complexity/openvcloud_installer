@@ -20,15 +20,24 @@ spec:
         image: openvcloud/management
         command: ['/bin/bash']
         args: ['-c', 'python3 /var/run/init-ssh.py && /sbin/my_init']
+        env:
+        - name: PATH
+          value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/
         volumeMounts:
           - name:  system-config
             mountPath: /opt/cfg/system
+          - name: installer-volume
+            mountPath: /opt/code/github/0-complexity/openvcloud_installer
+            subPath: openvcloud_installer
         ports:
         - containerPort: 22
       volumes:
       - name: system-config
         configMap:
           name: system-config
+      - name: installer-volume
+        gitRepo:
+          repository: "https://github.com/0-complexity/openvcloud_installer.git"
 
 
 
