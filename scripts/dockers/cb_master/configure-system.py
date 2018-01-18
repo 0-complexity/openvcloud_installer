@@ -21,6 +21,7 @@ def configure(roles, machineguid):
     roles = roles.split(',')
     j.application.config.set('grid.id', gid)
     j.application.config.set('grid.node.id', '')
+    j.application.config.set('grid.node.roles', roles)
     if machineguid:
         j.application.config.set('grid.node.machineguid', machineguid)
 
