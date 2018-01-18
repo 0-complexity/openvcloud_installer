@@ -153,7 +153,7 @@ class App(npyscreen.NPSApp):
         form.on_ok = ok
         form.edit()
 
-    def controller_selection(self, jwt, config):
+    def controller_selection(self, config):
         form = npyscreen.ActionForm(name="GIG.tech controller installer - Controller installation.")
         form.add(npyscreen.Pager, values=[
             "Select the controller node you whish to install."
