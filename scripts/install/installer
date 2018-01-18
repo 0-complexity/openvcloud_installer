@@ -425,14 +425,16 @@ class Cluster(AbstractConfig):
         def write_template(template, externalips):
             template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir, name=template)
             data = self.load(template_loc)
-            data['spec']['externalIPs'] = externalips
-            self.dump(template_loc, data)
+            if data['spec'].get('type') == 'NodePort':
+                data['spec']['externalIPs'] = externalips
+                self.dump(template_loc, data)
 
-        templates = ['agentcontroller', 'osis', '0-access']
+        templates = ['agentcontroller', 'osis']
         externalips = list(get_controller_management_ips(self.config))
         for template in templates:
             write_template(template, externalips)
         write_template('nginx', list(get_controller_public_ips(self.config)))
+        write_template('0-access', list(get_controller_public_ips(self.config)))
 
         stat_template = scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = self.load(stat_template)
