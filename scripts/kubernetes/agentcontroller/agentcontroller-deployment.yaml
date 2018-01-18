@@ -17,7 +17,7 @@ spec:
       - name: system-init
         imagePullPolicy: Always
         command: [jspython]
-        args: ['configure-system.py', '--roles', 'master,node', '--machineguid', '000000000002']
+        args: ['configure-system.py', '--roles', 'master,node', '--machineguid', '000000000002', '--controller-addr', '127.0.0.1']
         image: openvcloud/cb_master
         workingDir: /var/run/scripts/system
         volumeMounts:
