@@ -102,5 +102,5 @@ ENV/
 .vscode
 
 # Runtime
-/templates/
+/kuberesources/
 

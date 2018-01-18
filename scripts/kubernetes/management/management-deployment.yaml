@@ -12,7 +12,6 @@ spec:
       labels:
         app: management
     spec:
-      hostNetwork: true
       restartPolicy: Always
       containers:
       - name: management

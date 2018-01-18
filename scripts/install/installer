@@ -332,6 +332,7 @@ class Cluster(AbstractConfig):
         super().__init__(config_path)
         self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
         self.join_line = ''
+        self.scripts_dir = '{}/kuberesources/'.format(REPO_PATH)
 
     def install_kubernetes_cluster(self):
         """
@@ -421,22 +422,26 @@ class Cluster(AbstractConfig):
         data = self.first_node.core.file_read(location)
         return loader(data)
 
-    def _prepare_templates(self, scripts_dir):
+    def prepare_templates(self):
         def write_template(template, externalips):
-            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=scripts_dir, name=template)
+            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=self.scripts_dir, name=template)
             data = self.load(template_loc)
             if data['spec'].get('type') == 'NodePort':
                 data['spec']['externalIPs'] = externalips
                 self.dump(template_loc, data)
 
+        self.first_node.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), self.scripts_dir)
         templates = ['agentcontroller', 'osis']
         externalips = list(get_controller_management_ips(self.config))
         for template in templates:
             write_template(template, externalips)
-        write_template('nginx', list(get_controller_public_ips(self.config)))
-        write_template('0-access', list(get_controller_public_ips(self.config)))
 
-        stat_template = scripts_dir + '/stats-collector/stats-deployment.yaml'
+        pubtemplates = ['nginx', '0-access', 'management']
+        pubips = list(get_controller_public_ips(self.config))
+        for template in pubtemplates:
+            write_template(template, pubips)
+
+        stat_template = self.scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = self.load(stat_template)
         data['spec']['template']['spec']['containers'][0]['args'][4] = self.config['network']['management']['network']
         self.dump(stat_template, data)
@@ -452,19 +457,17 @@ class Cluster(AbstractConfig):
         finally:
             self.first_node.core.dir_remove(tmpdir)
 
-    def kub_client_apply(self, scripts_dir='{}/templates/'):
-        scripts_dir = scripts_dir.format(REPO_PATH)
-        self.first_node.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), scripts_dir)
-        self._prepare_templates(scripts_dir)
+    def kub_client_apply(self):
+        self.prepare_templates()
         self.write_system_config()
 
-        self.kubectl('apply -f {path}/rbac.yaml'.format(path=scripts_dir))
+        self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller',
                      'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access', 'management', 'controller-jsagent']
         for template in templates:
-            template_file = scripts_dir + template
+            template_file = self.scripts_dir + template
             self.kubectl('apply -f {template}'.format(template=template_file))
-        self.grafana_apply('{}/grafana'.format(scripts_dir))
+        self.grafana_apply('{}/grafana'.format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
         datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)
@@ -575,6 +578,10 @@ def cli(ctx, config):
 def cluster():
     pass
 
+@cluster.group()
+def resources():
+    pass
+
 @cli.group()
 def node():
     pass
@@ -617,7 +624,7 @@ def node_action(ctx, name, action):
     getattr(cluster, action)()
 
 
-@cluster.command('writeconfig')
+@resources.command('writeconfig')
 @click.pass_context
 def write_system_config(ctx):
     """
@@ -625,6 +632,26 @@ def write_system_config(ctx):
     """
     cluster = Cluster(ctx.obj)
     cluster.write_system_config()
+
+
+@resources.command('write')
+@click.pass_context
+def write_kube_resources(ctx):
+    """
+    Rewrite kube resources from template
+    """
+    cluster = Cluster(ctx.obj)
+    cluster.prepare_templates()
+
+
+@resources.command('apply')
+@click.pass_context
+def kube_apply(ctx):
+    """
+    Rewrite kube resources from template
+    """
+    cluster = Cluster(ctx.obj)
+    cluster.kube_client_apply()
 
 
 @cluster.command('deploy')
