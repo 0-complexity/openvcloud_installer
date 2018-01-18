@@ -397,6 +397,7 @@ if __name__ == "__main__":
             fd = open("%s/image_%s.log" % (logs, app_result["image"]), 'w+')
             processes.append((subprocess.Popen(['python3',
                                                '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
+                                               '--config=/root/etc/system-config.yaml',
                                                'image',
                                                'deploy',
                                                '—name=%s'% app_result["image"]],
@@ -405,6 +406,7 @@ if __name__ == "__main__":
             fd = open("%s/jsagent_%s.log" % (logs, app_result["jsagent"]), 'w+')
             processes.append((subprocess.Popen(['python3',
                                                '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
+                                               '--config=/root/etc/system-config.yaml',
                                                'controller',
                                                'deploy',
                                                '—name=%s'% app_result["jsagent"]],
