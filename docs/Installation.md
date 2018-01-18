@@ -7,6 +7,11 @@
 - For each node the user needs to have credentials to establish a SSH connection
 - Swap needs to be off on each node
 - Each node needs to be able to access each other node in the cluster
+- three files for ssl verification need to be added to the  specified path in the yaml config on the machine all wit
+  the same name and have these extensions:
+  - .csr
+  - .crt
+  - .key
 - Make sure that following directories exists on each node with mode 777(ex: chmod 777 /var/ovc/mongodb):
   - `/var/ovc/mongodb`
   - `/var/ovc/influx`

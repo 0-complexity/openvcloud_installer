@@ -7,6 +7,11 @@
 - Three nodes for deploying the cluster
 - For each node the user needs to have credentials to establish a SSH connection
 - Each node needs to be able to access each other node in the cluster
+- three files for ssl verification need to be added to the  specified path in the yaml config on the machine all wit
+  the same name and have these extensions:
+  - .csr
+  - .crt
+  - .key
 
 ## Using the script
 
@@ -32,7 +37,7 @@ installer cluster deploy --config system-config.yaml --configure-cluster
 The command `cluster deploy` will use the kubernetes prefab module to install the kubernetes cluster and begin deploying the various components of the kubernetes cluster.
 
 The config file specifies all the necessary information for a successful installation as well as information relevant to the application itself using yaml format. It is very important that the user makes sure that the data in the config can be used for its required operations.
-An example config file can be found [here](../scripts/kubernetes/config/system-config.yaml). 
+An example config file can be found [here](../scripts/kubernetes/config/system-config.yaml).
 
 For example the `ssh` key in the config is used to specify the key needed for authorization on each node in the cluster. This same info is used to add the key to the authorized keys on the machine.
 
