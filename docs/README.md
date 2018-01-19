@@ -17,7 +17,7 @@ An example of a `system-config.yaml` can be found here: https://github.com/0-com
 > **Important** A common technique to create a `system-config.yaml` is to make a copy from another enviroment and start editing. Please make sure to alter the ssh.private-key setting, and not just leave the copy from the other environment.
 
 ### Validating your OpenvCloud configuration
-Having valid configuration is off course very important, for a smooth installation process. This can be done with the OpenvCloud environment manager AKA (Menaja -- Swahili for 'manager'). Login on https://menaja.gig.tech select the environment you are setting up, and click the "Validate configuration" button. When your configuration is valid, you'll see the following text appear next to the button: "You configuration is valid!"
+Having valid configuration is off course very important, for a smooth installation process. This can be done with the OpenvCloud environment manager AKA (Menaja -- Swahili for 'manager'). Login on https://menaja.gig.tech select the environment you are setting up, and click the "Validate configuration" button. *When your configuration is valid, you'll see the following text appear next to the button: **"The configuration is valid!"***
 
 ![picture](meneja.png)
 
@@ -33,11 +33,13 @@ Having valid configuration is off course very important, for a smooth installati
 On [Meneja](https://meneja.gig.tech) a usb stick can be downloaded that already has the custom configuration for a specific environment. As shown on the screenshot above, there is a link called "Download usb installer image" which results in a bootable iso, that can be used to boot from (via the ipmi or via burning it onto a usb stick.).
 
 After booting up the controller node with the boot image, the user gets a screen with the following options:
+
 ![boot menu](controller_usb_install.png)
 
 The rest is extremely simple. Just select the right option depending on the controller node that needs to be installed, and the rest is completely automatic.
 
 Once you see the following screen, the installation of the controller node has finished. Just unplug the installer image, and reboot the machine.
+
 ![boot menu](controller_usb_install_2.png)
 
 Repeat this procedure for all three controllers.
