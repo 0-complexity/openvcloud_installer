@@ -1,49 +1,5 @@
 # Installation & configuration strategy
 
-## Installation procedure
-- Kubernetes cluster
-  - Install kubernetes hosts using usb key
-    - Automatically install OS
-    - Put disks into mirror
-    - Do partitioning
-      - / ==> /dev/sda1
-        - 40GB
-        - ext4
-        - OS parts
-      - /var ==> /dev/sda2
-        - The rest of the space
-        - btrfs (disable copy on write)
-          - For informational purposes we add here which btrfs subvolumes will be created later on.
-          - subvolumes
-            - billing
-              - mountpath: `/var/ovc/billing`
-              - need to set quota
-              - replicated by synchting
-            - influxdb
-              - mountpath: `/var/ovc/infuxdb`
-              - need to set quota
-              - replicated by synchting
-            - mongodb
-              - mountpath: `/var/ovc/mongodb`
-              - need to set quota
-              - replicated by mongodb
-  - Configure network of the host
-  - Reboot the nodes to live system
-  - Install ha kubernetes cluster using prefab9, on all the nodes
-- Install synchting replication kubernetes services
-- Install master kubernetes services
-  - Syncthing replication between nodes host paths
-  - MongoDB cluster deployment
-  - Osis deployment
-  - JS-Agent / Agentcontroller deployment
-  - Grafana deployment
-  - Portal deployment
-- Install controller kubernetes services
-  - JS-Agent deployment
-  - InfluxDB deployment
-  - Stats collector deployment
-- Install JS-Agent on each of the kubernetes hosts
-
 ## Step one: getting the configuration in place
 
 Installing all components of OpenvCloud is steered by a single `system-config.yaml` configuration file that contains all the information needed to install OpenvCloud and everything related. Going from the switch configuration, to installing the OS on the controllers, the kubernetes cluster running on the controllers serving the OpenvCloud master and controller components, to installing the cpu & storage nodes, ..., everything is driven from this single configuration file.
