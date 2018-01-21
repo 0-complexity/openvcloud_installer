@@ -55,6 +55,8 @@ spec:
           mountPath: /opt/jumpscale7/hrd/system/
         - name:  apps-hrd
           mountPath: /opt/jumpscale7/hrd/apps/
+        - name: billing
+          mountPath: /opt/jumpscale7/var/resourcetracking/
       - name: redis-container
         imagePullPolicy: Always
         command: [redis-server]
@@ -67,6 +69,10 @@ spec:
         emptyDir: {}
       - name: apps-hrd
         emptyDir: {}
+      - name: billing
+        hostPath:
+          path: /var/ovc/billing
+          type: Directory
       - name: system-config
         configMap:
           name: system-config
