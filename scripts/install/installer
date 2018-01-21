@@ -11,6 +11,7 @@ import time
 import jsonschema
 
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
+DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
 REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
 AYSCONFIG = '''
 metadata.jumpscale             =
@@ -328,11 +329,12 @@ class Cluster(AbstractConfig):
     """
     Cluster abstraction layer to allow for easier manipulation.
     """
-    def __init__(self, config_path):
+    def __init__(self, config_path, development=False):
         super().__init__(config_path)
         self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
         self.join_line = ''
         self.scripts_dir = '{}/kuberesources/'.format(REPO_PATH)
+        self.development = development
 
     def install_kubernetes_cluster(self):
         """
@@ -349,9 +351,9 @@ class Cluster(AbstractConfig):
         if not self.prefab.core.file_exists('/root/.kube/config'):
             self.prefab.core.file_write('/root/.kube/config', k8s_config_data)
 
-    def clone_repo(self):
+    def clone_repo(self, url=REPO_URL):
         for node in self.nodes:
-            node.tools.git.pullRepo(REPO_URL)
+            node.tools.git.pullRepo(url)
 
     def _install_kubectl(self, prefab):
         if not prefab.core.file_exists('/usr/local/bin/kubectl'):
@@ -430,6 +432,17 @@ class Cluster(AbstractConfig):
                 data['spec']['externalIPs'] = externalips
                 self.dump(template_loc, data)
 
+        def write_deployment_template(template):
+            template_loc = '{dir}{name}/{name}-deployment.yaml'.format(dir=self.scripts_dir, name=template)
+            data = self.load(template_loc)
+            for container in data['spec']['template']['spec']['containers']:
+                volmounts = container.setdefault('volumeMounts', [])
+                volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/0-complexity', 'subPath': 'github/0-complexity'})
+                volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/jumpscale7', 'subPath': 'github/jumpscale7'})
+            volumes = data['spec']['template']['spec'].setdefault('volumes', [])
+            volumes.append({'name': 'code', 'hostPath': {'path': '/opt/code', 'type': 'Directory'}})
+            self.dump(template_loc, data)
+
         self.first_node.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), self.scripts_dir)
         templates = ['agentcontroller', 'osis']
         externalips = list(get_controller_management_ips(self.config))
@@ -440,6 +453,12 @@ class Cluster(AbstractConfig):
         pubips = list(get_controller_public_ips(self.config))
         for template in pubtemplates:
             write_template(template, pubips)
+
+        if self.development:
+            for template in ['osis', 'agentcontroller', 'portal']:
+                write_deployment_template(template)
+            for repo in DEV_REPOS:
+                self.clone_repo(repo)
 
         stat_template = self.scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = self.load(stat_template)
@@ -635,12 +654,13 @@ def write_system_config(ctx):
 
 
 @resources.command('write')
+@click.option('--development', default=False, is_flag=True)
 @click.pass_context
-def write_kube_resources(ctx):
+def write_kube_resources(ctx, development):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj)
+    cluster = Cluster(ctx.obj, development)
     cluster.prepare_templates()
 
 
