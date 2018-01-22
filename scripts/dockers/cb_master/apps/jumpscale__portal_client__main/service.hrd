@@ -1,4 +1,4 @@
-instance.param.addr            = 'localhost'
+instance.param.addr            = 'portal'
 instance.param.port            = '82'
 instance.param.secret          = 'rooter'
 

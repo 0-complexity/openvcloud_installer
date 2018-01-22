@@ -4,6 +4,11 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y sudo libmhash2
 
+
+RUN rm -f /etc/service/sshd/down
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
+
+
 ENV AYSBRANCH production
 ENV JSBRANCH production
 
