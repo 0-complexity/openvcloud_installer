@@ -22,6 +22,9 @@ def configure(roles, machineguid, controller_addr):
     j.application.config.set('grid.id', gid)
     j.application.config.set('grid.node.id', '')
     j.application.config.set('grid.node.roles', roles)
+    if 'master' in roles:
+        scl = j.clients.osis.getNamespace('system')
+        scl.health.deleteSearch({})
     if machineguid:
         j.application.config.set('grid.node.machineguid', machineguid)
 
