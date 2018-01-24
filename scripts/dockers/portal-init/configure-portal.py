@@ -92,7 +92,7 @@ class Portal(object):
                 'external': 'true'},
             'ovs': {
                 'name': 'Storage',
-                'url': 'https://ovs-{}/ovcinit/{}'.format(fqdn, self.conig['environment']['subdomain']),
+                'url': 'https://ovs-{}/ovcinit/{}'.format(fqdn, self.config['environment']['subdomain']),
                 'scope': 'ovs_admin',
                 'theme': 'light',
                 'external': 'true'},
