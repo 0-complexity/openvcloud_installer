@@ -8,7 +8,8 @@ import requests
 import random
 import sys
 import time
-import jsonschema
+import jsonschema]
+import re
 
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
@@ -479,6 +480,7 @@ class Cluster(AbstractConfig):
     def kub_client_apply(self):
         self.prepare_templates()
         self.write_system_config()
+        self.configure_keys()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller',
@@ -487,6 +489,64 @@ class Cluster(AbstractConfig):
             template_file = self.scripts_dir + template
             self.kubectl('apply -f {template}'.format(template=template_file))
         self.grafana_apply('{}/grafana'.format(self.scripts_dir))
+
+    def add_env_keys(self, node, pub_key, priv_key):
+        """
+        adds pub and priv key to relative envs
+        """
+        # create dir
+        node.prefab.core.run('mkdir -p /var/ovc/0-access/.ssh /root/.ssh/')
+        node.prefab.core.run('chmod 0400 /var/ovc/0-access/.ssh ')
+        # add keys
+        node.prefab.executor.sshclient.ssh_authorize('root', pub_key)
+        node.prefab.core.file_write('/var/ovc/0-access/.ssh/id_rsa', private_key)
+        node.prefab.core.file_write('/var/ovc/0-access/.ssh/id_rsa.pub', public_key)
+
+
+    def remove_env_keys(self, node, public_key):
+        """
+        Remove unwanted public keys from authorized keys under /root/.ssh/authorized_keys.
+        """
+
+        auth_keys = node.prefab.core.file_read('/root/.ssh/authorized_keys')
+        data = []
+        for key in auth_keys.splitlines():
+            if key == public_key:
+                continue
+            data.append(key)
+        node.prefab.core.file_write('/root/.ssh/authorized_keys', '\n'.join(data))
+
+
+    def configure_keys(self):
+        if not len(self.nodes):
+            raise RuntimeError('cluster needs to be depployed before configuring keys')
+        init_node = self.nodes[0]
+
+        #get old keys
+        old_pub_key = init_node.prefab.core.file_read('/root/.ssh/default.pub')
+        # generate keys
+
+        public_key_path = init_node.node.system.ssh.keygen('id_rsa')).strip()
+        private_key_path = public_key_path.strip('.pub')
+
+        # self.kubectl('create secret generic public-default-key --from-file {dir}'.format(dir=public_key_path))
+        # self.kubectl('create secret generic private-default-key --from-file {dir}'.format(dir=private_key_path))
+        # add keys to kuberntes
+        public_key = self.prefab.core.file_read(public_key_path)
+        private_key = self.prefab.core.file_read(private_key_path)
+        self.remove_env_keys(init_node, old_pub_key)
+
+        # add keys to controller nodes
+        self.add_key_env(init_node, public_key, private_key)
+        for node in self.nodes[1:]:
+            self.add_env_keys(node, public_key, private_key)
+            self.remove_env_keys(node, old_pub_key)
+
+        for node in itertools.chain(self.config['nodes']['cpu'], self.config['nodes']['storage']):
+            ip = get_ipaddress(node['management']['ipaddress'])
+            prefab = j.tools.prefab.getFromSSH(ip)
+            node.prefab.executor.sshclient.ssh_authorize('root', pub_key)
+            self.remove_env_keys(node, old_pub_key)
 
     def grafana_apply(self, grafana_dir):
         datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)

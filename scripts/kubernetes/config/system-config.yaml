@@ -92,7 +92,7 @@ controller:
     - /var/ovc/influx
     - /var/ovc/mongodb
     - /var/ovc/pxeboot
-    - /var/ovc/0-access/index
+    - /var/ovc/0-access
 
   hosts: # Nodes in cluster info
     - hostname: be-loc-4-ctrl-01
