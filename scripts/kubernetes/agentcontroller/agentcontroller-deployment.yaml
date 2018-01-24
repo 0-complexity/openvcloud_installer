@@ -12,6 +12,7 @@ spec:
       labels:
         app: agentcontroller
     spec:
+      hostname: agentcontroller
       restartPolicy: Always
       initContainers:
       - name: system-init

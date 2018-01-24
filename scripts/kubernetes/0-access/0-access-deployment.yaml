@@ -14,7 +14,7 @@ spec:
         app: zero-access
     spec:   
       containers:
-      - name: 0-access-container
+      - name: zero-access-container
         imagePullPolicy: Always
         image: openvcloud/0-access:OVC-2.3.0
         volumeMounts:
