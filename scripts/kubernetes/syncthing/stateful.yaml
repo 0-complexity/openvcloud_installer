@@ -10,6 +10,9 @@ spec:
       labels:
         role: syncthing
     spec:
+      securityContext:
+        runAsUser: 0
+        fsGroup: 0
       affinity: # only one per node
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
