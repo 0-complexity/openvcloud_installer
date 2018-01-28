@@ -71,6 +71,7 @@ while True:
 
     for device in devices:
         print("[+] setting up device: %s" % device['hostname'])
+        needschanges = False
 
         for target in devices:
             # skipping ourself
@@ -78,17 +79,18 @@ while True:
                 continue
 
             devaddr = 'tcp://%s:22000' % target['target']
-            device['client'].add_device(target['hostname'], target['id'], devaddr)
+            needschanges |= device['client'].add_device(target['hostname'], target['id'], devaddr)
 
-        device['client'].add_folder('ovc-billing', '/var/ovc/billing', devlist)
-        device['client'].add_folder('ovc-influx', '/var/ovc/influxdb', devlist)
-        device['client'].add_folder('ovc-grafana', '/var/ovc/grafana', devlist)
-        device['client'].add_folder('ovc-pxeboot', '/var/ovc/pxeboot', devlist)
+        needschanges |= device['client'].add_folder('ovc-billing', '/var/ovc/billing', devlist)
+        needschanges |= device['client'].add_folder('ovc-influx', '/var/ovc/influxdb', devlist)
+        needschanges |= device['client'].add_folder('ovc-grafana', '/var/ovc/grafana', devlist)
+        needschanges |= device['client'].add_folder('ovc-pxeboot', '/var/ovc/pxeboot', devlist)
+        needschanges |= device['client'].add_folder('ovc-0-access', '/var/ovc/0-access', devlist)
 
-        device['client'].config_set()
-
-        print('[+] restarting service')
-        device['client'].restart()
+        if needschanges:
+            device['client'].config_set()
+            print('[+] restarting service')
+            device['client'].restart()
 
     print("[+] waiting for next cycle")
 
