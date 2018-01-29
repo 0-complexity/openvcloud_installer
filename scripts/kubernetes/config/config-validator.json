@@ -146,13 +146,27 @@
             "type": "array",
             "items": {
               "$id": "/properties/controller/properties/directories/items",
-              "type": "string",
-              "title": "The 0 Schema",
+              "type": "object",
+              "required": ["path", "sync"],
+              "title": "The directory Schema",
               "description": "An explanation about the purpose of this instance.",
               "default": "",
-              "examples": [
-                "/var/ovc/billing"
-              ]
+              "properties": {
+                "path": {
+                  "$id": "/properties/controller/properties/directories/items/properties/path",
+                  "type": "string",
+                  "title": "The path Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": ""
+                },
+                "sync": {
+                  "$id": "/properties/controller/properties/directories/items/properties/sync",
+                  "type": "boolean",
+                  "title": "The sync Schema",
+                  "description": "Wether or not directory should be sync.",
+                  "default": ""
+                }
+              }
             }
           },
           "hosts": {

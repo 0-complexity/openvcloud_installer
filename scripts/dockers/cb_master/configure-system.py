@@ -1,7 +1,5 @@
 from JumpScale import j
 import yaml
-import pprint
-import os
 import argparse
 
 
@@ -22,9 +20,6 @@ def configure(roles, machineguid, controller_addr):
     j.application.config.set('grid.id', gid)
     j.application.config.set('grid.node.id', '')
     j.application.config.set('grid.node.roles', roles)
-    if 'master' in roles:
-        scl = j.clients.osis.getNamespace('system')
-        scl.health.deleteSearch({})
     if machineguid:
         j.application.config.set('grid.node.machineguid', machineguid)
 
@@ -51,6 +46,9 @@ def configure(roles, machineguid, controller_addr):
     portal_service.set('instance.param.portal.rootpasswd', password)
     portal_service.set('instance.param.cfg.secret', password)
     portal_service.save()
+    if 'master' in roles:
+        scl = j.clients.osis.getNamespace('system')
+        scl.health.deleteSearch({})
 
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')
 

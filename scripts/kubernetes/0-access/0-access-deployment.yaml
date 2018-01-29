@@ -31,11 +31,11 @@ spec:
       volumes:
       - name: recording
         hostPath:
-          path: /var/ovc/0-access/index
+          path: /var/ovc/0-access/
           type: Directory
       - name: ssh-dir
         hostPath:
-          path: /var/ovc/0-access/.ssh
+          path: /var/ovc/.ssh
           type: Directory
       - name: system-config
         configMap:
