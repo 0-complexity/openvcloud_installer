@@ -12,7 +12,7 @@ spec:
     metadata:
       labels:
         app: zero-access
-    spec:   
+    spec:
       containers:
       - name: zero-access-container
         imagePullPolicy: Always
@@ -21,7 +21,7 @@ spec:
         - name: ssh-dir
           mountPath: /root/.ssh
         - name: recording
-          mountPath: /var/recordings
+          mountPath: /var/recordings/index
         - name:  system-config
           mountPath: /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
@@ -31,11 +31,11 @@ spec:
       volumes:
       - name: recording
         hostPath:
-          path: /var/ovc/0-access
+          path: /var/ovc/0-access/
           type: Directory
       - name: ssh-dir
         hostPath:
-          path: /root/.ssh
+          path: /var/ovc/.ssh
           type: Directory
       - name: system-config
         configMap:

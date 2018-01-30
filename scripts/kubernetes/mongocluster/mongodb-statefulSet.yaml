@@ -36,8 +36,12 @@ spec:
               value: "role=mongo,environment=test"
             - name: KUBE_NAMESPACE
               value: "default"
+            - name: KUBERNETES_MONGO_SERVICE_NAME
+              value: "mongo"
 
       volumes:
         - name:  mongo-persistent-storage
-          emptyDir: {}
+          hostPath:
+            type: Directory
+            path: /var/ovc/mongodb
 

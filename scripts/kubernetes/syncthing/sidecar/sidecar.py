@@ -4,6 +4,7 @@ import os
 import json
 import time
 import xml.etree.ElementTree as et
+import yaml
 
 print("[+] initializing")
 kube = KuberneteSidecar()
@@ -81,11 +82,13 @@ while True:
             devaddr = 'tcp://%s:22000' % target['target']
             needschanges |= device['client'].add_device(target['hostname'], target['id'], devaddr)
 
-        needschanges |= device['client'].add_folder('ovc-billing', '/var/ovc/billing', devlist)
-        needschanges |= device['client'].add_folder('ovc-influx', '/var/ovc/influxdb', devlist)
-        needschanges |= device['client'].add_folder('ovc-grafana', '/var/ovc/grafana', devlist)
-        needschanges |= device['client'].add_folder('ovc-pxeboot', '/var/ovc/pxeboot', devlist)
-        needschanges |= device['client'].add_folder('ovc-0-access', '/var/ovc/0-access', devlist)
+
+        with open('/opt/cfg/system/system-config.yaml') as file_discriptor :
+            data  = yaml.load(file_discriptor)
+        for dirinfo in data['controller']['directories']:
+            if dirinfo['sync']:
+                directory = dirinfo['path']
+                needschanges |= device['client'].add_folder('ovc-%s' % directory.split('/')[-1], directory, devlist)
 
         if needschanges:
             device['client'].config_set()

@@ -28,12 +28,18 @@ spec:
           - name: installer-volume
             mountPath: /opt/code/github/0-complexity/openvcloud_installer
             subPath: openvcloud_installer
+          - name: ssh-dir
+            mountPath: /root/.ssh
         ports:
         - containerPort: 22
       volumes:
       - name: system-config
         configMap:
           name: system-config
+      - name: ssh-dir
+        hostPath:
+          path: /var/ovc/.ssh
+          type: Directory
       - name: installer-volume
         gitRepo:
           repository: "https://github.com/0-complexity/openvcloud_installer.git"

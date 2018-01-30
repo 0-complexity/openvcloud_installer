@@ -88,11 +88,18 @@ ssh:
 
 controller:
   directories: # required directories for nodes in cluster
-    - /var/ovc/billing
-    - /var/ovc/influx
-    - /var/ovc/mongodb
-    - /var/ovc/pxeboot
-    - /var/ovc/0-access/index
+    - path: /var/ovc/billing
+      sync: true
+    - path: /var/ovc/influx
+      sync: true
+    - path: /var/ovc/mongodb
+      sync: false
+    - path: /var/ovc/pxeboot
+      sync: true
+    - path: /var/ovc/0-access
+      sync: true
+    - path: /var/ovc/.ssh
+      sync: true
 
   hosts: # Nodes in cluster info
     - hostname: be-loc-4-ctrl-01

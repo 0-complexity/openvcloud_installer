@@ -32,23 +32,159 @@ git.login                      = 'ssh'
 git.passwd                     = 'ssh'
 '''
 
-class JumpScale7:
-    def __init__(self, config, name):
-        for node in itertools.chain(config['nodes']['storage'], config['nodes']['cpu']):
-            if node['name'] == name:
-                break
-        else:
-            for node in config['controller']['hosts']:
-                if node['hostname'] == name:
-                    break
-            else:
-                print('Could not find node with name {}'.format(name))
-                sys.exit(1)
+def get_ipaddress(net):
+    return str(netaddr.IPNetwork(net).ip)
 
-        ip = get_ipaddress(node['management']['ipaddress'])
-        prefab = j.tools.prefab.getFromSSH(ip)
-        self.prefab = prefab
-        self.node = node
+def prepare_config(config_path):
+    def _helper(nodes):
+        for node in nodes:
+            net = netaddr.IPNetwork(value['network'])
+            ip = net.ip + node['ip-lsb']
+            if key not in node:
+                node[key] = {}
+            node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
+
+    config = j.data.serializer.yaml.load(config_path)
+    validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
+    try:
+        jsonschema.validate(config, validator)
+    except Exception as error:
+        message = getattr(error, "message", str(type(error)))
+        tree = ''
+        for seq in getattr(error, "path", list()):
+            if isinstance(seq, int):
+                tree += '/<sequence {}>'.format(seq)
+            else:
+                tree += "/{}".format(seq)
+
+        validator = getattr(error, "validator")
+        if  validator == 'type':
+            message = '{msg} at {tree}'.format(msg=message, tree=tree)
+        elif validator == 'required':
+            message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
+        raise j.exceptions.RuntimeError(message)
+
+    for key, value in config['network'].items():
+        if 'network' in value:
+            for nodes in config['nodes'].values():
+                _helper(nodes)
+            _helper(config['controller']['hosts'])
+    cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
+    exitcode, public_key, _ = j.sal.process.execute(cmd)
+    config['ssh']['public-key'] = public_key
+    return config
+
+def get_controller_management_ips(config):
+    for host in config['controller']['hosts']:
+        yield get_ipaddress(host['management']['ipaddress'])
+
+def get_controller_public_ips(config):
+    for host in config['controller']['hosts']:
+        yield get_ipaddress(host['fallback']['ipaddress'])
+
+class AbstractConfig:
+    def __init__(self, config):
+        self.config = config
+        self.prefab = j.tools.prefab.local
+        self._nodes = None
+
+    @property
+    def nodes(self):
+        if self._nodes is None:
+            nodes = []
+            j.clients.ssh.start_ssh_agent()
+            key = self.config['ssh']['private-key']
+            self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
+            for address in get_controller_public_ips(self.config):
+                executor = j.tools.executor.getSSHBased(address, usecache=False)
+                nodes.append(j.tools.prefab.get(executor))
+            self._nodes = nodes
+        return self._nodes
+
+    @property
+    def first_node(self):
+        return self.nodes[0]
+
+    def kubectl(self, *args):
+        cmd = "kubectl "
+        cmd += " ".join(args)
+        return self.first_node.core.run(cmd)
+
+    def get_node_from_appname(self, appname):
+        status, output, _ = self.kubectl("get pods -o json")
+        data = j.data.serializer.json.loads(output)
+        for pod in data['items']:
+            if pod['metadata']['labels'].get('app') != appname:
+                continue
+            hostip = pod['status']['hostIP']
+            for node in self.nodes:
+                netinfo = node.system.net.getInfo()
+                for nic in netinfo:
+                    for ip in nic['ip']:
+                        if ip == hostip:
+                            return node
+
+            raise LookupError("Could not find host with IP {}".format(hostip))
+        raise LookupError("Could not find appname {}".appname)
+
+    def remove_env_keys(self, node, public_key):
+        """
+        Remove unwanted public keys from authorized keys under /root/.ssh/authorized_keys.
+        """
+        auth_keys = node.core.file_read('/root/.ssh/authorized_keys')
+        data = []
+        for key in auth_keys.splitlines():
+            if key.startswith(public_key.strip()):
+                continue
+            data.append(key)
+        data.append('') # end with empty line
+        node.core.file_write('/root/.ssh/authorized_keys', '\n'.join(data))
+
+    def add_env_keys(self, node, pub_key, priv_key, homedir='/var/ovc/'):
+        """
+        adds pub and priv key to relative envs
+        """
+        # create dir
+        node.core.dir_ensure('{}/.ssh'.format(homedir), mode='600')
+        node.core.dir_ensure('/root/.ssh'.format(homedir), mode='600')
+        # add keys
+        node.executor.sshclient.ssh_authorize('root', pub_key)
+        node.core.file_write('{}/.ssh/id_rsa'.format(homedir), priv_key, mode='600')
+        node.core.file_write('{}/.ssh/id_rsa.pub'.format(homedir), pub_key)
+        node.core.file_write('{}/.ssh/authorized_keys'.format(homedir), pub_key)
+
+    def get_new_keys(self):
+        privatekey = self.first_node.core.file_read('/var/ovc/.ssh/id_rsa')
+        pubkey = self.first_node.core.file_read('/var/ovc/.ssh/id_rsa.pub')
+        return privatekey, pubkey
+
+    def configure_keys(self):
+        if not len(self.nodes):
+            raise RuntimeError('cluster needs to be depployed before configuring keys')
+
+        #get old keys
+        old_pub_key = self.config['ssh']['public-key']
+        # generate keys
+        public_key_path = self.first_node.system.ssh.keygen(name='id_rsa').strip()
+        private_key_path = public_key_path[:-4]
+
+        # add keys to kuberntes
+        public_key = self.first_node.core.file_read(public_key_path)
+        private_key = self.first_node.core.file_read(private_key_path)
+
+        # add keys to controller nodes
+        for node in self.nodes:
+            self.add_env_keys(node, public_key, private_key)
+            self.remove_env_keys(node, old_pub_key)
+
+
+class Node(AbstractConfig):
+    def __init__(self, config, name):
+        super().__init__(config)
+        self.name = name
+        self.managementip = get_ipaddress(self.node['management']['ipaddress'])
+        self._prefab = None
+        self._node = Node
         self.config = config
         self.versions = config['environment']['versions']
         self.password = config['environment']['password']
@@ -57,7 +193,38 @@ class JumpScale7:
         self.fqdn = '{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
         self.iyourl = 'https://itsyou.online/'
 
+    @property
+    def prefab(self):
+        if self._prefab is None:
+            self._prefab = j.tools.prefab.getFromSSH(self.managementip)
+        return self._prefab
+
+    def update_keys(self):
+        self.remove_env_keys(self.prefab, self.config['ssh']['public-key'])
+        privatekey, publickey = self.get_new_keys()
+        self.add_env_keys(self.prefab, publickey, privatekey, '/root')
+
+    @property
+    def node(self):
+        if self._node is None:
+            for node in itertools.chain(self.config['nodes']['cpu'], self.config['nodes']['storage']):
+                if node['name'] == self.name:
+                    self._node = node
+                    return node
+            else:
+                for node in self.config['controller']['hosts']:
+                    if node['hostname'] == self.name:
+                        self._node = node
+                        break
+                else:
+                    print('Could not find node with name {}'.format(self.name))
+                    sys.exit(1)
+                raise LookupError("Failed to find node with name {}".format(self.name))
+        return self._node
+
+class JumpScale7(Node):
     def install_core(self):
+        self.update_keys()
         jsversion = self.versions['jumpscale']
         ovcversion = self.versions['openvcloud']
         env = {'AYSBRANCH': jsversion, 'JSBRANCH': jsversion}
@@ -232,97 +399,6 @@ class JumpScale7:
                         'instance.oauth.token_uri': oauth_token_uri}
             self.ays_install('openvstorage_oauth', 'openvcloud', instance='main', data=data_oauth)
 
-def get_ipaddress(net):
-    return str(netaddr.IPNetwork(net).ip)
-
-def prepare_config(config_path):
-    def _helper(nodes):
-        for node in nodes:
-            net = netaddr.IPNetwork(value['network'])
-            ip = net.ip + node['ip-lsb']
-            if key not in node:
-                node[key] = {}
-            node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
-
-    config = j.data.serializer.yaml.load(config_path)
-    validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
-    try:
-        jsonschema.validate(config, validator)
-    except Exception as error:
-        message = getattr(error, "message", str(type(error)))
-        tree = ''
-        for seq in getattr(error, "path", list()):
-            if isinstance(seq, int):
-                tree += '/<sequence {}>'.format(seq)
-            else:
-                tree += "/{}".format(seq)
-
-        validator = getattr(error, "validator")
-        if  validator == 'type':
-            message = '{msg} at {tree}'.format(msg=message, tree=tree)
-        elif validator == 'required':
-            message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
-        raise j.exceptions.RuntimeError(message)
-
-    for key, value in config['network'].items():
-        if 'network' in value:
-            for nodes in config['nodes'].values():
-                _helper(nodes)
-            _helper(config['controller']['hosts'])
-    return config
-
-def get_controller_management_ips(config):
-    for host in config['controller']['hosts']:
-        yield get_ipaddress(host['management']['ipaddress'])
-
-def get_controller_public_ips(config):
-    for host in config['controller']['hosts']:
-        yield get_ipaddress(host['fallback']['ipaddress'])
-
-class AbstractConfig:
-    def __init__(self, config):
-        self.config = config
-        self.prefab = j.tools.prefab.local
-        self._nodes = None
-
-    @property
-    def nodes(self):
-        if self._nodes is None:
-            nodes = []
-            j.clients.ssh.start_ssh_agent()
-            key = self.config['ssh']['private-key']
-            self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
-            for address in get_controller_public_ips(self.config):
-                executor = j.tools.executor.getSSHBased(address, usecache=False)
-                nodes.append(j.tools.prefab.get(executor))
-            self._nodes = nodes
-        return self._nodes
-
-    @property
-    def first_node(self):
-        return self.nodes[0]
-
-    def kubectl(self, *args):
-        cmd = "kubectl "
-        cmd += " ".join(args)
-        return self.first_node.core.run(cmd)
-
-    def get_node_from_appname(self, appname):
-        status, output, _ = self.kubectl("get pods -o json")
-        data = j.data.serializer.json.loads(output)
-        for pod in data['items']:
-            if pod['metadata']['labels'].get('app') != appname:
-                continue
-            hostip = pod['status']['hostIP']
-            for node in self.nodes:
-                netinfo = node.system.net.getInfo()
-                for nic in netinfo:
-                    for ip in nic['ip']:
-                        if ip == hostip:
-                            return node
-
-            raise LookupError("Could not find host with IP {}".format(hostip))
-        raise LookupError("Could not find appname {}".appname)
 
 
 class Cluster(AbstractConfig):
@@ -375,7 +451,7 @@ class Cluster(AbstractConfig):
         directories = self.config['controller'].get('directories')
         for node in self.nodes:
             for directory in directories:
-                node.core.dir_ensure(directory, mode='777')
+                node.core.dir_ensure(directory['path'], mode='777')
 
         copiedpaths = {}
         try:
@@ -443,7 +519,7 @@ class Cluster(AbstractConfig):
             volumes.append({'name': 'code', 'hostPath': {'path': '/opt/code', 'type': 'Directory'}})
             self.dump(template_loc, data)
 
-        self.first_node.core.copyTree('{}/scripts/kubernetes'.format(REPO_PATH), self.scripts_dir)
+        self.first_node.core.upload('{}/scripts/kubernetes/'.format(REPO_PATH), self.scripts_dir)
         templates = ['agentcontroller', 'osis']
         externalips = list(get_controller_management_ips(self.config))
         for template in templates:
@@ -479,6 +555,7 @@ class Cluster(AbstractConfig):
     def kub_client_apply(self):
         self.prepare_templates()
         self.write_system_config()
+        self.configure_keys()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller',
@@ -495,7 +572,7 @@ class Cluster(AbstractConfig):
         datasourcename = 'controller_{}'.format(self.config['environment']['subdomain'])
         datasource['datasources'][0]['name'] = datasourcename
         self.dump(datasourcepath, datasource)
-        for dashboardfile in j.sal.fs.listFilesInDir(dashboardpath, filter='*.json'):
+        for dashboardfile in self.first_node.core.find(dashboardpath, pattern='*.json'):
             db = self.load(dashboardfile, j.data.serializer.json.loads)
             db['id'] = None
             db['title'] += " ({})".format(self.config['environment']['subdomain'])
@@ -517,23 +594,7 @@ class Cluster(AbstractConfig):
         self.first_node.core.execute_bash(cmd)
 
 
-class PNode(AbstractConfig):
-    def __init__(self, config, name):
-        super().__init__(config)
-        self._node = None
-        self.name = name
-        self.managementip = get_ipaddress(self.node['management']['ipaddress'])
-
-    @property
-    def node(self):
-        if self._node is None:
-            for node in itertools.chain(self.config['nodes']['cpu'], self.config['nodes']['storage']):
-                if node['name'] == self.name:
-                    self._node = node
-                    return node
-            raise LookupError("Failed to find node with name {}".format(self.name))
-        return self._node
-
+class PNode(Node):
     def ipmi(self, *args):
         ipmiip = get_ipaddress(self.node['ipmi']['ipaddress'])
         cmd = "ipmitool -I lanplus -H {} -U {} -P {} ".format(ipmiip, self.node['ipmi']['username'], self.node['ipmi']['password'])
@@ -578,7 +639,7 @@ class PNode(AbstractConfig):
         self.reboot()
         time.sleep(20)
         self.wait_up()
-
+        self.update_keys()
 
 ###                    ###
 # Command line interface #
