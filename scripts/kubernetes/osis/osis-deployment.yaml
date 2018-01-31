@@ -35,6 +35,9 @@ spec:
         args: [osisServerStart.py, main]
         image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/osis
+        resources:
+          limits:
+            memory: "2Gi"
         volumeMounts:
           - name:  system-hrd
             mountPath: /opt/jumpscale7/hrd/system/
