@@ -39,6 +39,8 @@ spec:
         ports:
         - containerPort: 4446
         volumeMounts:
+        - name: ssh-dir
+          mountPath: /root/.ssh
         - name: system-hrd
           mountPath: /opt/jumpscale7/hrd/system/
         - name:  apps-hrd
@@ -60,6 +62,10 @@ spec:
       - name: billing
         hostPath:
           path: /var/ovc/billing
+          type: Directory
+      - name: ssh-dir
+        hostPath:
+          path: /var/ovc/.ssh
           type: Directory
       - name: system-config
         configMap:
