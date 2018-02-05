@@ -90,7 +90,7 @@ controller:
   directories: # required directories for nodes in cluster
     - path: /var/ovc/billing
       sync: true
-    - path: /var/ovc/influx
+    - path: /var/ovc/influxdb
       sync: true
     - path: /var/ovc/mongodb
       sync: false
