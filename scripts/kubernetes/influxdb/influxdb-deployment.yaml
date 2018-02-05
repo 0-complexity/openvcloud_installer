@@ -26,12 +26,12 @@ spec:
         - containerPort: 4242
         - containerPort: 8089
         volumeMounts:
-          - mountPath: /var/lib/influxdb
+          - mountPath: /root/.influxdb/
             name: influxdb-persistent-storage
       volumes:
         - name:  influxdb-persistent-storage
           hostPath:
-              path: /var/ovc/influx
+              path: /var/ovc/influxdb
               type: DirectoryOrCreate
 
 

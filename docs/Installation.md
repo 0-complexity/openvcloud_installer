@@ -14,7 +14,7 @@
   - .key
 - Make sure that following directories exists on each node with mode 777(ex: chmod 777 /var/ovc/mongodb):
   - `/var/ovc/mongodb`
-  - `/var/ovc/influx`
+  - `/var/ovc/influxdb`
   - `/var/ovc/grafana`
   - `/var/ovc/billing`
   - `/var/ovc/pxeboot`
