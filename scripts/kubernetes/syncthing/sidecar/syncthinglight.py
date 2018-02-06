@@ -58,7 +58,8 @@ class SyncthingLight:
     def add_folder(self, name, path, devices):
         for folder in self.config['folders']:
             if folder['id'] == name:
-                return False
+                if folder['devices'] == devices:
+                    return False
 
         folder = {
             'autoNormalize': False,
