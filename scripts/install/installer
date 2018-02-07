@@ -114,7 +114,8 @@ def prepare_config(config_path):
     _, public_key, _ = j.sal.process.execute(cmd)
     config['ssh']['public-key'] = public_key
     j.clients.ssh.start_ssh_agent()
-    j.clients.ssh.load_ssh_key('~/.ssh/id_rsa')
+    if j.sal.fs.exists('~/.ssh/id_rsa'):
+        j.clients.ssh.load_ssh_key('~/.ssh/id_rsa')
     key = config['ssh']['private-key']
     j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key)
     return config
@@ -543,6 +544,7 @@ class Cluster(AbstractConfig):
             for tmpdir in copiedpaths.values():
                 self.first_node.core.dir_remove(tmpdir)
 
+        self.configure_keys()
         self.kub_client_apply()
 
     # Not ready yet do not use
@@ -627,7 +629,6 @@ class Cluster(AbstractConfig):
     def kub_client_apply(self):
         self.prepare_templates()
         self.write_system_config()
-        self.configure_keys()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
         templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller',
@@ -665,6 +666,18 @@ class Cluster(AbstractConfig):
         """.format(config=self.k8s_config, dir=grafana_dir)
         self.first_node.core.execute_bash(cmd)
 
+    def delete_cluster(self):
+        cmd = """
+        kubectl delete deploy --all --namespace default
+        kubectl delete configmap --all --namespace default
+        kubectl delete service --all --namespace default
+        kubectl delete statefulset --all --namespace default
+        """
+        self.first_node.core.execute_bash(cmd)
+
+    def update_cluster(self):
+        self.delete_cluster()
+        self.kub_client_apply()
 
 class PNode(Node):
     def ipmi(self, *args):
@@ -830,7 +843,14 @@ def deploy_cluster(ctx, configure_cluster):
         cluster.install_kubernetes_cluster()
     cluster.install_controller()
 
-
+@cluster.command('update')
+@click.pass_context
+def deploy_cluster(ctx):
+    """
+    Will update the cluster.
+    """
+    cluster = Cluster(ctx.obj)
+    cluster.update_cluster()
 
 @cpu.command('deploy')
 @click.option('--name', help='Node name to configure')
