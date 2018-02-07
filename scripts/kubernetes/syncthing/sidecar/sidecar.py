@@ -68,7 +68,7 @@ while True:
     print("[+] devices found:")
     print(devices)
 
-    devlist = [{'deviceID': dev['id']} for dev in devices]
+    devlist = [{'deviceID': dev['id'], 'introducedBy': ''} for dev in devices]
 
     for device in devices:
         print("[+] setting up device: %s" % device['hostname'])

@@ -60,10 +60,13 @@ class SyncthingLight:
             if folder['id'] == name:
                 if folder['devices'] == devices:
                     return False
+                else:
+                    folder['devices'] = devices
+                    return True
 
         folder = {
             'autoNormalize': False,
-            'copiers': 0,
+            'copiers': 1,
             'devices': devices,
             'hashers': 0,
             'id': name,
@@ -73,7 +76,7 @@ class SyncthingLight:
             'minDiskFreePct': 5,
             'order': 'random',
             'path': path,
-            'pullers': 0,
+            'pullers': 16,
             'readOnly': False,
             'rescanIntervalS': 10,
             'versioning': {'params': {}, 'type': ''}
