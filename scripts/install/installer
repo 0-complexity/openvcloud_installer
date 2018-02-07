@@ -9,6 +9,7 @@ import random
 import sys
 import time
 import jsonschema
+import concurrent.futures.process
 
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
@@ -31,9 +32,49 @@ fullname                       =
 git.login                      = 'ssh'
 git.passwd                     = 'ssh'
 '''
+ERROR_COLOR = u'\u001b[31m'
+RESET_COLOR  = u'\u001b[0m'
 
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
+
+def get_pnodes_names(config):
+    pnodes_names = []
+    for host in config['controller']['hosts']:
+        pnodes_names.append(host['hostname'])
+    for pnode in itertools.chain(config['nodes']['cpu'], config['nodes']['storage']):
+        pnodes_names.append(pnode['name'])
+    return pnodes_names
+
+def pnode_action(pnames, action, config):
+    futures = {}
+    running_futures = {}
+    results = ''
+    with concurrent.futures.process.ProcessPoolExecutor(len(pnames)) as proc:
+        for pname in pnames:
+            print("{action} node: {name} started".format(action=action, name=pname))
+            jumpscale = JumpScale7(config, pname)
+            func = getattr(jumpscale, action)
+            fut = proc.submit(func)
+            futures[pname] =  fut
+            running_futures[pname] = fut
+
+        def print_status():
+            messages = ''
+            for name, future in futures.items():
+                if future.done() and name in running_futures:
+                    if future.exception():
+                        messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
+                    else:
+                        messages += '{action} done on node: {name} \n'.format(action=action, name=name)
+                    running_futures.pop(name)
+            return messages
+
+        print("Waiting for {action} node to be done...".format(action=action))
+        while running_futures:
+            results += print_status()
+            time.sleep(1)
+        print(results)
 
 def prepare_config(config_path):
     def _helper(nodes):
@@ -70,8 +111,12 @@ def prepare_config(config_path):
                 _helper(nodes)
             _helper(config['controller']['hosts'])
     cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
-    exitcode, public_key, _ = j.sal.process.execute(cmd)
+    _, public_key, _ = j.sal.process.execute(cmd)
     config['ssh']['public-key'] = public_key
+    j.clients.ssh.start_ssh_agent()
+    j.clients.ssh.load_ssh_key('~/.ssh/id_rsa')
+    key = config['ssh']['private-key']
+    j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key)
     return config
 
 def get_controller_management_ips(config):
@@ -85,16 +130,19 @@ def get_controller_public_ips(config):
 class AbstractConfig:
     def __init__(self, config):
         self.config = config
-        self.prefab = j.tools.prefab.local
+        self._prefab = None
         self._nodes = None
+
+    @property
+    def prefab(self):
+        if self._prefab is None:
+            self._prefab = j.tools.prefab.local
+        return self._prefab
 
     @property
     def nodes(self):
         if self._nodes is None:
             nodes = []
-            j.clients.ssh.start_ssh_agent()
-            key = self.config['ssh']['private-key']
-            self.prefab.core.run('echo "%s" | ssh-add /dev/stdin' % key)
             for address in get_controller_public_ips(self.config):
                 executor = j.tools.executor.getSSHBased(address, usecache=False)
                 nodes.append(j.tools.prefab.get(executor))
@@ -182,9 +230,9 @@ class Node(AbstractConfig):
     def __init__(self, config, name):
         super().__init__(config)
         self.name = name
+        self._node = None
         self.managementip = get_ipaddress(self.node['management']['ipaddress'])
         self._prefab = None
-        self._node = Node
         self.config = config
         self.versions = config['environment']['versions']
         self.password = config['environment']['password']
@@ -210,16 +258,14 @@ class Node(AbstractConfig):
             for node in itertools.chain(self.config['nodes']['cpu'], self.config['nodes']['storage']):
                 if node['name'] == self.name:
                     self._node = node
-                    return node
+                    break
             else:
                 for node in self.config['controller']['hosts']:
                     if node['hostname'] == self.name:
                         self._node = node
                         break
                 else:
-                    print('Could not find node with name {}'.format(self.name))
-                    sys.exit(1)
-                raise LookupError("Failed to find node with name {}".format(self.name))
+                    raise LookupError("Failed to find node with name {}".format(self.name))
         return self._node
 
 class JumpScale7(Node):
@@ -240,6 +286,32 @@ class JumpScale7(Node):
             self.prefab.core.run(cmd, env=env)
         self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion, ovcversion=ovcversion))
         self.prefab.core.file_write('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
+
+    def start(self):
+        self.prefab.core.run('ays start')
+
+    def stop(self):
+        self.prefab.core.run('ays stop')
+        self.prefab.core.run('fuser -k 4446/tcp || true')
+
+    def update_repo(self, account, repo, version):
+        cmd = "jscode update -a '%s' -n '%s' -d -b %s" % (account, repo, version)
+        self.prefab.core.run(cmd)
+
+
+    def update(self):
+        js_version = self.config['environment']['versions']['jumpscale']
+        ovc_version = self.config['environment']['versions']['openvcloud']
+        self.update_repo('jumpscale7', '*', js_version)
+        self.update_repo('0-complexity', 'openvcloud', ovc_version)
+        self.update_repo('0-complexity', 'openvcloud_installer', ovc_version)
+        self.update_repo('0-complexity', 'selfhealing', ovc_version)
+        self.update_repo('0-complexity', 'g8vdc', ovc_version)
+        self.update_repo('0-complexity', 'openvcloud_ays', ovc_version)
+
+    def restart(self):
+        self.stop()
+        self.start()
 
     def install_agent(self):
         redisdata = {
@@ -703,6 +775,17 @@ def node_action(ctx, name, action):
     cluster = PNode(ctx.obj, name)
     getattr(cluster, action)()
 
+@node.command('update')
+@click.pass_context
+def node_update(ctx):
+    """
+    Update all pnodes
+    """
+    j.logger.set_level(30)
+    config = ctx.obj
+    pnames = get_pnodes_names(config)
+    pnode_action(pnames, 'update', config)
+    pnode_action(pnames, 'restart', config)
 
 @resources.command('writeconfig')
 @click.pass_context
