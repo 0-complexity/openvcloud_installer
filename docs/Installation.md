@@ -1,5 +1,7 @@
 # Setting up the kubernetes cluster
 
+This is a Documentation of the manual installation steps to setup an ovc cluster,for automated installation , please check the documentation for the script at [Installer-script](Installer-script.md)
+
 ## Prerequisites
 
 - A JumpScale 9 installation(See [docs](https://github.com/Jumpscale/bash) for installation)

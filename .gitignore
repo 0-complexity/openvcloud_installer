@@ -104,3 +104,4 @@ ENV/
 # Runtime
 /kuberesources/
 
+scripts/install/certs/

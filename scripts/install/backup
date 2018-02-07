@@ -1,0 +1,182 @@
+#!/usr/bin/env python
+
+import argparse
+import subprocess
+import datetime
+import shutil
+import os
+import re
+
+MIGRATION_POD_YAML = """
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      containers:
+      {containers}
+      nodeSelector:
+        kubernetes.io/hostname: {hostname}
+      restartPolicy: Never    
+      volumes:
+      - name: backup-volume
+        hostPath:
+          path: /tmp/backup/
+          type: Directory
+      - name:  influxdb-persistent-storage
+        hostPath:
+            path: /var/ovc/influx
+            type: DirectoryOrCreate
+"""
+
+MONGO_CONTAINER = """
+      - name: mongo-migration
+        image: mongo
+        command: [ {mongo_command} ]
+        volumeMounts:
+        - mountPath: /tmp/backup/
+          name: backup-volume
+      
+          """
+
+INFLUX_CONTAINER = """
+      - name: influx-migtration
+        image: influxdb:1.4
+        command: [ {influx_command} ]
+        volumeMounts:
+        - mountPath: /tmp/backup/
+          name: backup-volume
+        - mountPath: /var/lib/influxdb
+          name: influxdb-persistent-storage
+            
+          """
+
+
+def execute_command(*args, **kwargs):
+    kwargs['stdout'] = subprocess.PIPE
+    kwargs['stderr'] = subprocess.PIPE
+    process = subprocess.Popen(*args, **kwargs)
+    stdout, stderr = process.communicate()
+    if process.returncode != 0:
+        raise RuntimeError(stderr)
+    else:
+        if stdout:
+            print(stdout)
+            return(stdout)
+    
+
+def backup(date, mongo, billing):
+    """
+    This is used to create a backup or snaphsot of the mongo and influx dbs and then create a tar.gz with them and the
+    billing files.
+    
+    @param date, string date in the format of month-day-year
+    @param mongo, bool mongo this used to specify which data source to backup. 
+    @param mongo, bool influx this used to specify which data source to backup. 
+    @param mongo, bool billing this used to specify which data source to backup. 
+    """
+    if os.path.exists('/tmp/backup'):
+        shutil.rmtree('/tmp/backup')
+    os.makedirs('/tmp/backup')
+    if mongo:
+        execute_command(['mongodump', '--out', '/tmp/backup/%s-mongo' % date])
+    # if influx:
+    #     version_line = execute_command(['influxd', 'version'])
+    #     version = float(re.findall(r"v([\w\.]+)", version_line)[0].strip('0.'))
+    #     if version <= 10:
+    #         execute_command(['influxd', 'backup',
+    #                                        '/tmp/backup/%s-influx' % date])
+    #     else:
+    #         execute_command(['influxd', 'backup', '-database',
+    #                                        'statistics', '/tmp/%s-influx' % date])
+    if billing:
+        os.makedirs('/tmp/backup/billing')
+        shutil.copytree('/opt/jumpscale7/var/resourcetracking/', '/tmp/backup/billing/resourcetracking')
+    execute_command(['tar', '-zcf', '/tmp/backup.tar.gz', '/tmp/backup/'])
+
+
+def restore(date, mongo, billing):
+    """
+    This is used to restore from a tar.gz with the backup or snaphsot of the mongo and influx dbs and will move the 
+    billing files to thier correct location.
+    
+    @param date, string date in the format of month-day-year to retore from 
+    @param mongo, bool mongo this used to specify which data source to restore. 
+    @param mongo, bool influx this used to specify which data source to restore. 
+    @param mongo, bool billing this used to specify which data source to restore. 
+    """
+    execute_command(['tar', '-zxf', '/tmp/backup.tar.gz'], cwd='/')
+    file = date if date else '*'
+    containers = ''
+    hostname = execute_command(['hostname'])
+    if mongo:
+        print('[+] restoring mongo')
+        mongo_container = MONGO_CONTAINER.format(
+            mongo_command="'mongorestore', '--host', 'mongo', '/tmp/backup/%s-mongo'" % date)
+        containers += mongo_container
+    # if influx:
+    #     print('[+] restoring influx')
+    #     execute_command(['kubectl', 'scale',  '--replicas=0', 'deployment', 'influxdb'])
+    #     influx_container = INFLUX_CONTAINER.format(
+    #         influx_command="'influxd', 'restore','-database', 'statistics', '-datadir', 'var/lib/influxdb/data', '/tmp/backup/%s-influx'" % date)
+    #     containers += influx_container
+    if containers:
+        with open('/tmp/migration.yaml', 'w+') as f:
+            f.write(MIGRATION_POD_YAML.format(containers=containers, hostname=hostname))
+        execute_command(['kubectl', 'apply', '-f',
+                                       '/tmp/migration.yaml'])
+    if billing:
+        print('[+] restoring billing')
+        execute_command('cp -rf /tmp/backup/billing/ /var/ovc/', shell=True)
+    execute_command(['kubectl', 'scale',  '--replicas=1', 'deployment', 'influxdb'])
+
+
+def upload(url):
+    print("[+] uploading backed up data.")
+    if os.path.exists('/tmp/backup'):
+        shutil.rmtree('/tmp/backup')
+    os.makedirs('/tmp/backup')
+    execute_command(['curl', '-T' '/tmp/backup.tar.gz', url])
+
+
+def download(url):
+    print("[+] downloading backed up data.")
+    if os.path.exists('/tmp/backup'):
+        os.rmdir('/tmp/backup')
+    os.makedirs('/tmp/backup')
+    execute_command(['curl', '-o', '/tmp/backup.tar.gz', url])
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--save', action='store_true', help='create backup and upload to webdav')
+    group.add_argument('--load', action='store_true',
+                       help='download backup from webdav and restore into system')
+    if not (upload or restore):
+        raise RuntimeError('Please specify a action to preform')
+    parser.add_argument('--url', type=str, help='url to download/upload the backup to', default=False)
+    parser.add_argument('--no-mongo', help='apply/donotapply action on Mongo database', default=False,
+                        action='store_true', dest='mongo')
+    parser.add_argument('--no-billing', help='apply/donotapply action on billing files', default=False,
+                        action='store_true', dest='billing')
+    # parser.add_argument('--no-influx', help='apply/donotapply action on influx database', default=False,
+    #                     action='store_true', dest='influx')
+    parser.add_argument('--date', help='date to restore from with format: \n month-day-year', default='')
+    args = parser.parse_args()
+    now = datetime.datetime.now()
+    date = '-'.join([str(now.month), str(now.day), str(now.year)])
+    mongo = not args.mongo
+    billing = not args.billing
+    # influx = not args.influx
+
+    if hasattr(args, 'save') and args.save:
+        backup(date, mongo, billing)
+        # upload(args.url)
+
+    if hasattr(args, 'load') and args.load:
+        # download(args.url)
+        restore(args.date, mongo, billing)
