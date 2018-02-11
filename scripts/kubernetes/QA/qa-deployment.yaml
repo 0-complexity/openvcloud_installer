@@ -16,9 +16,10 @@ spec:
       containers:
       - name: qa-container
         imagePullPolicy: Always
-        image: openvcloud/management
+        image: openvcloud/cb_master
+        workingDir: /var/run/scripts/system
         command: ['/bin/bash']
-        args: ['-c', 'python3 /var/run/init-ssh.py && /sbin/my_init']
+        args: ['-c', 'jspython configure-system.py && /sbin/my_init']
         env:
         - name: PATH
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/

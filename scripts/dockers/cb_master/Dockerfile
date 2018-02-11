@@ -8,6 +8,7 @@ COPY whoami.hrd /opt/jumpscale7/hrd/system/
 
 COPY start.sh /
 COPY services-migrator.py /tmp/
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # add configuration script
 RUN mkdir -p /var/run/scripts/system /opt/cfg/system /opt/jumpscale7/var/resourcetracking/
