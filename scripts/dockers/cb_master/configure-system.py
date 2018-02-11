@@ -9,11 +9,12 @@ def get_config():
     return data
 
 
-def configure(roles, machineguid, controller_addr):
+def configure(roles, machineguid, controller_addr, ssh):
     """
     configures the js7 node.
     """
-    j.system.fs.remove('rm -f /etc/service/sshd/down')
+    if ssh:
+        j.system.fs.remove('rm -f /etc/service/sshd/down')
     config = get_config()
     gid = int(config['environment']['grid']['id'])
     print("[+] set gid to: %s" % gid)
@@ -62,4 +63,4 @@ if __name__ == '__main__':
     parser.add_argument('--controller-addr', dest="controller_addr", default=None)
     parser.add_argument('--ssh', default=False, action='store_true')
     args = parser.parse_args()
-    configure(args.roles, args.machineguid, args.controller_addr)
+    configure(args.roles, args.machineguid, args.controller_addr, args.ssh)

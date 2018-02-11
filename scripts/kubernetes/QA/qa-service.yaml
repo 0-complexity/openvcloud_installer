@@ -12,8 +12,8 @@ spec:
   - 10.101.109.3
   ports:
   - name: ssh
-    targetPort: 2205
-    port: 2205
+    targetPort: 22
+    port: 22
     nodePort: 32222
   selector:
     app: qa
