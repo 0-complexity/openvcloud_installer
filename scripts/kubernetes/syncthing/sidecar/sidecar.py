@@ -75,10 +75,6 @@ while True:
         needschanges = False
 
         for target in devices:
-            # skipping ourself
-            if target['id'] == device['id']:
-                continue
-
             devaddr = 'tcp://%s:22000' % target['target']
             needschanges |= device['client'].add_device(target['hostname'], target['id'], devaddr)
 

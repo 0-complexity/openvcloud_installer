@@ -11,6 +11,13 @@ mailclient:
   sender: support@env.com # SMTP server sender
   server: smtp.domain.com # SMTP server address
 
+support:
+  github:
+    client_id: 3216584165816f5v
+    client_secret: 3wa651wvefqeffefefsf6514651eswrfgw
+    team_name: support_beg84
+    org_name: be-g8-4
+ 
 timezone: CET
 
 network:

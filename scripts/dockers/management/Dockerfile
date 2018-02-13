@@ -1,4 +1,4 @@
-FROM openvcloud/js9
+FROM openvcloud/teleport
 
 COPY init-ssh.py /var/run/
 

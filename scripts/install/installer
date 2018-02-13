@@ -189,18 +189,18 @@ class AbstractConfig:
         data.append('') # end with empty line
         node.core.file_write('/root/.ssh/authorized_keys', '\n'.join(data))
 
-    def add_env_keys(self, node, pub_key, priv_key, homedir='/var/ovc/'):
+    def add_env_keys(self, node, pub_key, priv_key, ovcdir='/var/ovc/'):
         """
         adds pub and priv key to relative envs
         """
         # create dir
-        node.core.dir_ensure('{}/.ssh'.format(homedir), mode='600')
-        node.core.dir_ensure('/root/.ssh'.format(homedir), mode='600')
+        node.core.dir_ensure('{}/.ssh'.format(ovcdir), mode='600')
+        node.core.dir_ensure('{}/root/.ssh'.format(ovcdir), mode='600')
         # add keys
         node.executor.sshclient.ssh_authorize('root', pub_key)
-        node.core.file_write('{}/.ssh/id_rsa'.format(homedir), priv_key, mode='600')
-        node.core.file_write('{}/.ssh/id_rsa.pub'.format(homedir), pub_key)
-        node.core.file_write('{}/.ssh/authorized_keys'.format(homedir), pub_key)
+        node.core.file_write('{}/.ssh/id_rsa'.format(ovcdir), priv_key, mode='600')
+        node.core.file_write('{}/.ssh/id_rsa.pub'.format(ovcdir), pub_key)
+        node.core.file_write('{}/.ssh/authorized_keys'.format(ovcdir), pub_key)
 
     def get_new_keys(self):
         privatekey = self.first_node.core.file_read('/var/ovc/.ssh/id_rsa')

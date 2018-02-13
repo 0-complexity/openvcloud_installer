@@ -12,7 +12,7 @@ spec:
         role: mongo
         environment: test
     spec:
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 2
       containers:
         - name: mongo
           image: mongo
