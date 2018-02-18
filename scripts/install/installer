@@ -552,7 +552,7 @@ class Cluster(AbstractConfig):
         self.kubectl('apply -f {template}'.format(template=template))
         template_name = j.sal.fs.getBaseName(template)
         timeout = time.time() + 240
-        print('Waiting for deployment %s to be ready..' % template_name)
+        print('Waiting for %s to be ready..' % template_name)
         while time.time() < timeout:
             template_basename = template.split('/')[-1]
             template_name = template_basename.strip('.yaml') if template_basename.endswith('.yaml') else template_basename
@@ -687,10 +687,10 @@ class Cluster(AbstractConfig):
 
     def delete(self):
         cmd = """
-        kubectl delete deploy --namespace default -l 'app != nginx'
         kubectl delete configmap --all --namespace default
         kubectl delete service --namespace default -l 'name != nginx'
         kubectl delete statefulset --all --namespace default
+        kubectl delete deploy --namespace default
         """
         self.first_node.core.execute_bash(cmd)
 
