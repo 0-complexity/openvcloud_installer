@@ -646,7 +646,7 @@ class Cluster(AbstractConfig):
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
         deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
-                       'portal', 'nginx', 'pxeboot', 'zero-access', 'management', 'controller-jsagent']
+                       'portal', 'pxeboot', 'zero-access', 'management', 'controller-jsagent', 'nginx']
         statefulSets = ['mongo', 'syncthing']
         for statefulSet in statefulSets:
             template_file = self.scripts_dir + statefulSet
@@ -689,7 +689,7 @@ class Cluster(AbstractConfig):
         cmd = """
         kubectl delete deploy --namespace default -l 'app != nginx'
         kubectl delete configmap --all --namespace default
-        kubectl delete service --namespace default -l 'app != nginx'
+        kubectl delete service --namespace default -l 'name != nginx'
         kubectl delete statefulset --all --namespace default
         """
         self.first_node.core.execute_bash(cmd)
@@ -820,7 +820,6 @@ def _node_update(ctx):
     """
     Update all pnodes
     """
-    j.logger.set_level(30)
     config = ctx.obj
     pnames = get_pnodes_names(config)
     pnode_action(pnames, 'update', config)
@@ -900,6 +899,9 @@ def upgrade_cluster(ctx, development):
     """
     Will upgrade the env.
     """
+
+    if not development:
+        j.logger.set_level(30)
     cluster = Cluster(ctx.obj, development)
     cluster.upgrade()
     _node_update(ctx)
