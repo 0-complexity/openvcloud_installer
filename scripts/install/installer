@@ -778,7 +778,7 @@ def controller():
     pass
 
 @cli.group()
-`def storage():
+def storage():
     pass
 
 @cli.group()
