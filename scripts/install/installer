@@ -548,7 +548,6 @@ class Cluster(AbstractConfig):
         self.configure_keys()
         self.kub_client_apply()
 
-    # Not ready yet do not use
     def apply_template(self, template, kind):
         self.kubectl('apply -f {template}'.format(template=template))
         template_name = j.sal.fs.getBaseName(template)
@@ -583,14 +582,20 @@ class Cluster(AbstractConfig):
         data = self.first_node.core.file_read(location)
         return loader(data)
 
-    def prepare_templates(self):
-        def write_template(template, externalips):
-            template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=self.scripts_dir, name=template)
-            data = self.load(template_loc)
-            if data['spec'].get('type') == 'NodePort':
-                data['spec']['externalIPs'] = externalips
-                self.dump(template_loc, data)
+    def write_service_template(self, template, externalips):
+        template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=self.scripts_dir, name=template)
+        data = self.load(template_loc)
+        if data['spec'].get('type') == 'NodePort':
+            data['spec']['externalIPs'] = externalips
+            self.dump(template_loc, data)
+        return template_loc
 
+    def upgrade(self):
+        pubips = list(get_controller_public_ips(self.config))
+        loc = self.write_service_template('upgrader', pubips)
+        self.kubectl('apply -f {}'.format(loc))
+
+    def prepare_templates(self):
         def write_deployment_template(template):
             template_loc = '{dir}{name}/{name}-deployment.yaml'.format(dir=self.scripts_dir, name=template)
             data = self.load(template_loc)
@@ -606,12 +611,12 @@ class Cluster(AbstractConfig):
         templates = ['agentcontroller', 'osis']
         externalips = list(get_controller_management_ips(self.config))
         for template in templates:
-            write_template(template, externalips)
+            self.write_service_template(template, externalips)
 
         pubtemplates = ['nginx', 'zero-access', 'management']
         pubips = list(get_controller_public_ips(self.config))
         for template in pubtemplates:
-            write_template(template, pubips)
+            self.write_service_template(template, pubips)
 
         if self.development:
             for template in ['osis', 'agentcontroller', 'portal']:
@@ -680,7 +685,7 @@ class Cluster(AbstractConfig):
         """.format(config=self.k8s_config, dir=grafana_dir)
         self.first_node.core.execute_bash(cmd)
 
-    def delete_cluster(self):
+    def delete(self):
         cmd = """
         kubectl delete deploy --namespace default -l 'app != nginx'
         kubectl delete configmap --all --namespace default
@@ -689,8 +694,8 @@ class Cluster(AbstractConfig):
         """
         self.first_node.core.execute_bash(cmd)
 
-    def update_cluster(self):
-        self.delete_cluster()
+    def update(self):
+        self.delete()
         self.kube_client_apply()
 
 class PNode(Node):
@@ -809,6 +814,9 @@ def node_action(ctx, name, action):
 @node.command('update')
 @click.pass_context
 def node_update(ctx):
+    return _node_update(ctx)
+
+def _node_update(ctx):
     """
     Update all pnodes
     """
@@ -874,13 +882,29 @@ def deploy_cluster(ctx, configure_cluster):
 @click.option('--development', default=False, is_flag=True)
 @click.pass_context
 def update_cluster(ctx, development):
+    return _update_cluster(ctx, development)
+
+def _update_cluster(ctx, development):
     """
     Will update the cluster.
     """
     cluster = Cluster(ctx.obj, development)
     print('Restarting cluster...')
-    cluster.update_cluster()
+    cluster.update()
     print('Updating cluster done.')
+
+@cluster.command('upgrade')
+@click.option('--development', default=False, is_flag=True)
+@click.pass_context
+def upgrade_cluster(ctx, development):
+    """
+    Will upgrade the env.
+    """
+    cluster = Cluster(ctx.obj, development)
+    cluster.upgrade()
+    _node_update(ctx)
+    _update_cluster(ctx, development)
+
 
 @cpu.command('deploy')
 @click.option('--name', help='Node name to configure')
@@ -904,6 +928,8 @@ def deploy_controller(ctx, name):
 def deploy_storage(ctx, name):
     jumpscale = JumpScale7(ctx.obj, name)
     jumpscale.install_storage_node()
+
+
 
 
 
