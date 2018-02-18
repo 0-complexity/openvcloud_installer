@@ -9,75 +9,75 @@ spec:
     metadata:
       name: pi
     spec:
-    restartPolicy: Never
-    initContainers:
-    - name: nginx-init
-      command: [jspython]
-      args: ['configure-nginx.py', '--upgrade']
-      image: openvcloud/nginx-init
-      workingDir: /var/run/scripts/nginx
-      volumeMounts:
-      - name:  ovc-installer-volume
-        mountPath: /opt/code/github/openvcloud_installer
-        subPath: openvcloud_installer
-      - name: nginx-config
-        mountPath:  /opt/cfg/nginx/sites-enabled
-      - name:  system-config
-        mountPath:  /opt/cfg/system/system-config.yaml
-        subPath: system-config.yaml
-      - name: update-log
-        mountPath:  /opt/cfg/upgrade
-    containers:
-    - name: upgrader-container
-      image: openvcloud/js9
-      volumeMounts:
+      restartPolicy: Never
+      initContainers:
+      - name: nginx-init
+        command: [jspython]
+        args: ['configure-nginx.py', '--upgrade']
+        image: openvcloud/nginx-init
+        workingDir: /var/run/scripts/nginx
+        volumeMounts:
+        - name:  ovc-installer-volume
+          mountPath: /opt/code/github/openvcloud_installer
+          subPath: openvcloud_installer
+        - name: nginx-config
+          mountPath:  /opt/cfg/nginx/sites-enabled
+        - name:  system-config
+          mountPath:  /opt/cfg/system/system-config.yaml
+          subPath: system-config.yaml
+        - name: update-log
+          mountPath:  /opt/cfg/upgrade
+      containers:
+      - name: upgrader-container
+        image: openvcloud/js9
+        volumeMounts:
+        - name: ssh-dir
+          mountPath: /root/.ssh
+        - name: update-log
+          mountPath: /opt/logs
+        - name:  system-config
+          mountPath:  /opt/cfg/system/system-config.yaml
+          subPath: system-config.yaml
+        - name: installer-volume
+          mountPath: /opt/code/github/0-complexity/openvcloud_installer
+          subPath: openvcloud_installer
+        command: [bash]
+        args: [update_env]
+        workingDir: /opt/code/github/0-complexity/openvcloud_installer/scripts/install/
+      - name: server-container
+        image: nginx:1.12
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: update-log
+          mountPath: /opt/cfg/upgrade
+        - name: jslib-volume
+          mountPath: /opt/code/github/web_python
+          subPath: web_python
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: root-certs
+          mountPath: /opt/cfg/nginx/ssl/root
+          readOnly: true
+      volumes:
       - name: ssh-dir
-        mountPath: /root/.ssh
+        hostPath:
+          path: /var/ovc/.ssh
+          type: Directory
       - name: update-log
-        mountPath: /opt/logs
-      - name:  system-config
-        mountPath:  /opt/cfg/system/system-config.yaml
-        subPath: system-config.yaml
+        emptyDir: {}
+      - name: system-config
+        configMap:
+          name: system-config
       - name: installer-volume
-        mountPath: /opt/code/github/0-complexity/openvcloud_installer
-        subPath: openvcloud_installer
-      command: [bash]
-      args: [update_env]
-      workingDir: /opt/code/github/0-complexity/openvcloud_installer/scripts/install/
-    - name: server-container
-      image: nginx:1.12
-      ports:
-      - containerPort: 80
-      volumeMounts:
-      - name: update-log
-        mountPath: /opt/cfg/upgrade
+        gitRepo:
+          repository: "https://github.com/0-complexity/openvcloud_installer.git"
       - name: jslib-volume
-        mountPath: /opt/code/github/web_python
-        subPath: web_python
+        gitRepo:
+          repository: "https://docs.greenitglobe.com/binary/web_python.git"
       - name: nginx-config
-        mountPath: /etc/nginx/nginx.conf
-        subPath: nginx.conf
+        emptyDir: {}
       - name: root-certs
-        mountPath: /opt/cfg/nginx/ssl/root
-        readOnly: true
-    volumes:
-    - name: ssh-dir
-      hostPath:
-        path: /var/ovc/.ssh
-        type: Directory
-    - name: update-log
-      emptyDir: {}
-    - name: system-config
-      configMap:
-        name: system-config
-    - name: installer-volume
-      gitRepo:
-        repository: "https://github.com/0-complexity/openvcloud_installer.git"
-    - name: jslib-volume
-      gitRepo:
-        repository: "https://docs.greenitglobe.com/binary/web_python.git"
-    - name: nginx-config
-      emptyDir: {}
-    - name: root-certs
-      secret:
-        secretName: root-certs
+        secret:
+          secretName: root-certs
