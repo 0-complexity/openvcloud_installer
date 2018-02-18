@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: upgrade
+spec:
+  template:
+    metadata:
+      name: upgrade
+    spec:
+      containers:
+      - name: upgrade
+        image: openvcloud/upgrade
+        command: [python3]
+        args: [upgrade-cluster.py]
+        workingDir: /tmp
+      restartPolicy: Never
+      volumeMounts:
+      - name: installer-volume
+        mountPath: /opt/code/github/0-complexity/openvcloud_installer
+  backoffLimit: 4
+  volumes:
+    - name: installer-volume
+      gitRepo:
+        repository: "https://github.com/0-complexity/openvcloud_installer.git"

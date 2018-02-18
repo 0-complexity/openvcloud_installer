@@ -111,13 +111,13 @@ def prepare_config(config_path):
                 _helper(nodes)
             _helper(config['controller']['hosts'])
     cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
-    _, public_key, _ = j.sal.process.execute(cmd)
+    _, public_key, _ = j.sal.process.execute(cmd, showout=False)
     config['ssh']['public-key'] = public_key
     j.clients.ssh.start_ssh_agent()
     if j.sal.fs.exists('~/.ssh/id_rsa'):
         j.clients.ssh.load_ssh_key('~/.ssh/id_rsa')
     key = config['ssh']['private-key']
-    j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key)
+    j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
     return config
 
 def get_controller_management_ips(config):
@@ -154,10 +154,10 @@ class AbstractConfig:
     def first_node(self):
         return self.nodes[0]
 
-    def kubectl(self, *args):
+    def kubectl(self, *args, **kwargs):
         cmd = "kubectl "
         cmd += " ".join(args)
-        return self.first_node.core.run(cmd)
+        return self.first_node.core.run(cmd, **kwargs)
 
     def get_node_from_appname(self, appname):
         status, output, _ = self.kubectl("get pods -o json")
@@ -314,7 +314,8 @@ class JumpScale7(Node):
         self.stop()
         self.start()
 
-    def install_agent(self):
+    def install_agent(self, roles=None):
+        roles = roles or ['node']
         redisdata = {
             'instance.param.disk': '0',
             'instance.param.mem': '100',
@@ -346,7 +347,7 @@ class JumpScale7(Node):
         agentdata = {
                 'agentcontroller.connection': 'main',
                 'grid.id': str(self.gid),
-                'grid.node.roles': 'node',
+                'grid.node.roles': roles,
                 'osis.connection': 'jsagent',
         }
         self.ays_install('jsagent', instance='main', data=agentdata)
@@ -362,7 +363,7 @@ class JumpScale7(Node):
 
     def install_controller(self):
         self.install_core()
-        self.install_agent()
+        self.install_agent(['node', 'controllernode'])
 
     def install_compute_node(self):
         self.install_core()
@@ -548,23 +549,31 @@ class Cluster(AbstractConfig):
         self.kub_client_apply()
 
     # Not ready yet do not use
-    def _apply_deploy(self, template):
+    def apply_template(self, template, kind):
         self.kubectl('apply -f {template}'.format(template=template))
         template_name = j.sal.fs.getBaseName(template)
         timeout = time.time() + 240
         print('Waiting for deployment %s to be ready..' % template_name)
         while time.time() < timeout:
-            _, out, _ = self.kubectl('get deploy -o json')
+            template_basename = template.split('/')[-1]
+            template_name = template_basename.strip('.yaml') if template_basename.endswith('.yaml') else template_basename
+            _, out, _ = self.kubectl('get %s %s -o json' % (kind, template_name), showout=False)
+            json_out = j.data.serializer.json.loads(out)
             ready = False
-            for item in out['items']:
-                if item['metadata']['name'] == template_name:
-                    if item['status'].get('readyReplicas') and item['status']['readyReplicas'] == item['state']['replicas']:
+            if kind == 'deployment':
+                for condition in  json_out['status']['conditions']:
+                    if condition['type'] == 'Available' and condition['status'] == 'True':
                         ready = True
                         break
+            if kind == 'statefulset':
+                if json_out['status']['replicas'] == json_out['status'].get('readyReplicas'):
+                    ready = True
+                    break
             if ready:
                 break
         else:
             raise j.exceptions.Timeout('Deploying %s took longer than expected. Exiting..')
+            
 
     def dump(self, location, data, dumper=j.data.serializer.yaml.dumps):
         data = dumper(data)
@@ -599,7 +608,7 @@ class Cluster(AbstractConfig):
         for template in templates:
             write_template(template, externalips)
 
-        pubtemplates = ['nginx', '0-access', 'management']
+        pubtemplates = ['nginx', 'zero-access', 'management']
         pubips = list(get_controller_public_ips(self.config))
         for template in pubtemplates:
             write_template(template, pubips)
@@ -626,16 +635,21 @@ class Cluster(AbstractConfig):
         finally:
             self.first_node.core.dir_remove(tmpdir)
 
-    def kub_client_apply(self):
+    def kube_client_apply(self):
         self.prepare_templates()
         self.write_system_config()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
-        templates = ['syncthing', 'mongocluster', 'influxdb', 'osis', 'agentcontroller',
-                     'stats-collector', 'portal', 'nginx', 'pxeboot', '0-access', 'management', 'controller-jsagent']
-        for template in templates:
-            template_file = self.scripts_dir + template
-            self.kubectl('apply -f {template}'.format(template=template_file))
+        deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
+                       'portal', 'nginx', 'pxeboot', 'zero-access', 'management', 'controller-jsagent']
+        statefulSets = ['mongo', 'syncthing']
+        for statefulSet in statefulSets:
+            template_file = self.scripts_dir + statefulSet
+            self.apply_template(template_file, kind='statefulset')
+        for deployment in deployments:
+            template_file = self.scripts_dir + deployment
+            self.apply_template(template_file, kind='deployment')
+            
         self.grafana_apply('{}/grafana'.format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
@@ -668,16 +682,16 @@ class Cluster(AbstractConfig):
 
     def delete_cluster(self):
         cmd = """
-        kubectl delete deploy --all --namespace default
+        kubectl delete deploy --namespace default -l 'app != nginx'
         kubectl delete configmap --all --namespace default
-        kubectl delete service --all --namespace default
+        kubectl delete service --namespace default -l 'app != nginx'
         kubectl delete statefulset --all --namespace default
         """
         self.first_node.core.execute_bash(cmd)
 
     def update_cluster(self):
         self.delete_cluster()
-        self.kub_client_apply()
+        self.kube_client_apply()
 
 class PNode(Node):
     def ipmi(self, *args):
@@ -745,6 +759,10 @@ def cluster():
 
 @cluster.group()
 def resources():
+    pass
+
+@cluster.group()
+def resource():
     pass
 
 @cli.group()
@@ -829,7 +847,16 @@ def kube_apply(ctx):
     """
     cluster = Cluster(ctx.obj)
     cluster.kube_client_apply()
-
+    
+@resource.command('apply')
+@click.option('--path', help='path to template')
+@click.pass_context
+def kube_apply(ctx, path):
+    """
+    Rewrite kube resources from template
+    """
+    cluster = Cluster(ctx.obj)
+    cluster.apply_template(path, kind='deployment')
 
 @cluster.command('deploy')
 @click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
@@ -844,13 +871,16 @@ def deploy_cluster(ctx, configure_cluster):
     cluster.install_controller()
 
 @cluster.command('update')
+@click.option('--development', default=False, is_flag=True)
 @click.pass_context
-def deploy_cluster(ctx):
+def update_cluster(ctx, development):
     """
     Will update the cluster.
     """
-    cluster = Cluster(ctx.obj)
+    cluster = Cluster(ctx.obj, development)
+    print('Restarting cluster...')
     cluster.update_cluster()
+    print('Updating cluster done.')
 
 @cpu.command('deploy')
 @click.option('--name', help='Node name to configure')

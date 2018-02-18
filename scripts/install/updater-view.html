@@ -1,0 +1,57 @@
+<html>
+<head>
+<script  src='/jslib/jquery/jquery-2.2.1.min.js' type='text/javascript'></script>
+<link  href='/jslib/bootstrap/css/bootstrap-3-3-6.min.css' type='text/css' rel='stylesheet' />
+<link  href='/jslib/flatui/css/flat-ui.css' type='text/css' rel='stylesheet' />
+<style>
+    div.navbar{
+        border-bottom-right-radius: 0px;
+        border-bottom-left-radius: 0px;
+    }
+</style>
+<script>
+        $( document ).ready(function() {
+            var seeker = 0;
+            function send(){
+                $.ajax({
+                url: "/updating/update_node.log",
+                headers: {
+                    'Range':'bytes=' + seeker + '-'
+                },
+                success: function(data, status, resp) {
+                    range = resp.getResponseHeader('content-range');
+                    seeker = parseInt(range.split('/')[1]);
+                    $('#logs').append(data);
+                    bottom();
+                    if (data.search('Updating cluster done.') == -1){
+                    setTimeout(send, 5000);
+                    }else{
+                    $("#redirect").toggleClass("hidden", false)
+                    }
+                },
+                error: function(resp, status, error) {
+                    if (resp.status != 416) {
+                        $('#logs').append('\n' + resp.status + error);
+                    }
+                    setTimeout(send, 5000);
+                }
+    
+                });
+            }
+            send();
+            function bottom() {
+                var elem = document.getElementById('logs');
+                elem.scrollTop = elem.scrollHeight;
+            }
+        });
+</script>
+</head>
+<body>
+        <div class="navbar navbar-inverse navbar-fixed-top"></div>
+        <div class="container" style="padding-top:100px">
+        <p class="breadcrumb">Update progress</p>
+        <div><pre style="height:600px" id="logs"></pre></div>
+        <button id="redirect"  onclick="location.href='/grid'" class="hidden btn" style="background-color:#345d78;color: #fff;">Back to portal</button>
+        </div>
+</body>
+</html>

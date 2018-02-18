@@ -1,0 +1,6 @@
+kubectl apply -f /opt/code/github/0-complexity/openvcloud_installer/scripts/kubernetes/upgrader/upgrader-service.yaml
+LOG_DIR='/opt/cfg/upgrade'
+export ENV_CONFIG='/opt/cfg/system/system-config.yaml'
+mkdir -p $LOG_DIR
+./installer node update > $LOG_DIR/update_node.log
+./installer cluster update >> $LOG_DIR/update_node.log
