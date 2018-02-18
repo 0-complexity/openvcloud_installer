@@ -690,7 +690,7 @@ class Cluster(AbstractConfig):
         kubectl delete configmap --all --namespace default
         kubectl delete service --namespace default -l 'name != nginx'
         kubectl delete statefulset --all --namespace default
-        kubectl delete deploy --namespace default
+        kubectl delete deploy --all --namespace default
         """
         self.first_node.core.execute_bash(cmd)
 
