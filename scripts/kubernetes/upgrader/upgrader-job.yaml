@@ -17,7 +17,7 @@ spec:
         image: openvcloud/nginx-init
         workingDir: /var/run/scripts/nginx
         volumeMounts:
-        - name:  ovc-installer-volume
+        - name:  installer-volume
           mountPath: /opt/code/github/openvcloud_installer
           subPath: openvcloud_installer
         - name: nginx-config
