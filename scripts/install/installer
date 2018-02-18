@@ -561,7 +561,7 @@ class Cluster(AbstractConfig):
             json_out = j.data.serializer.json.loads(out)
             ready = False
             if kind == 'deployment':
-                for condition in  json_out['status']['conditions']:
+                for condition in  json_out['status'].get('conditions'):
                     if condition['type'] == 'Available' and condition['status'] == 'True':
                         ready = True
                         break
@@ -778,7 +778,7 @@ def controller():
     pass
 
 @cli.group()
-def storage():
+`def storage():
     pass
 
 @cli.group()
