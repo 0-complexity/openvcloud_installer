@@ -30,4 +30,4 @@ if __name__ == '__main__':
     parser.add_argument('--upgrade', help='apply the upgrade nginx config', default=False, action='store_true')
     args = parser.parse_args()
     adjust_nginx_config(args.upgrade)
-    j.system.fs.copyDirTree('/opt/code/github/openvcloud_installer/scripts/install/', '/opt/cfg/upgrade/')
+    j.system.fs.copyDirTree('/opt/code/github/openvcloud_installer/scripts/install/web-files', '/opt/cfg/upgrade/')

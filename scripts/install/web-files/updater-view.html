@@ -1,6 +1,7 @@
 <html>
 <head>
 <script  src='/jslib/jquery/jquery-2.2.1.min.js' type='text/javascript'></script>
+<script src='/jslib/ansi_up/ansi_up.js' type='text/javascript'></script>
 <link  href='/jslib/bootstrap/css/bootstrap-3-3-6.min.css' type='text/css' rel='stylesheet' />
 <link  href='/jslib/flatui/css/flat-ui.css' type='text/css' rel='stylesheet' />
 <style>
@@ -12,7 +13,8 @@
 <script>
         $( document ).ready(function() {
             var seeker = 0;
-            var doneMessage = ''
+            var doneMessage = '';
+            var ansi_up = new AnsiUp;
             function send(){
                 $.ajax({
                 url: "/updating/update_node.log",
@@ -22,8 +24,8 @@
                 success: function(data, status, resp) {
                     range = resp.getResponseHeader('content-range');
                     seeker = parseInt(range.split('/')[1]);
-                    console.log('Success');
                     if (data.search('Updating cluster done.') == -1){
+                        data = ansi_up.ansi_to_html(data);
                         $('#logs').append(data);
                         bottom();
                         setTimeout(send, 5000);
@@ -33,7 +35,6 @@
                     }
                 },
                 error: function(resp, status, error) {
-                    console.log('Error');
                     if (resp.status != 416 && resp.status != 404 ) {
                         $('#logs').append('\n' + resp.status + error);
                     }
@@ -56,6 +57,7 @@
                 error: function(resp, status, error) {
                     if (resp.status == 404 ) {
                         $('#logs').append(doneMessage);
+                        bottom();
                         $("#redirect").toggleClass("hidden", false);
                         return;
                     }
