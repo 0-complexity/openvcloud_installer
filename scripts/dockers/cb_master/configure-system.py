@@ -14,7 +14,7 @@ def configure(roles, machineguid, controller_addr, ssh):
     configures the js7 node.
     """
     if ssh:
-        j.system.fs.remove('rm -f /etc/service/sshd/down')
+        j.system.fs.remove('/etc/service/sshd/down')
     config = get_config()
     gid = int(config['environment']['grid']['id'])
     print("[+] set gid to: %s" % gid)
