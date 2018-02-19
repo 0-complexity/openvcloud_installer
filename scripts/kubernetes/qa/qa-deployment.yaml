@@ -33,7 +33,7 @@ spec:
             mountPath: /root/.ssh/authorized_keys
             subPath: authorized_keys
           - name: tun-device
-            mountPath: /dev/net/
+            mountPath: /dev/net/tun
             subPath: tun
         ports:
         - containerPort: 2205
