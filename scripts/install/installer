@@ -6,7 +6,6 @@ import itertools
 import os
 import requests
 import random
-import sys
 import time
 import jsonschema
 import concurrent.futures.process
@@ -53,7 +52,7 @@ def pnode_action(pnames, action, config):
     with concurrent.futures.process.ProcessPoolExecutor(len(pnames)) as proc:
         for pname in pnames:
             print("{action} node: {name} started".format(action=action, name=pname))
-            jumpscale = JumpScale7(config, pname)
+            jumpscale = PNode(config, pname)
             func = getattr(jumpscale, action)
             fut = proc.submit(func)
             futures[pname] =  fut
@@ -274,6 +273,7 @@ class Node(AbstractConfig):
                 else:
                     raise LookupError("Failed to find node with name {}".format(self.name))
         return self._node
+
 
 class JumpScale7(Node):
     def install_core(self):
@@ -552,13 +552,13 @@ class Cluster(AbstractConfig):
                 self.first_node.core.dir_remove(tmpdir)
 
         self.configure_keys()
-        self.kub_client_apply()
+        self.kube_client_apply()
 
     def apply_template(self, template, kind):
         self.kubectl('apply -f {template}'.format(template=template))
         template_name = j.sal.fs.getBaseName(template)
         timeout = time.time() + 240
-        print('Waiting for %s to be ready..' % template_name)
+        print('Waiting for {} to be ready..'.format(template_name))
         while time.time() < timeout:
             template_basename = template.split('/')[-1]
             template_name = template_basename.strip('.yaml') if template_basename.endswith('.yaml') else template_basename
@@ -577,8 +577,7 @@ class Cluster(AbstractConfig):
             if ready:
                 break
         else:
-            raise j.exceptions.Timeout('Deploying %s took longer than expected. Exiting..')
-            
+            raise j.exceptions.Timeout('Deploying {} took longer than expected. Exiting..'.format(template_name))
 
     def dump(self, location, data, dumper=j.data.serializer.yaml.dumps):
         data = dumper(data)
@@ -660,7 +659,7 @@ class Cluster(AbstractConfig):
         for deployment in deployments:
             template_file = self.scripts_dir + deployment
             self.apply_template(template_file, kind='deployment')
-            
+
         self.grafana_apply('{}/grafana'.format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
@@ -705,7 +704,7 @@ class Cluster(AbstractConfig):
         self.delete()
         self.kube_client_apply()
 
-class PNode(Node):
+class PNode(JumpScale7):
     def ipmi(self, *args):
         ipmiip = get_ipaddress(self.node['ipmi']['ipaddress'])
         cmd = "ipmitool -I lanplus -H {} -U {} -P {} ".format(ipmiip, self.node['ipmi']['username'], self.node['ipmi']['password'])
@@ -742,11 +741,14 @@ class PNode(Node):
         self.reboot()
         time.sleep(20)
         self.wait_up()
-        prefab = j.tools.prefab.getFromSSH(self.managementip)
-        status, output, err = prefab.core.run('cd /root/tools/; ./Install')
+        status, output, err = self.prefab.core.run('cd /root/tools/; ./Install')
         if status != 0:
             raise RuntimeError('Failed to install OS')
         self.disable_pxe()
+        # invalidating prefab connection
+        j.tools.executor._executors.pop(self.prefab.executor.id, None)
+        j.tools.prefab.prefabs_instance.pop(self.prefab.executor.id, None)
+        self._prefab = None
         self.reboot()
         time.sleep(20)
         self.wait_up()
@@ -808,15 +810,19 @@ def image_deploy(ctx, name):
 
 
 @node.command('action')
-@click.option('--name', help='Node name')
+@click.option('--name', help='Node name pass all to apply on all')
 @click.argument('action')
 @click.pass_context
 def node_action(ctx, name, action):
     """
     Execute command for node
     """
-    cluster = PNode(ctx.obj, name)
-    getattr(cluster, action)()
+    if name != 'all':
+        cluster = PNode(ctx.obj, name)
+        getattr(cluster, action)()
+    else:
+        pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['nodes']['cpu'], ctx.obj['nodes']['storage'])]
+        pnode_action(pnames, action, ctx.obj)
 
 @node.command('update')
 @click.pass_context
@@ -853,16 +859,17 @@ def write_kube_resources(ctx, development):
     cluster.prepare_templates()
 
 
-@resources.command('apply')
+@resources.command('applyall')
 @click.pass_context
-def kube_apply(ctx):
+def kube_apply_all(ctx):
     """
     Rewrite kube resources from template
     """
     cluster = Cluster(ctx.obj)
     cluster.kube_client_apply()
-    
-@resource.command('apply')
+
+
+@resources.command('apply')
 @click.option('--path', help='path to template')
 @click.pass_context
 def kube_apply(ctx, path):

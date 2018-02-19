@@ -41,6 +41,8 @@ spec:
         env:
         - name: PATH
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/
+        - name: ENV_CONFIG
+          value: /opt/cfg/system/system-config.yaml
         volumeMounts:
           - name:  system-config
             mountPath: /opt/cfg/system
