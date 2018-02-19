@@ -12,6 +12,7 @@
 <script>
         $( document ).ready(function() {
             var seeker = 0;
+            var doneMessage = ''
             function send(){
                 $.ajax({
                 url: "/updating/update_node.log",
@@ -21,15 +22,18 @@
                 success: function(data, status, resp) {
                     range = resp.getResponseHeader('content-range');
                     seeker = parseInt(range.split('/')[1]);
-                    $('#logs').append(data);
-                    bottom();
+                    console.log('Success');
                     if (data.search('Updating cluster done.') == -1){
-                    setTimeout(send, 5000);
-                    }else{
-                    $("#redirect").toggleClass("hidden", false)
+                        $('#logs').append(data);
+                        bottom();
+                        setTimeout(send, 5000);
+                    } else {
+                        doneMessage = data;
+                        finish();
                     }
                 },
                 error: function(resp, status, error) {
+                    console.log('Error');
                     if (resp.status != 416 && resp.status != 404 ) {
                         $('#logs').append('\n' + resp.status + error);
                     }
@@ -42,6 +46,23 @@
             function bottom() {
                 var elem = document.getElementById('logs');
                 elem.scrollTop = elem.scrollHeight;
+            }
+            function finish(){
+                $.ajax({
+                url: "/testdone",
+                success: function(data, status, resp) {
+                    setTimeout(finish, 2000);
+                },
+                error: function(resp, status, error) {
+                    if (resp.status == 404 ) {
+                        $('#logs').append(doneMessage);
+                        $("#redirect").toggleClass("hidden", false);
+                        return;
+                    }
+                    setTimeout(finish, 2000);
+                }
+    
+                });
             }
         });
 </script>

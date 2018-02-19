@@ -1,13 +1,12 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: upgrader
-  labels:
-    name: upgrader
+  name: upgradeJob
 spec:
   template:
     metadata:
-      name: upgrader
+      labels:
+        app: upgrader
     spec:
       restartPolicy: Never
       initContainers:
