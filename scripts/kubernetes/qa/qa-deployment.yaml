@@ -20,6 +20,10 @@ spec:
         workingDir: /var/run/scripts/system
         command: ['/bin/bash']
         args: ['-c', 'jspython configure-system.py --ssh && /sbin/my_init']
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
         env:
         - name: PATH
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/
