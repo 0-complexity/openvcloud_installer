@@ -585,6 +585,7 @@ class Cluster(AbstractConfig):
 
         self.configure_keys()
         self.kube_client_apply()
+        self.install_teleport()
 
     def apply_template(self, template, kind):
         self.kubectl('apply -f {template}'.format(template=template))
@@ -676,6 +677,31 @@ class Cluster(AbstractConfig):
                             path=tmpfile))
         finally:
             self.first_node.core.dir_remove(tmpdir)
+
+    def install_teleport(self):
+        clusters = []
+        for node in self.nodes:
+            node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
+            node.apps.teleport.write_config()
+            node.apps.teleport.start()
+            _, key, _ = node.core.run('tctl auth export')
+            clusters.append({
+                'key': key,
+                'allow_logins': ['root'],
+                'tunnel_addr': node.executor.sshclient.addr,
+                'name': node.core.hostname
+            })
+            
+        for node in self.nodes:
+            node.apps.teleport.write_config(name=node.core.hostname, trusted_clusters=clusters)
+            node.apps.teleport.restart()
+            github = self.config['support']['github']
+            node.apps.teleport.apply_permissions(
+                client_id=github['client_id'],
+                client_secret=github['client_secret'],
+                teams= ['/'.join([github['org_name'], github['team_name']])],
+                exposed_ip=node.executor.sshclient.addr
+            )
 
     def kube_client_apply(self):
         self.prepare_templates()
@@ -785,7 +811,7 @@ class PNode(JumpScale7):
         time.sleep(20)
         self.wait_up()
         self.update_keys()
-
+        
 ###                    ###
 # Command line interface #
 ###                    ###
@@ -841,6 +867,12 @@ def image_deploy(ctx, name):
     jumpscale.ays_install(name, 'openvcloud')
 
 
+@cluster.command('install_teleport')
+@click.pass_context
+def install_teleport(ctx):
+    cluster = Cluster(ctx.obj)
+    cluster.install_teleport()
+    
 @node.command('action')
 @click.option('--name', help='Node name pass all to apply on all')
 @click.argument('action')
