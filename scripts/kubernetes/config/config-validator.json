@@ -129,7 +129,7 @@
       "controller": {
         "$id": "/properties/controller",
         "type": "object",
-        "required": ["directories", "hosts"],
+        "required": ["hosts"],
         "properties": {
           "directories": {
             "$id": "/properties/controller/properties/directories",

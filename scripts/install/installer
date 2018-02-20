@@ -91,6 +91,38 @@ def prepare_config(config_path):
             node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
 
     config = j.data.serializer.yaml.load(config_path)
+    # add default directories for syncthing
+    default_dirs = [
+        {
+            "path": "/var/ovc/billing",
+            "sync": True
+        },
+        {
+            "path": "/var/ovc/influxdb",
+            "sync": True
+        },
+        {
+            "path": "/var/ovc/mongodb",
+            "sync": False
+        },
+        {
+            "path": "/var/ovc/pxeboot",
+            "sync": True
+        },
+        {
+            "path": "/var/ovc/0-access",
+            "sync": True
+        },
+        {
+            "path": "/var/ovc/ssl",
+            "sync": True
+        },
+        {
+            "path": "/var/ovc/.ssh",
+            "sync": True
+        }
+    ]
+    config['controller']['directories'] = config['controller'].get('directories', []) + default_dirs
     validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
     try:
         jsonschema.validate(config, validator)
