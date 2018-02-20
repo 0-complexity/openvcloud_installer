@@ -4,9 +4,12 @@ DISK2=""
 DISK=""
 ONEDISK=0
 # get networking config in order
+#
+eval $( cat /proc/cmdline ) &> /dev/null
+OURFILESERVER=${fullroot:-LOCAL}
+
 MOBO=`dmidecode -t 2 | awk '/Product Name:/{print $3}'`
-# OSIMAGE="ubuntu-16.04.3-20171028.tgz"
-OSIMAGE="ubuntu-16.04.3-20171130.tgz"
+OSIMAGE="ubuimage-16.04.3.tgz"
 case "$MOBO" in
    S2P-MB) # Quanta Storage Node
 	BONDIFACES=() # filled in by findifaces
@@ -24,6 +27,14 @@ case "$MOBO" in
 	disks=(`lsblk -l | awk '/sd?/&&/447/{print $1}'`)
 	DISK1=${disks[0]}
 	DISK2=${disks[1]}
+	echo "######## Installing on $DISK1 and $DISK2"
+	;;
+   C11HGSA0) # Huawei Russia
+	BONDIFACES=('enp129s0f0' 'enp129s0f1')
+    STORIFACE="storage"
+	MGMT=('enp2s0f0')
+	DISK1=sda
+	DISK2=sdb
 	echo "######## Installing on $DISK1 and $DISK2"
 	;;
    X10DRW-i) # SuperMicro UberServer (be-g8-1)
@@ -62,6 +73,8 @@ case "$MOBO" in
 	# some reasonable defaults ;-)
 	BONDIFACES=( $DEVICE )
 	MGMT=('ovs' '2311')
+	DISK1=sda
+	DISK2=sdb
 	;;
 esac
 
@@ -82,7 +95,7 @@ function zappit(){
     sync
 
     # same for md devices that could contain an fs
-    parts=`ls /dev/disk/by-id/ | awk '/part/&&!/wwn/{print}'`
+    parts=`ls /dev/disk/by-id/ | awk '/part/&&!/wwn/{print}'| grep -iv usb`
     mds=`mdadm --detail --scan | awk '/ARRAY/{print $2}'`
     for i in $mds ; do
         dd if=/dev/zero of=$i bs=1M count=100 &
@@ -99,14 +112,14 @@ function zappit(){
     done
     # we should need :apt-get install gdisk but it's on the rescue of OVH
     # Now we can drop all partition tables
-    disks=`ls /dev/disk/by-id/ | awk  '/scsi|ata/{gsub(/\-part.*/,"");print}'|uniq`
+    disks=`ls /dev/disk/by-id/ | grep -iv usb | awk  '/scsi|ata/{gsub(/\-part.*/,"");print}'|uniq`
     for i in $disks ; do
         # destruct, destroy, obliterate
         SIZE=`blockdev --getsz /dev/disk/by-id/${i}`
         dd if=/dev/zero seek=$(($SIZE - 1024)) bs=512 count=1024 of=/dev/disk/by-id/${i}
         dd if=/dev/zero of=/dev/disk/by-id/${i} bs=1M count=10 && sync
         echo -e 'x\nz\ny\ny\n' | gdisk /dev/disk/by-id/${i}
-	udevadm settle
+		udevadm settle
         partprobe /dev/disk/by-id/${i}
     done
     for i in `ls /dev/nvme?n?` ; do
@@ -114,13 +127,13 @@ function zappit(){
         dd if=/dev/zero seek=$(($SIZE - 1024)) bs=512 count=1024 of=$i
         dd if=/dev/zero of=${i} bs=1M count=10 && sync
         echo -e 'x\nz\ny\ny\n' | gdisk ${i}
-	udevadm settle
+		udevadm settle
         partprobe ${i}
     done
 
     ##
     mdadm --stop --scan
-    if ! [ -z "`ls /dev/disk/by-id/ | grep part`" ] ; then
+    if ! [ -z "`ls /dev/disk/by-id/ | grep part| grep -iv usb`" ] ; then
         echo not everything is cleared
         exit 1
     fi
@@ -288,19 +301,27 @@ function efimounts(){
 }
 
 function untarit(){
-    OURFILESERVER="${OURFILESERVER:-$fullroot}"
-    # INSTALL
-    URL="${OURFILESERVER}/${OSIMAGE}"
-    # get the 'image' and pour it in the mountpoint
-    wget -qO - $URL | tar --numeric-owner -zxf - -C /mnt
-	if [ ${PIPESTATUS[0]} -ne 0 ] ; then
-		echo "wget of ${URL} failed!"
-		exit 1
-	elif [ ${PIPESATUS[1]} -ne 0 ] ; then
-		echo "Untarring of ${OSIMAGE} failed!"
-		exit 1
+	if [ "$OURFILESERVER" = "LOCAL" ]; then
+		# we're on our own, no network
+		mkdir -p /root/USB
+		mount -r -L GIGINSTALL /root/USB
+		# and untar it
+		tar --numeric-owner -zxf /root/USB/${OSIMAGE} -C /mnt
+		[ $? -ne 0 ] && echo "OOPS: No USB and no fullroot, bailing" && exit 1
+	else
+		OURFILESERVER="${OURFILESERVER:-$fullroot}"
+		# INSTALL
+		URL="${OURFILESERVER}/${OSIMAGE}"
+		# get the 'image' and pour it in the mountpoint
+		wget -qO - $URL | tar --numeric-owner -zxf - -C /mnt
+		if [ ${PIPESTATUS[0]} -ne 0 ] ; then
+			echo "wget of ${URL} failed!"
+			exit 1
+		elif [ ${PIPESTATUS[1]} -ne 0 ] ; then
+			echo "Untarring of ${OSIMAGE} failed!"
+			exit 1
+		fi
 	fi
-	# add btrfs balance in crontab (every sunday @04:13)
     echo "13 4 * * 1 /bin/btrfs balance start -dusage=80 /" >> /mnt/var/spool/cron/crontabs/root
 }
 
@@ -567,9 +588,9 @@ LSBIP=$(echo $IPV4ADDR | awk -F . '{printf "%02d",$4}')
 BKPLNIP=`echo $IPV4ADDR | awk -F . '{print $1"."$2"."$3-1"."$4}'`
 STORIP=`echo $IPV4ADDR | awk -F . '{print $1"."$2"."$3+1"."$4}'`
 HOSTNUM=`echo $IPV4ADDR | awk -F . '{printf "%02d",$4 - 100}'`
+HOSTNAME=${HOSTNAME:-baseimage}
+DNSDOMAIN=${DNSDOMAIN:-local}
 AYSHOSTNAME=${HOSTNAME,,}.${DNSDOMAIN,,}
-OURFILESERVER=$fullroot
-
 # to use findifaces, you need to create an empty BONDIFACES array
 if [ ${#BONDIFACES[@]} -eq 0 ] ; then
 	BONDIFACES=( $(findifaces) )
