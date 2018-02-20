@@ -35,18 +35,8 @@
       "itsyouonline": {
         "$id": "/properties/itsyouonline",
         "type": "object",
-        "required": ["callbackURL", "clientId", "environment", "clientSecret"],
+        "required": ["clientId", "environment", "clientSecret"],
         "properties": {
-          "callbackURL": {
-            "$id": "/properties/itsyouonline/properties/callbackURL",
-            "type": "string",
-            "title": "The Callbackurl Schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": "",
-            "examples": [
-              "https://be-g8-4.demo.greenitglobe.com/restmachine/system/oauth/authorize"
-            ]
-          },
           "clientId": {
             "$id": "/properties/itsyouonline/properties/clientId",
             "type": "string",
