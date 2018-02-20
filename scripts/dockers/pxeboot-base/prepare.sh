@@ -3,7 +3,7 @@ set -ex
 
 autoclean="yes"
 
-wget https://github.com/PurePeople/911builder/archive/master.tar.gz
+wget https://github.com/0-complexity/911builder/archive/master.tar.gz
 tar -xvf master.tar.gz
 
 cd 911builder-master
@@ -15,6 +15,8 @@ rm -rf tftpboot/*
 
 cp -v 911builder-master/binaries/vmlinuz tftpboot/911-vmlinuz
 cp -v 911builder-master/binaries/ramfs tftpboot/911-ramfs
+cp -v 911builder-master/binaries/ubuimage* images/
+cp 911builder-master/Install images/
 
 if [ "${autoclean}" == "yes" ]; then
     rm -f master.tar.gz
