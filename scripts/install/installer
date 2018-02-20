@@ -717,7 +717,7 @@ class PNode(JumpScale7):
     def is_up(self):
         return j.sal.nettools.tcpPortConnectionTest(self.managementip, 22)
 
-    def wait_up(self, timeout=300):
+    def wait_up(self, timeout=600):
         j.sal.nettools.waitConnectionTest(self.managementip, 22, timeout)
         if not self.is_up():
             raise RuntimeError('Node did not come up in {}seconds'.format(timeout))
