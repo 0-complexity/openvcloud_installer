@@ -61,20 +61,26 @@ def pnode_action(pnames, action, config):
 
         def print_status():
             messages = ''
+            future_error = False
             for name, future in futures.items():
                 if future.done() and name in running_futures:
                     if future.exception():
                         messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
+                        running_futures.clear()
+                        future_error = True
                     else:
                         messages += '{action} done on node: {name} \n'.format(action=action, name=name)
-                    running_futures.pop(name)
-            return messages
+                        running_futures.pop(name)
+            return future_error, messages
 
         print("Waiting for {action} node to be done...".format(action=action))
         while running_futures:
-            results += print_status()
+            error, msg = print_status()
+            results += msg
             time.sleep(1)
         print(results)
+        if error:
+            raise RuntimeError('Error while performaing action {}'.format(action))
 
 def prepare_config(config_path):
     def _helper(nodes):
@@ -695,6 +701,7 @@ class Cluster(AbstractConfig):
         self.first_node.core.execute_bash(cmd)
 
     def update(self):
+        print('Restarting cluster...')
         self.delete()
         self.kube_client_apply()
 
@@ -888,9 +895,7 @@ def _update_cluster(ctx, development):
     Will update the cluster.
     """
     cluster = Cluster(ctx.obj, development)
-    print('Restarting cluster...')
     cluster.update()
-    print('Updating cluster done.')
 
 @cluster.command('upgrade')
 @click.option('--development', default=False, is_flag=True)
@@ -899,14 +904,17 @@ def upgrade_cluster(ctx, development):
     """
     Will upgrade the env.
     """
-
     if not development:
         j.logger.set_level(30)
-    cluster = Cluster(ctx.obj, development)
+    config = ctx.obj
+    pnames = get_pnodes_names(config)
+    pnode_action(pnames, 'stop', config)
+    pnode_action(pnames, 'update', config)
+    cluster = Cluster(config, development)
     cluster.upgrade()
-    _node_update(ctx)
-    _update_cluster(ctx, development)
-
+    cluster.update()
+    pnode_action(pnames, 'start', config)
+    print('Updating cluster done.')
 
 @cpu.command('deploy')
 @click.option('--name', help='Node name to configure')
