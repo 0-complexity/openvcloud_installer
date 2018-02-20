@@ -683,31 +683,17 @@ class Cluster(AbstractConfig):
         for node in self.nodes:
             ssl_name = self.config['environment']['ssl']['root']['name']
             node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
-            node.apps.teleport.write_config(name=node.core.hostname)
-            # node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
-            #                                 cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
+            node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
+                                            cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
             node.apps.teleport.start()
-            clusters.append({
-                'token': j.data.hash.sha256_string(node.core.hostname),
-                'tunnel_addr': '%s:3024' % node.executor.sshclient.addr,
-                'web_proxy_addr': '%s:3080' % node.executor.sshclient.addr,
-                'name': node.core.hostname
-            })
-            
-        for node in self.nodes:
-            for cluster in clusters:
-                from pprint import pprint ; from IPython import embed ; import ipdb ; ipdb.set_trace()
-                if cluster['name'] == node.core.hostname:
-                    continue
-                cluster['name'] = '%s_to_%s' % (node.core.hostname, cluster['name'])
-                node.apps.teleport.apply_trusted_cluster(**cluster)
             github = self.config['support']['github']
+            teams = ['/'.join([team['org_name'], team['team_name']]) for team in github['teams']]
             node.apps.teleport.apply_permissions(
                 name=node.core.hostname,
                 client_id=github['client_id'],
                 client_secret=github['client_secret'],
-                teams= ['/'.join([github['org_name'], github['team_name']])],
-                exposed_ip='{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
+                teams= teams,
+                exposed_ip='{}.{}'.format(self.config['environment']['subdomain'], self.config['environment']['basedomain'])
             )
 
     def kube_client_apply(self):
@@ -819,7 +805,7 @@ class PNode(JumpScale7):
         time.sleep(20)
         self.wait_up()
         self.update_keys()
-        
+
 ###                    ###
 # Command line interface #
 ###                    ###

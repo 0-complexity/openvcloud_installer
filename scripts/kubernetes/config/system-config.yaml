@@ -14,8 +14,9 @@ support:
   github:
     client_id: 3216584165816f5v
     client_secret: 3wa651wvefqeffefefsf6514651eswrfgw
-    team_name: support_beg84
-    org_name: be-g8-4
+    teams:
+    - team_name: support_beg84
+      org_name: be-g8-4
  
 timezone: CET
 
@@ -93,22 +94,6 @@ ssh:
   public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ # corresponding public key
 
 controller:
-  directories: # required directories for nodes in cluster
-    - path: /var/ovc/billing
-      sync: true
-    - path: /var/ovc/influxdb
-      sync: true
-    - path: /var/ovc/mongodb
-      sync: false
-    - path: /var/ovc/pxeboot
-      sync: true
-    - path: /var/ovc/0-access
-      sync: true
-    - path: /var/ovc/ssl
-      sync: true
-    - path: /var/ovc/.ssh
-      sync: true
-
   hosts: # Nodes in cluster info
     - hostname: be-loc-4-ctrl-01
       ip-lsb: 1
