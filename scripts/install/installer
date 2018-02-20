@@ -302,7 +302,7 @@ class JumpScale7(Node):
         self.prefab.core.run('fuser -k 4446/tcp || true')
 
     def update_repo(self, account, repo, version):
-        cmd = "jscode update -a '%s' -n '%s' -d -b %s" % (account, repo, version)
+        cmd = "jscode update -a '%s' -n '%s' -d -b %s --https" % (account, repo, version)
         self.prefab.core.run(cmd)
 
 
