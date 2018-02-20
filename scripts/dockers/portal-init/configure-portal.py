@@ -22,6 +22,7 @@ class Portal(object):
 
         self.client_id = self.config['itsyouonline']['clientId']
         self.client_secret = self.config['itsyouonline']['clientSecret']
+        self.fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         # baseurl = "https://staging.itsyou.online/"
         self.baseurl = "https://itsyou.online/"
 
@@ -76,7 +77,6 @@ class Portal(object):
     def configure_user_groups(self, portalhrd):
         ovc_environment = self.config['itsyouonline']['environment']
         gid = j.application.whoAmI.gid
-        fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         portal_links = {
             'ays': {
                 'name': 'At Your Service',
@@ -86,13 +86,13 @@ class Portal(object):
             },
             'vdc': {
                 'name': 'End User',
-                'url': 'https://{}'.format(fqdn),
+                'url': 'https://{}'.format(self.fqdn),
                 'scope': 'user',
                 'theme': 'dark',
                 'external': 'true'},
             'ovs': {
                 'name': 'Storage',
-                'url': 'https://ovs-{}/ovcinit/{}'.format(fqdn, self.config['environment']['subdomain']),
+                'url': 'https://ovs-{}/ovcinit/{}'.format(self.fqdn, self.config['environment']['subdomain']),
                 'scope': 'ovs_admin',
                 'theme': 'light',
                 'external': 'true'},
@@ -130,8 +130,8 @@ class Portal(object):
 
         # update cloudbroker service
         cloudbrokerhrd = j.application.getAppInstanceHRD(name='cloudbroker', domain='openvcloud', instance='main')
-        cloudbrokerhrd.set('instance.cloudbroker.portalurl', 'https://{}'.format(fqdn))
-        cloudbrokerhrd.set('instance.openvcloud.cloudbroker.defense_proxy', 'https://defense-{}'.format(fqdn))
+        cloudbrokerhrd.set('instance.cloudbroker.portalurl', 'https://{}'.format(self.fqdn))
+        cloudbrokerhrd.set('instance.openvcloud.cloudbroker.defense_proxy', 'https://defense-{}'.format(self.fqdn))
         cloudbrokerhrd.save()
 
         # setup user/groups
@@ -158,7 +158,7 @@ class Portal(object):
             grid.name = ovc_environment
             scl.grid.set(grid)
         # register vnc url
-        url = 'https://novnc-{}/vnc_auto.html?token='.format(fqdn)
+        url = 'https://novnc-{}/vnc_auto.html?token='.format(self.fqdn)
         if lcl.vnc.count({'url': url, 'gid': gid}) == 0:
             vnc = lcl.vnc.new()
             vnc.gid = gid
@@ -191,11 +191,9 @@ class Portal(object):
             lcl.networkids.set(networkids)
 
     def configure_IYO(self):
-        if not self.config['itsyouonline'].get('callbackURL'):
-            raise RuntimeError('callbackURL is not set')
         if not self.config['itsyouonline'].get('environment'):
             raise RuntimeError('environment is not set')
-        callbackURL = self.config['itsyouonline']['callbackURL']
+        callbackURL = 'https://{}/restmachine/system/oauth/authorize'.format(self.fqdn)
         environment = self.config['itsyouonline']['environment']
         groups = ['admin', 'level1', 'level2', 'level3', 'ovs_admin', 'user', '0-access']
 
@@ -242,12 +240,11 @@ class Portal(object):
                         suborgname, result.status_code, result.text))
 
         # configure portal to use this oauthprovider and restart
-        fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         portalhrd = j.application.getAppInstanceHRD(name='portal', instance='main')
         portalhrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
-        portalhrd.set('instance.param.dcpm.url', fqdn)
-        portalhrd.set('instance.param.ovs.url', 'ovs-%s' % (fqdn))
-        portalhrd.set('instance.param.portal.url', fqdn)
+        portalhrd.set('instance.param.dcpm.url', self.fqdn)
+        portalhrd.set('instance.param.ovs.url', 'ovs-%s' % (self.fqdn))
+        portalhrd.set('instance.param.portal.url', self.fqdn)
         portalhrd.save()
         return portalhrd
 

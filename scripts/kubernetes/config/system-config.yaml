@@ -1,5 +1,4 @@
 itsyouonline:
-  callbackURL: https://be-g8-4.demo.greenitglobe.com/restmachine/system/oauth/authorize # The url to be redirecrtd to after authentication with itsyounoline
   clientSecret: fwegfwefwefw-ALGwzRpSLLf # itsyouonline secret
   clientId: greenitglobe.environments.be-g8-4 # itsyouonline client id
   environment: be-g8-4 #
