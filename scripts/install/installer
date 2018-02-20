@@ -914,11 +914,11 @@ def upgrade_cluster(ctx, development):
     if not development:
         j.logger.set_level(30)
     config = ctx.obj
+    cluster = Cluster(config, development)
+    cluster.upgrade()
     pnames = get_pnodes_names(config)
     pnode_action(pnames, 'stop', config)
     pnode_action(pnames, 'update', config)
-    cluster = Cluster(config, development)
-    cluster.upgrade()
     cluster.update()
     pnode_action(pnames, 'start', config)
     print('Updating cluster done.')
