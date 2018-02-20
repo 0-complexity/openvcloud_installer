@@ -104,6 +104,8 @@ controller:
       sync: true
     - path: /var/ovc/0-access
       sync: true
+    - path: /var/ovc/ssl
+      sync: true
     - path: /var/ovc/.ssh
       sync: true
 

@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: certs
+spec:
+  template:
+    metadata:
+      labels:
+        app: certs
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: server-container
+        image: openvcloud/js9
+        command: ['/bin/bash']
+        args: ['-c', 'cp /opt/ssl/* /opt/certs']
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: ssl-dir
+          mountPath: /opt/certs
+        - name: root-certs
+          mountPath: /opt/ssl/
+          readOnly: true
+      volumes:
+      - name: ssl-dir
+        hostPath:
+          path: /var/ovc/ssl
+          type: Directory
+      - name: root-certs
+        secret:
+          secretName: root-certs

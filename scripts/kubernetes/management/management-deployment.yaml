@@ -14,30 +14,11 @@ spec:
     spec:
       restartPolicy: Always
       containers:
-      - name: teleport-container
-        imagePullPolicy: Always
-        image: openvcloud/teleport
-        command: ['/usr/bin/python3']
-        args: ['/var/run/scripts/teleport/start-teleport.py']
-        workingDir: /var/run/scripts/teleport/
-        ports:
-          - containerPort: 3080
-          - containerPort: 3022
-        volumeMounts:
-          - name:  system-config
-            mountPath: /opt/cfg/system
-          - name: ssh-dir
-            mountPath: /root/.ssh
-          - name: teleport-config
-            mountPath: /var/lib/teleport/
-          - name: root-certs
-            mountPath: /opt/cfg/ssl/
-            readOnly: true
       - name: management-container
         imagePullPolicy: Always
         image: openvcloud/management
         command: ['/bin/bash']
-        args: ['-c', 'python3 /var/run/init-ssh.py --teleport && /sbin/my_init']
+        args: ['-c', 'python3 /var/run/init-ssh.py && /sbin/my_init']
         env:
         - name: PATH
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/

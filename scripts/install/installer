@@ -211,7 +211,7 @@ class AbstractConfig:
                             return node
 
             raise LookupError("Could not find host with IP {}".format(hostip))
-        raise LookupError("Could not find appname {}".appname)
+        raise LookupError("Could not find appname {}".format(appname))
 
     def remove_env_keys(self, node, public_key):
         """
@@ -681,26 +681,33 @@ class Cluster(AbstractConfig):
     def install_teleport(self):
         clusters = []
         for node in self.nodes:
+            ssl_name = self.config['environment']['ssl']['root']['name']
             node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
-            node.apps.teleport.write_config()
+            node.apps.teleport.write_config(name=node.core.hostname)
+            # node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
+            #                                 cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
             node.apps.teleport.start()
-            _, key, _ = node.core.run('tctl auth export')
             clusters.append({
-                'key': key,
-                'allow_logins': ['root'],
-                'tunnel_addr': node.executor.sshclient.addr,
+                'token': j.data.hash.sha256_string(node.core.hostname),
+                'tunnel_addr': '%s:3024' % node.executor.sshclient.addr,
+                'web_proxy_addr': '%s:3080' % node.executor.sshclient.addr,
                 'name': node.core.hostname
             })
             
         for node in self.nodes:
-            node.apps.teleport.write_config(name=node.core.hostname, trusted_clusters=clusters)
-            node.apps.teleport.restart()
+            for cluster in clusters:
+                from pprint import pprint ; from IPython import embed ; import ipdb ; ipdb.set_trace()
+                if cluster['name'] == node.core.hostname:
+                    continue
+                cluster['name'] = '%s_to_%s' % (node.core.hostname, cluster['name'])
+                node.apps.teleport.apply_trusted_cluster(**cluster)
             github = self.config['support']['github']
             node.apps.teleport.apply_permissions(
+                name=node.core.hostname,
                 client_id=github['client_id'],
                 client_secret=github['client_secret'],
                 teams= ['/'.join([github['org_name'], github['team_name']])],
-                exposed_ip=node.executor.sshclient.addr
+                exposed_ip='{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
             )
 
     def kube_client_apply(self):
@@ -719,6 +726,7 @@ class Cluster(AbstractConfig):
             self.apply_template(template_file, kind='deployment')
 
         self.grafana_apply('{}/grafana'.format(self.scripts_dir))
+        self.kubectl('apply -f {}/certs'.format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
         datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)
