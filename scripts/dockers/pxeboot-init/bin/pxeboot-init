@@ -4,6 +4,7 @@ cp -rv /source/* /opt/pxeboot/
 
 echo "Generating config files"
 python3 /usr/local/bin/generate-config.py
+chmod -R 777 /opt/pxeboot/
 
 echo "Reading network configuration"
 
