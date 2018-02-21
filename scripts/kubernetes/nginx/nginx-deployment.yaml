@@ -62,11 +62,17 @@ spec:
         - name:  ovc-installer-volume
           mountPath: /opt/code/github/openvcloud_installer
           subPath: openvcloud_installer
+        - name: update-log
+          mountPath: /opt/logs
       volumes:
         - name: nginx-config
           emptyDir: {}
         - name: upgrade-config
           emptyDir: {}
+        - name: update-log
+          hostPath:
+            path: /var/ovc/updatelogs
+            type: Directory
         - name: system-config
           configMap:
             name: system-config
