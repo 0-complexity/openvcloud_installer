@@ -583,9 +583,9 @@ class Cluster(AbstractConfig):
             for tmpdir in copiedpaths.values():
                 self.first_node.core.dir_remove(tmpdir)
 
+        self.install_teleport()        
         self.configure_keys()
         self.kube_client_apply()
-        self.install_teleport()
 
     def apply_template(self, template, kind):
         self.kubectl('apply -f {template}'.format(template=template))
