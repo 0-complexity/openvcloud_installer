@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from js9 import j
+import logging
 import netaddr
 import click
 import itertools
@@ -28,8 +29,8 @@ email                          =
 
 fullname                       =
 
-git.login                      = 'ssh'
-git.passwd                     = 'ssh'
+git.login                      = ''
+git.passwd                     = ''
 '''
 ERROR_COLOR = u'\u001b[31m'
 RESET_COLOR  = u'\u001b[0m'
@@ -194,7 +195,7 @@ class AbstractConfig:
     def kubectl(self, *args, **kwargs):
         cmd = "kubectl "
         cmd += " ".join(args)
-        return self.first_node.core.run(cmd, **kwargs)
+        return self.first_node.core.run(cmd, showout=False, **kwargs)
 
     def get_node_from_appname(self, appname):
         status, output, _ = self.kubectl("get pods -o json")
@@ -385,7 +386,7 @@ class JumpScale7(Node):
         agentdata = {
                 'agentcontroller.connection': 'main',
                 'grid.id': str(self.gid),
-                'grid.node.roles': roles,
+                'grid.node.roles': ','.join(roles),
                 'osis.connection': 'jsagent',
         }
         self.ays_install('jsagent', instance='main', data=agentdata)
@@ -814,6 +815,7 @@ class PNode(JumpScale7):
 @click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
 @click.pass_context
 def cli(ctx, config):
+    j.logger.set_level(logging.INFO)
     if not config:
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
