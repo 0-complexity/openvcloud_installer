@@ -54,7 +54,6 @@ class ServiceMigration:
 
     def download(self, service):
         settings = {
-            'login': 'ssh',
             'url': service.get('url'),
             'depth': service.get('depth'),
             'branch': service.get('branch'),
