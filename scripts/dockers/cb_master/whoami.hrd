@@ -2,5 +2,5 @@ email                          =
 
 fullname                       =
 
-git.login                      = 'ssh'
-git.passwd                     = 'ssh'
+git.login                      = ''
+git.passwd                     = ''

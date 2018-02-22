@@ -1,5 +1,5 @@
 # Before starting please add a private key which has access to the priv repos in id_rsa
-FROM jumpscale7/ubuntu1604_core7
+FROM openvcloud/js7
 
 COPY system /opt/jumpscale7/hrd/system/
 COPY apps /opt/jumpscale7/hrd/apps/
