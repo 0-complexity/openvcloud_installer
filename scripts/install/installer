@@ -61,13 +61,13 @@ def pnode_action(pnames, action, config):
 
         def print_status():
             messages = ''
-            future_error = False
+            future_error = None
             for name, future in futures.items():
                 if future.done() and name in running_futures:
                     if future.exception():
                         messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
                         running_futures.clear()
-                        future_error = True
+                        future_error = future.exception()
                     else:
                         messages += '{action} done on node: {name} \n'.format(action=action, name=name)
                         running_futures.pop(name)
@@ -80,7 +80,7 @@ def pnode_action(pnames, action, config):
             time.sleep(1)
         print(results)
         if error:
-            raise RuntimeError('Error while performaing action {}'.format(action))
+            raise error
 
 def prepare_config(config_path):
     def _helper(nodes):
@@ -120,6 +120,10 @@ def prepare_config(config_path):
         },
         {
             "path": "/var/ovc/.ssh",
+            "sync": True
+        },
+        {
+            "path": "/var/ovc/updatelogs",
             "sync": True
         }
     ]
@@ -345,9 +349,6 @@ class JumpScale7(Node):
         self.update_repo('jumpscale7', '*', js_version)
         self.update_repo('0-complexity', 'openvcloud', ovc_version)
         self.update_repo('0-complexity', 'openvcloud_installer', ovc_version)
-        self.update_repo('0-complexity', 'selfhealing', ovc_version)
-        self.update_repo('0-complexity', 'g8vdc', ovc_version)
-        self.update_repo('0-complexity', 'openvcloud_ays', ovc_version)
 
     def restart(self):
         self.stop()
@@ -629,10 +630,19 @@ class Cluster(AbstractConfig):
             self.dump(template_loc, data)
         return template_loc
 
-    def upgrade(self):
+    def _apply_nginx(self, name):
         pubips = list(get_controller_public_ips(self.config))
-        loc = self.write_service_template('upgrader', pubips)
+        loc = self.write_service_template(name, pubips)
         self.kubectl('apply -f {}'.format(loc))
+
+    def upgrade(self):
+        self._apply_nginx('upgrader')
+
+    def revert(self):
+        """
+        Reconfigure nginx service to working state
+        """
+        self._apply_nginx('nginx')
 
     def prepare_templates(self):
         def write_deployment_template(template):
@@ -976,12 +986,16 @@ def upgrade_cluster(ctx, development):
     config = ctx.obj
     cluster = Cluster(config, development)
     cluster.upgrade()
-    pnames = get_pnodes_names(config)
-    pnode_action(pnames, 'stop', config)
-    pnode_action(pnames, 'update', config)
-    cluster.update()
-    pnode_action(pnames, 'start', config)
-    print('Updating cluster done.')
+    try:
+        pnames = get_pnodes_names(config)
+        pnode_action(pnames, 'stop', config)
+        pnode_action(pnames, 'update', config)
+        cluster.update()
+        pnode_action(pnames, 'start', config)
+        print('Updating env done.')
+    except:
+        cluster.revert()
+        print("Failed to update env.")
 
 @cpu.command('deploy')
 @click.option('--name', help='Node name to configure')

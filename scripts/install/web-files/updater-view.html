@@ -17,14 +17,14 @@
             var ansi_up = new AnsiUp;
             function send(){
                 $.ajax({
-                url: "/updating/update_node.log",
+                url: "/logs/",
                 headers: {
                     'Range':'bytes=' + seeker + '-'
                 },
                 success: function(data, status, resp) {
                     range = resp.getResponseHeader('content-range');
                     seeker = parseInt(range.split('/')[1]);
-                    if (data.search('Updating cluster done.') == -1){
+                    if (data.search('Updating env done.') == -1 && data.search('Failed to update env.') == -1){
                         data = ansi_up.ansi_to_html(data);
                         $('#logs').append(data);
                         bottom();

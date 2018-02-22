@@ -24,8 +24,10 @@ spec:
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
-        - name: update-log
+        - name: update-files
           mountPath:  /opt/cfg/upgrade
+        - name: update-log
+          mountPath: /opt/logs
       containers:
       - name: upgrader-container
         image: openvcloud/js9
@@ -33,7 +35,7 @@ spec:
         - name: ssh-dir
           mountPath: /root/.ssh
         - name: update-log
-          mountPath: /opt/cfg/upgrade
+          mountPath: /opt/logs
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
@@ -48,8 +50,10 @@ spec:
         ports:
         - containerPort: 80
         volumeMounts:
-        - name: update-log
+        - name: update-files
           mountPath: /opt/cfg/upgrade
+        - name: update-log
+          mountPath: /opt/logs
         - name: jslib-volume
           mountPath: /opt/code/github/web_python
           subPath: web_python
@@ -65,6 +69,10 @@ spec:
           path: /var/ovc/.ssh
           type: Directory
       - name: update-log
+        hostPath:
+          path: /var/ovc/updatelogs
+          type: Directory
+      - name: update-files
         emptyDir: {}
       - name: system-config
         configMap:
