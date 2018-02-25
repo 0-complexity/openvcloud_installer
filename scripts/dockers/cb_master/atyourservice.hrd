@@ -1,6 +1,6 @@
 metadata.jumpscale             =
     branch:'production',
-    url:'git@github.com:jumpscale7/ays_jumpscale7',
+    url:'https://github.com/jumpscale7/ays_jumpscale7',
 
 metadata.openvcloud            =
     branch:'production',
