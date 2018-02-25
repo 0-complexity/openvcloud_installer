@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from js9 import j
-import logging
 import netaddr
+import sys
 import click
 import itertools
 import os
@@ -9,7 +9,9 @@ import requests
 import random
 import time
 import jsonschema
-import concurrent.futures.process
+import concurrent.futures.thread
+import logging
+import threading
 
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
@@ -34,6 +36,37 @@ git.passwd                     = ''
 '''
 ERROR_COLOR = u'\u001b[31m'
 RESET_COLOR  = u'\u001b[0m'
+COLORBLUE = u'\u001b[34m'
+COLORGREEN = u'\u001b[32m'
+CURSORUP = u'\u001b[{n}A'
+CLEAREOL = u'\u001b[0K'
+ISINTERACTIVE = sys.stdout.isatty()
+
+status = {}
+lock = threading.Lock()
+logging.raiseExceptions = False
+
+def log(msg):
+    sys.stdout.write(msg + '\n')
+    sys.stdout.flush()
+
+def print_status(clear=False):
+    with lock:
+        if not ISINTERACTIVE:
+            return
+        if clear:
+            sys.stdout.write(CURSORUP.format(n=len(status)))
+        length = len(max(status.keys(), key=lambda x: len(x)))
+        for node, line in sorted(status.items()):
+            line = "{blue}{node:{length}}{reset}: {msg}{eol}".format(
+                    blue=COLORBLUE,
+                    node=node,
+                    length=length,
+                    reset=RESET_COLOR,
+                    msg=line,
+                    eol=CLEAREOL
+            )
+            log(line)
 
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
@@ -50,34 +83,38 @@ def pnode_action(pnames, action, config):
     futures = {}
     running_futures = {}
     results = ''
-    with concurrent.futures.process.ProcessPoolExecutor(len(pnames)) as proc:
+    with concurrent.futures.thread.ThreadPoolExecutor(len(pnames)) as proc:
         for pname in pnames:
-            print("{action} node: {name} started".format(action=action, name=pname))
+            status[pname] = 'Started {}'.format(action)
+
+        print("Waiting for {action} node to be done...".format(action=action))
+        print_status()
+        for pname in pnames:
             jumpscale = PNode(config, pname)
             func = getattr(jumpscale, action)
             fut = proc.submit(func)
             futures[pname] =  fut
             running_futures[pname] = fut
 
-        def print_status():
+        def update_status():
             messages = ''
             future_error = None
-            for name, future in futures.items():
-                if future.done() and name in running_futures:
+            for name, future in list(running_futures.items()):
+                if future.done():
                     if future.exception():
                         messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
                         running_futures.clear()
                         future_error = future.exception()
                     else:
-                        messages += '{action} done on node: {name} \n'.format(action=action, name=name)
+                        status[name] = '{}Finished{}'.format(COLORGREEN, RESET_COLOR)
+                        print_status(True)
                         running_futures.pop(name)
             return future_error, messages
 
-        print("Waiting for {action} node to be done...".format(action=action))
         while running_futures:
-            error, msg = print_status()
+            time.sleep(5)
+            error, msg = update_status()
             results += msg
-            time.sleep(1)
         print(results)
         if error:
             raise error
@@ -231,11 +268,12 @@ class AbstractConfig:
         data.append('') # end with empty line
         node.core.file_write('/root/.ssh/authorized_keys', '\n'.join(data))
 
-    def add_env_keys(self, node, pub_key, priv_key, ovcdir='/var/ovc/'):
+    def add_env_keys(self, node, pub_key, priv_key):
         """
         adds pub and priv key to relative envs
         """
         # create dir
+        ovcdir = '/var/ovc/'
         node.core.dir_ensure('{}/.ssh'.format(ovcdir), mode='600')
         node.core.dir_ensure('{}/root/.ssh'.format(ovcdir), mode='600')
         # add keys
@@ -243,6 +281,8 @@ class AbstractConfig:
         node.core.file_write('{}/.ssh/id_rsa'.format(ovcdir), priv_key, mode='600')
         node.core.file_write('{}/.ssh/id_rsa.pub'.format(ovcdir), pub_key)
         node.core.file_write('{}/.ssh/authorized_keys'.format(ovcdir), pub_key)
+        node.core.dir_ensure('/var/ovc/pxeboot/images/', mode='777')
+        node.core.file_write('/var/ovc/pxeboot/images/pubkey', pub_key, mode='777')
 
     def get_new_keys(self):
         privatekey = self.first_node.core.file_read('/var/ovc/.ssh/id_rsa')
@@ -250,6 +290,7 @@ class AbstractConfig:
         return privatekey, pubkey
 
     def configure_keys(self):
+        log('Configuring new keys')
         if not len(self.nodes):
             raise RuntimeError('cluster needs to be depployed before configuring keys')
 
@@ -284,16 +325,19 @@ class Node(AbstractConfig):
         self.fqdn = '{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
         self.iyourl = 'https://itsyou.online/'
 
+    def log(self, msg):
+        if ISINTERACTIVE and self.name in status:
+            status[self.name] = msg
+            print_status(True)
+        else:
+            msg = "{}: {}".format(self.name, msg)
+            log(msg)
+
     @property
     def prefab(self):
         if self._prefab is None:
             self._prefab = j.tools.prefab.getFromSSH(self.managementip)
         return self._prefab
-
-    def update_keys(self):
-        self.remove_env_keys(self.prefab, self.config['ssh']['public-key'])
-        privatekey, publickey = self.get_new_keys()
-        self.add_env_keys(self.prefab, publickey, privatekey, '/root')
 
     @property
     def node(self):
@@ -314,7 +358,6 @@ class Node(AbstractConfig):
 
 class JumpScale7(Node):
     def install_core(self):
-        self.update_keys()
         jsversion = self.versions['jumpscale']
         ovcversion = self.versions['openvcloud']
         env = {'AYSBRANCH': jsversion, 'JSBRANCH': jsversion}
@@ -332,9 +375,11 @@ class JumpScale7(Node):
         self.prefab.core.file_write('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
 
     def start(self):
+        self.log("Start JumpScale services")
         self.prefab.core.run('ays start')
 
     def stop(self):
+        self.log("Stop JumpScale services")
         self.prefab.core.run('ays stop')
         self.prefab.core.run('fuser -k 4446/tcp || true')
 
@@ -346,7 +391,9 @@ class JumpScale7(Node):
     def update(self):
         js_version = self.config['environment']['versions']['jumpscale']
         ovc_version = self.config['environment']['versions']['openvcloud']
+        self.log("Updating JumpScale repos")
         self.update_repo('jumpscale7', '*', js_version)
+        self.log("Updating OpenvCloud repos")
         self.update_repo('0-complexity', 'openvcloud', ovc_version)
         self.update_repo('0-complexity', 'openvcloud_installer', ovc_version)
 
@@ -394,6 +441,7 @@ class JumpScale7(Node):
 
 
     def ays_install(self, package, domain='jumpscale', instance='main', data=None):
+        self.log("Installing JumpScale package {}:{}".format(domain, package))
         datastr = ''
         data = data or {}
         for key, value in data.items():
@@ -433,11 +481,7 @@ class JumpScale7(Node):
         }
 
         self.install_portal_client()
-
-        print('installing network')
         self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
-
-        print('installing cpu node')
         self.ays_install('cb_cpunode_aio', domain='openvcloud', instance='main', data=data_cpu)
 
 
@@ -448,7 +492,6 @@ class JumpScale7(Node):
             'param.secret': self.password,
         }
 
-        print('Install portal client')
         self.ays_install('portal_client', domain='jumpscale', instance='main', data=portal_client)
 
     def configure_iyo_api_key(self, apikey):
@@ -465,7 +508,6 @@ class JumpScale7(Node):
         if result.status_code == 200:
             stored_apikey = result.json()
             if apikey['callbackURL'] != stored_apikey['callbackURL']:
-                print('API key does not match callback url deleting it')
                 requests.delete(os.path.join(self.iyourl, 'api', 'organizations', clientid,
                                              'apikeys', label), headers=authheaders)
                 apikey = {}
@@ -473,7 +515,6 @@ class JumpScale7(Node):
                 apikey = stored_apikey
 
         if 'secret' not in apikey:
-            print('Creating API key')
             result = requests.post(os.path.join(self.iyourl, 'api', 'organizations',
                                                 clientid, 'apikeys'), json=apikey, headers=authheaders)
             apikey = result.json()
@@ -490,7 +531,6 @@ class JumpScale7(Node):
             'param.grid.id': self.gid,
         }
 
-        print('[+] installing storage node')
         self.ays_install('cb_storagenode_aio', domain='openvcloud', instance='main', data=data_storage)
         self.ays_install('cb_storagedriver_aio', domain='openvcloud', instance='main', data=data_storage)
         status, output, _ = self.prefab.core.run('ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"')
@@ -530,6 +570,7 @@ class Cluster(AbstractConfig):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
         """
+        log('Installing k8 cluster')
         for node in self.nodes:
             node.core.run('swapoff -a')
 
@@ -540,6 +581,8 @@ class Cluster(AbstractConfig):
         self.prefab.core.file_write(self.k8s_config, k8s_config_data)
         if not self.prefab.core.file_exists('/root/.kube/config'):
             self.prefab.core.file_write('/root/.kube/config', k8s_config_data)
+        for node in self.nodes:
+            node.core.file_write('/root/.kube/config', k8s_config_data)
 
     def clone_repo(self, url=REPO_URL):
         for node in self.nodes:
@@ -554,38 +597,30 @@ class Cluster(AbstractConfig):
         """
         Will use existing yaml or config scripts in this dir as well as jumpscale modules to install the controller setup on the
         cluster. Creating the relevant deployments, services, and mounts
-        TODO
         """
-
+        log('Install kubectl')
         for node in self.nodes:
             self._install_kubectl(node)
         self._install_kubectl(self.prefab)
         self.clone_repo()
 
+        log('Preparing directories')
         directories = self.config['controller'].get('directories')
         for node in self.nodes:
             for directory in directories:
                 node.core.dir_ensure(directory['path'], mode='777')
 
+        log('Writing certificates')
         copiedpaths = {}
-        try:
-            for key, value in self.config['environment']['ssl'].items():
-                path = os.path.join(value['path'], '')
-                if path not in copiedpaths:
-                    tmpdir = self.first_node.core.file_get_tmp_path()
-                    # make sure tmpdir has trailing slash
-                    tmpdir = os.path.join(tmpdir, '')
-                    self.first_node.core.dir_ensure(tmpdir)
-                    self.first_node.core.upload(path, tmpdir)
-                    copiedpaths[path] = tmpdir
-                else:
-                    tmpdir = copiedpaths[path]
-                self.kubectl('create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=tmpdir))
-        finally:
-            for tmpdir in copiedpaths.values():
-                self.first_node.core.dir_remove(tmpdir)
+        ssldir = '/var/ovc/ssl/'
+        for key, value in self.config['environment']['ssl'].items():
+            path = os.path.join(value['path'], '')
+            if path not in copiedpaths:
+                self.first_node.core.upload(path, ssldir)
+                copiedpaths[path] = ssldir
+                self.kubectl('create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=ssldir))
 
-        self.install_teleport()        
+        self.install_teleport()
         self.configure_keys()
         self.kube_client_apply()
 
@@ -645,6 +680,7 @@ class Cluster(AbstractConfig):
         self._apply_nginx('nginx')
 
     def prepare_templates(self):
+        log('Preparing resources')
         def write_deployment_template(template):
             template_loc = '{dir}{name}/{name}-deployment.yaml'.format(dir=self.scripts_dir, name=template)
             data = self.load(template_loc)
@@ -679,6 +715,7 @@ class Cluster(AbstractConfig):
         self.dump(stat_template, data)
 
     def write_system_config(self):
+        log('Write system config')
         tmpdir = self.first_node.core.file_get_tmp_path()
         self.first_node.core.dir_ensure(tmpdir)
         tmpfile = j.sal.fs.joinPaths(tmpdir, 'system-config.yaml')
@@ -690,7 +727,7 @@ class Cluster(AbstractConfig):
             self.first_node.core.dir_remove(tmpdir)
 
     def install_teleport(self):
-        clusters = []
+        log('Installing teleport')
         for node in self.nodes:
             ssl_name = self.config['environment']['ssl']['root']['name']
             node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
@@ -723,9 +760,9 @@ class Cluster(AbstractConfig):
             self.apply_template(template_file, kind='deployment')
 
         self.grafana_apply('{}/grafana'.format(self.scripts_dir))
-        self.kubectl('apply -f {}/certs'.format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
+        log('Installing grafana')
         datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)
         dashboardpath = '{}/sources/templates'.format(grafana_dir)
         datasource = self.load(datasourcepath)
@@ -775,6 +812,7 @@ class PNode(JumpScale7):
         self.first_node.core.run(cmd)
 
     def reboot(self):
+        self.log('Rebooting')
         self.ipmi('chassis power cycle')
 
     def is_up(self):
@@ -786,6 +824,7 @@ class PNode(JumpScale7):
             raise RuntimeError('Node did not come up in {}seconds'.format(timeout))
 
     def enable_pxe(self):
+        self.log('Enable PXE')
         prefab = self.get_node_from_appname('pxeboot')
         self.ipmi('chassis bootdev pxe')
         macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
@@ -794,6 +833,7 @@ class PNode(JumpScale7):
         prefab.core.file_link(src, dst)
 
     def disable_pxe(self):
+        self.log('Disable PXE')
         prefab = self.get_node_from_appname('pxeboot')
         macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
         dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
@@ -803,19 +843,17 @@ class PNode(JumpScale7):
         self.enable_pxe()
         self.reboot()
         time.sleep(20)
+        self.log('Waiting for 911 boot')
         self.wait_up()
+        self.log('Installing OS')
         status, output, err = self.prefab.core.run('cd /root/tools/; ./Install')
         if status != 0:
             raise RuntimeError('Failed to install OS')
         self.disable_pxe()
-        # invalidating prefab connection
-        j.tools.executor._executors.pop(self.prefab.executor.id, None)
-        j.tools.prefab.prefabs_instance.pop(self.prefab.executor.id, None)
-        self._prefab = None
         self.reboot()
         time.sleep(20)
+        self.log('Waiting for OS boot')
         self.wait_up()
-        self.update_keys()
 
 ###                    ###
 # Command line interface #
@@ -823,9 +861,10 @@ class PNode(JumpScale7):
 
 @click.group()
 @click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
+@click.option('--loglevel', default=50, help='Set loglevel', type=int)
 @click.pass_context
-def cli(ctx, config):
-    j.logger.set_level(logging.INFO)
+def cli(ctx, config, loglevel):
+    j.logger.set_level(loglevel)
     if not config:
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
@@ -878,20 +917,23 @@ def image_deploy(ctx, name):
 def install_teleport(ctx):
     cluster = Cluster(ctx.obj)
     cluster.install_teleport()
-    
+
 @node.command('action')
-@click.option('--name', help='Node name pass all to apply on all')
+@click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
 @click.argument('action')
 @click.pass_context
 def node_action(ctx, name, action):
     """
     Execute command for node
     """
-    if name != 'all':
+    if name != 'all' and ',' not in name:
         cluster = PNode(ctx.obj, name)
         getattr(cluster, action)()
     else:
-        pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['nodes']['cpu'], ctx.obj['nodes']['storage'])]
+        if name == 'all':
+            pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['nodes']['cpu'], ctx.obj['nodes']['storage'])]
+        else:
+            pnames = name.split(',')
         pnode_action(pnames, action, ctx.obj)
 
 @node.command('update')

@@ -98,20 +98,6 @@ for target in [pxelinux, dnsmasq]:
         f.write(source)
 
 """
-ssh key
-"""
-with open('/tmp/id_rsa', 'w') as f:
-    f.write(config['ssh']['private-key'])
-
-os.chmod('/tmp/id_rsa', 0o600)
-
-key = subprocess.run(['ssh-keygen', '-y', '-f', '/tmp/id_rsa'], stdout=subprocess.PIPE)
-print("Public key: %s" % key.stdout.strip())
-
-with open(os.path.join(imageroot, 'pubkey'), 'w') as f:
-    f.write(key.stdout.decode('utf-8'))
-
-"""
 floating gateway ip
 """
 gatewayfile = os.path.join(configroot, 'gateway-ip-address')
