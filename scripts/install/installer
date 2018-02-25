@@ -148,6 +148,10 @@ def prepare_config(config_path):
             "sync": True
         },
         {
+            "path": "/var/ovc/grafana",
+            "sync": True
+        },
+        {
             "path": "/var/ovc/0-access",
             "sync": True
         },
