@@ -319,6 +319,7 @@ class Node(AbstractConfig):
         super().__init__(config)
         self.name = name
         self._node = None
+        self._nodetype = None
         self.managementip = get_ipaddress(self.node['management']['ipaddress'])
         self._prefab = None
         self.config = config
@@ -346,18 +347,27 @@ class Node(AbstractConfig):
     @property
     def node(self):
         if self._node is None:
-            for node in itertools.chain(self.config['nodes']['cpu'], self.config['nodes']['storage']):
-                if node['name'] == self.name:
-                    self._node = node
-                    break
+            for nodetype in ('cpu', 'storage'):
+                for node in self.config['nodes'][nodetype]:
+                    if node['name'] == self.name:
+                        self._nodetype = nodetype
+                        self._node = node
+                        return self._node
             else:
                 for node in self.config['controller']['hosts']:
                     if node['hostname'] == self.name:
                         self._node = node
+                        self._nodetype = 'controller'
                         break
                 else:
                     raise LookupError("Failed to find node with name {}".format(self.name))
         return self._node
+
+    @property
+    def nodetype(self):
+        if self._nodetype is None:
+            self.node
+        return self._nodetype
 
 
 class JumpScale7(Node):
@@ -452,6 +462,14 @@ class JumpScale7(Node):
             datastr += "{}:{} ".format(key, value)
         cmd = 'ays install -d {} -n {} -i {} --data "{}"'.format(domain, package, instance, datastr)
         self.prefab.core.run(cmd)
+
+    def install(self):
+        if self.nodetype == 'cpu':
+            self.install_compute_node()
+        elif self.nodetype == 'storage':
+            self.install_storage_node()
+        elif self.nodetype == 'controller':
+            self.install_controller()
 
     def install_controller(self):
         self.install_core()
@@ -894,18 +912,6 @@ def node():
     pass
 
 @cli.group()
-def cpu():
-    pass
-
-@cli.group()
-def controller():
-    pass
-
-@cli.group()
-def storage():
-    pass
-
-@cli.group()
 def image():
     pass
 
@@ -1045,32 +1051,6 @@ def upgrade_cluster(ctx, development):
     except:
         cluster.revert()
         print("Failed to update env.")
-
-@cpu.command('deploy')
-@click.option('--name', help='Node name to configure')
-@click.pass_context
-def deploy_cpu(ctx, name):
-    jumpscale = JumpScale7(ctx.obj, name)
-    jumpscale.install_compute_node()
-
-
-@controller.command('deploy')
-@click.option('--name', help='Node name to configure')
-@click.pass_context
-def deploy_controller(ctx, name):
-    jumpscale = JumpScale7(ctx.obj, name)
-    jumpscale.install_controller()
-
-
-@storage.command('deploy')
-@click.option('--name', help='Node name to configure')
-@click.pass_context
-def deploy_storage(ctx, name):
-    jumpscale = JumpScale7(ctx.obj, name)
-    jumpscale.install_storage_node()
-
-
-
 
 
 if __name__ == '__main__':
