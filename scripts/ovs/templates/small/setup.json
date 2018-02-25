@@ -1,0 +1,145 @@
+{
+    "ci":{
+        "setup": true,
+        "validation": false,
+        "scenarios": false,
+        "cleanup": false,
+        "send_to_testrail": false,
+        "fail_on_failed_scenario": false,
+        "setup_retries": 1,
+        "user": {
+            "shell": {
+                "username": "root",
+                "password": "foobar"
+            },
+            "api": {
+                "username": "admin",
+                "password": "admin"
+            }
+        },
+        "grid_ip": "{{storage_01_ip}}"
+    },
+    "setup": {
+        "domains": [],
+        "backends": [
+            {
+                "name": "cachebackend01",
+                "domains": {"domain_guids": []},
+                "scaling": "LOCAL",
+                "presets": [ ],
+                "osds": {}
+            },
+            {
+                "name": "cachebackend02",
+                "domains": {"domain_guids": []},
+                "scaling": "LOCAL",
+                "presets": [ ],
+                "osds": {}
+            },
+            {
+                "name": "backend01",
+                "domains": {"domain_guids": []},
+                "scaling": "LOCAL",
+                "presets": [ ],
+                "osds": {}
+            },
+            {
+                "name": "backend02",
+                "domains": {"domain_guids": []},
+                "scaling": "LOCAL",
+                "presets": [ ],
+                "osds": {}
+            }
+        ],
+        "storagerouters": {
+            "{{storage_01_ip}}": {
+                "hostname": "stor-01",
+                "domains": {"domain_guids": [], "recovery_domain_guids": []},
+                "disks": {},
+                "vpools": {
+                    "vmstor": {
+                        "backend_name": "backend01",
+                        "preset": "gig",
+                        "storage_ip": "{{storage_01_ip}}",
+                        "mds_safety": 2,
+                        "fragment_cache": {
+                            "strategy": {"cache_on_read":true, "cache_on_write":true},
+                            "location": "backend",
+                            "backend": {
+                                "name": "cachebackend01",
+                                "preset": "gigpreset"
+                            }
+                        },
+                        "storagedriver": {
+                            "sco_size": 64,
+                            "cluster_size": 8,
+                            "volume_write_buffer": 576,
+                            "strategy": "none",
+                            "global_write_buffer": 440,
+                            "global_read_buffer": 0,
+                            "deduplication": "non_dedupe",
+                            "dtl_transport": "tcp",
+                            "dtl_mode": "sync",
+                            "volume_manager": {
+                                "number_of_scos_in_tlog": 3,
+                                "non_disposable_scos_factor": 3
+                            }
+                        }
+                    },
+                    "data01": {
+                        "backend_name": "backend01",
+                        "preset": "gigpreset",
+                        "storage_ip": "{{storage_01_ip}}",
+                        "mds_safety": 2,
+                        "fragment_cache": {
+                            "strategy": {"cache_on_read":true, "cache_on_write":true},
+                            "location": "backend",
+                            "backend": {
+                                "name": "cachebackend01",
+                                "preset": "gigpreset"
+                            }
+                        },
+                        "storagedriver": {
+                            "sco_size": 64,
+                            "cluster_size": 8,
+                            "volume_write_buffer": 2048,
+                            "global_write_buffer": 740,
+                            "dtl_transport": "tcp",
+                            "dtl_mode": "sync",
+                            "volume_manager": {
+                                "number_of_scos_in_tlog": 4,
+                                "non_disposable_scos_factor": 8
+                            }
+                        }
+                    },
+                    "data02": {
+                        "backend_name": "backend02",
+                        "preset": "gigpreset",
+                        "storage_ip": "{{storage_01_ip}}",
+                        "mds_safety": 2,
+                        "fragment_cache": {
+                            "strategy": {"cache_on_read":true, "cache_on_write":true},
+                            "location": "backend",
+                            "backend": {
+                                "name": "cachedbackend02",
+                                "preset": "gigpreset"
+                            }
+                        },
+                        "storagedriver": {
+                            "sco_size": 64,
+                            "cluster_size": 8,
+                            "volume_write_buffer": 2048,
+                            "global_write_buffer": 740,
+                            "dtl_transport": "tcp",
+                            "dtl_mode": "sync",
+                            "volume_manager": {
+                                "number_of_scos_in_tlog": 4,
+                                "non_disposable_scos_factor": 8
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

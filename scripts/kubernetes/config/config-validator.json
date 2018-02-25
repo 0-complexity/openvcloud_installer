@@ -612,6 +612,36 @@
               "be-g8-4"
             ]
           },
+          "type": {
+            "$id": "/properties/environment/properties/type",
+            "type": "string",
+            "title": "the env type",
+            "description": "can be small, meduim, large.",
+            "default": "",
+            "examples": [
+              "be-g8-4"
+            ]
+          },
+          "ovs_repo_url": {
+            "$id": "/properties/environment/properties/ovs_repo_url",
+            "type": "string",
+            "title": "ovs repo url",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "be-g8-4"
+            ]
+          },
+          "ovs_version": {
+            "$id": "/properties/environment/properties/ovs_version",
+            "type": "string",
+            "title": "The ovs version",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+              "be-g8-4"
+            ]
+          },
           "password": {
             "$id": "/properties/environment/properties/password",
             "type": "string",

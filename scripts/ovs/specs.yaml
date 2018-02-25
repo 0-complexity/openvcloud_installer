@@ -1,0 +1,39 @@
+nodes:
+  small:
+    storage: 4
+    cpu: 8
+  medium:
+    storage: 6
+    cpu: 20
+  large:
+    storage: 8
+    cpu: 40
+
+
+sizes:
+  large_ssd: 800
+  small_ssd: 400
+  hdd: 900
+  
+
+disks:
+  storage:
+      large_ssd:
+        num: 3
+        type: ssd
+      small_ssd:
+        num: 1
+        type': ssd
+      hdd:
+        num: 30
+        type: hdd
+      nvme:
+        type: nvme
+        num: 1
+  cpu:
+    large_ssd: 
+      num: 4
+      type: ssd
+    small_ssd:
+      num: 2
+      type: ssd

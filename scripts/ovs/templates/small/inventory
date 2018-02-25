@@ -1,0 +1,67 @@
+# Copyright (C) 2016 iNuron NV
+#
+# This file is part of Open vStorage Open Source Edition (OSE),
+# as available from
+#
+#      http://www.openvstorage.org and
+#      http://www.openvstorage.com.
+#
+# This file is free software; you can redistribute it and/or modify it
+# under the terms of the GNU Affero General Public License v3 (GNU AGPLv3)
+# as published by the Free Software Foundation, in version 3 as it comes
+# in the LICENSE.txt file of the Open vStorage OSE distribution.
+#
+# Open vStorage is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY of any kind.
+
+#cluster overview
+
+#ip is the storage ip
+[controllers]
+{% for i in range(0,3) -%}
+{{storage_nodes[i]['name']}} ansible_host={{storage_nodes[i]['ip']}} api_port=8500 api_ip={{storage_nodes[i]['ip']}} backend_ips='["{{storage_nodes[i]['ip']}}"]'
+{% endfor %}
+
+[volumedrivernodes]
+{% for i in range (3, storage_nodes|length) -%}
+{{storage_nodes[i]['name']}} ansible_host={{storage_nodes[i]['ip']}} api_port=8500 api_ip={{storage_nodes[i]['ip']}} backend_ips='["{{storage_nodes[i]['ip']}}"]'
+{% endfor %}
+
+
+[computenodes]
+{% for node in cpu_nodes-%}
+{{node['name']}}
+{% endfor %}
+
+[storagenodes]
+{% for node in cpu_nodes[:cpucount]-%}
+{{node['name']}} ansible_host={{node['ip']}} api_port=8500 api_ip={{node['ip']}} backend_ips='["{{node['ip']}}"]'
+{% endfor %}
+
+
+
+[rabbitmq]
+{% for node in storage_nodes -%}
+{{node['name']}} rabbitmq_ip={{node['ip']}}
+{% endfor %}
+[memcached]
+
+
+[arakoonInstallationNode]
+localhost
+
+[externalArakoons]
+{% for node in storage_nodes -%}
+{{ node['name'] }}
+{% endfor %}
+
+[externalArakoons:children]
+arakoonInstallationNode
+
+#cluster details
+
+[cluster:children]
+controllers
+volumedrivernodes
+storagenodes
+externalArakoons
