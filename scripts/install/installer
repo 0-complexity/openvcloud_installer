@@ -728,12 +728,16 @@ class Cluster(AbstractConfig):
         for node in self.nodes:
             log('Installing teleport {}'.format(node.core.hostname))
             ssl_name = self.config['environment']['ssl']['root']['name']
-            node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
+            if not node.core.file_exists('/usr/local/bin/teleport') or not node.core.file_exists('/usr/local/bin/tctl') or not node.core.file_exists('/usr/local/bin/tsh'):
+                node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
             node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
                                             cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
-            node.apps.teleport.start()
+            node.apps.teleport.restart()
             github = self.config['support']['github']
             teams = ['/'.join([team['org_name'], team['team_name']]) for team in github['teams']]
+            _, resources, _ = node.core.run('tctl get github/%s' % node.core.hostname)
+            if node.core.hostname in resources:
+                return
             node.apps.teleport.apply_permissions(
                 name=node.core.hostname,
                 client_id=github['client_id'],
