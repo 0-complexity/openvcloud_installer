@@ -581,8 +581,6 @@ class Cluster(AbstractConfig):
         self.prefab.core.file_write(self.k8s_config, k8s_config_data)
         if not self.prefab.core.file_exists('/root/.kube/config'):
             self.prefab.core.file_write('/root/.kube/config', k8s_config_data)
-        for node in self.nodes:
-            node.core.file_write('/root/.kube/config', k8s_config_data)
 
     def clone_repo(self, url=REPO_URL):
         for node in self.nodes:
@@ -616,9 +614,9 @@ class Cluster(AbstractConfig):
         for key, value in self.config['environment']['ssl'].items():
             path = os.path.join(value['path'], '')
             if path not in copiedpaths:
-                self.first_node.core.upload(path, ssldir)
+                for node in self.nodes:
+                    node.core.upload(path, ssldir)
                 copiedpaths[path] = ssldir
-                self.kubectl('create secret generic {name}-certs --from-file {dir}'.format(name=key, dir=ssldir))
 
         self.install_teleport()
         self.configure_keys()
@@ -727,8 +725,8 @@ class Cluster(AbstractConfig):
             self.first_node.core.dir_remove(tmpdir)
 
     def install_teleport(self):
-        log('Installing teleport')
         for node in self.nodes:
+            log('Installing teleport {}'.format(node.core.hostname))
             ssl_name = self.config['environment']['ssl']['root']['name']
             node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
             node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
@@ -740,7 +738,7 @@ class Cluster(AbstractConfig):
                 name=node.core.hostname,
                 client_id=github['client_id'],
                 client_secret=github['client_secret'],
-                teams= teams,
+                teams=teams,
                 exposed_ip='{}.{}'.format(self.config['environment']['subdomain'], self.config['environment']['basedomain'])
             )
 

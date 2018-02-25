@@ -39,17 +39,8 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/nginx.conf
           subPath: nginx.conf
-        - name: root-certs
-          mountPath: /opt/cfg/nginx/ssl/root
-          readOnly: true
-        - name: ovs-certs
-          mountPath: /opt/cfg/nginx/ssl/ovs
-          readOnly: true
-        - name: novnc-certs
-          mountPath: /opt/cfg/nginx/ssl/novnc
-          readOnly: true
-        - name: defense-certs
-          mountPath: /opt/cfg/nginx/ssl/defense
+        - name: certs
+          mountPath: /opt/cfg/nginx/ssl/
           readOnly: true
         - name:  upgrade-config
           mountPath: /opt/cfg/upgrade
@@ -76,18 +67,10 @@ spec:
         - name: system-config
           configMap:
             name: system-config
-        - name: root-certs
-          secret:
-            secretName: root-certs
-        - name: ovs-certs
-          secret:
-            secretName: ovs-certs
-        - name: novnc-certs
-          secret:
-            secretName: novnc-certs
-        - name: defense-certs
-          secret:
-            secretName: defense-certs
+        - name: certs
+          hostPath:
+            path: /var/ovc/ssl/
+            type: Directory
         - name: g8vdc-volume
           gitRepo:
             repository: "https://github.com/0-complexity/g8vdc.git"

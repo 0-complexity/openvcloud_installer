@@ -27,8 +27,6 @@ spec:
         volumeMounts:
           - name:  system-config
             mountPath: /opt/cfg/system
-          - name: teleport-config
-            mountPath: /var/lib/teleport/
           - name: installer-volume
             mountPath: /opt/code/github/0-complexity/openvcloud_installer
             subPath: openvcloud_installer
@@ -40,15 +38,10 @@ spec:
       - name: system-config
         configMap:
           name: system-config
-      - name: teleport-config
-        emptyDir: {}
       - name: ssh-dir
         hostPath:
           path: /var/ovc/.ssh
           type: Directory
-      - name: root-certs
-        secret:
-          secretName: root-certs
       - name: installer-volume
         gitRepo:
           repository: "https://github.com/0-complexity/openvcloud_installer.git"
