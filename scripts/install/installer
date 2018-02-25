@@ -572,7 +572,7 @@ class Cluster(AbstractConfig):
         """
         log('Installing k8 cluster')
         for node in self.nodes:
-            node.core.run('swapoff -a')
+            node.core.run("sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
 
         managementips = list(get_controller_management_ips(self.config))
         k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(
