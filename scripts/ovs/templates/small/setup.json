@@ -59,7 +59,7 @@
                 "vpools": {
                     "vmstor": {
                         "backend_name": "backend01",
-                        "preset": "gig",
+                        "preset": "gigpreset",
                         "storage_ip": "{{storage_01_ip}}",
                         "mds_safety": 2,
                         "fragment_cache": {
