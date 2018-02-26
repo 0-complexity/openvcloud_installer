@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from JumpScale import j 
 import argparse
 import subprocess
 import datetime
@@ -39,7 +39,6 @@ MONGO_CONTAINER = """
         volumeMounts:
         - mountPath: /tmp/backup/
           name: backup-volume
-      
           """
 
 INFLUX_CONTAINER = """
@@ -101,7 +100,7 @@ def backup(date, mongo, billing):
 def restore(date, mongo, billing):
     """
     This is used to restore from a tar.gz with the backup or snaphsot of the mongo and influx dbs and will move the 
-    billing files to thier correct location.
+    billing files to their correct location.
     
     @param date, string date in the format of month-day-year to retore from 
     @param mongo, bool mongo this used to specify which data source to restore. 
@@ -128,6 +127,11 @@ def restore(date, mongo, billing):
             f.write(MIGRATION_POD_YAML.format(containers=containers, hostname=hostname))
         execute_command(['kubectl', 'apply', '-f',
                                        '/tmp/migration.yaml'])
+        scl = j.clients.osis.getNamespace('system')
+        versionmodel = scl.version.new()
+        versionmodel.name = '2.2.6'
+        scl.version.set(versionmodel)
+
     if billing:
         print('[+] restoring billing')
         execute_command('cp -rf /tmp/backup/billing/ /var/ovc/', shell=True)
@@ -175,8 +179,8 @@ if __name__ == '__main__':
 
     if hasattr(args, 'save') and args.save:
         backup(date, mongo, billing)
-        # upload(args.url)
+        upload(args.url)
 
     if hasattr(args, 'load') and args.load:
-        # download(args.url)
+        download(args.url)
         restore(args.date, mongo, billing)
