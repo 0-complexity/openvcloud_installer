@@ -88,7 +88,7 @@ local_flash_backends:
             preset_name: cache_no_encrypt,
             compression: null,
             encryption: null,
-            policies: [[1,0,1,1]
+            policies: [[1,0,1,1]],
             fragment_size: 4194304
         }
       ]
