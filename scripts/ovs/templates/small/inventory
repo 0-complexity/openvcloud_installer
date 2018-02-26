@@ -34,7 +34,7 @@
 {% endfor %}
 
 [storagenodes]
-{% for node in cpu_nodes[:cpucount]-%}
+{% for node in cpu_nodes-%}
 {{node['name']}} ansible_host={{node['ip']}} api_port=8500 api_ip={{node['ip']}} backend_ips='["{{node['ip']}}"]'
 {% endfor %}
 

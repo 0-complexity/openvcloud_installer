@@ -211,7 +211,7 @@ def main(config_path):
                     useabledisks = useabledisks[int(backendcount/2):]
                 osds[storagenode['ip']] = disks
                 for disk in useabledisks:
-                    disks[disk['name']] = 2
+                    disks[disk['name']] = 1
     # storagerouters
     storagerouters = {}
     storageroutertemplate = list(setup['setup']['storagerouters'].values())[0]
