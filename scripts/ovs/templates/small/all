@@ -85,7 +85,7 @@ local_flash_backends:
       ],
       presets: [
         {
-            preset_name: cache_no_encrypt,
+            preset_name: gigpreset,
             compression: null,
             encryption: null,
             policies: [[1,0,1,1]],
