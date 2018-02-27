@@ -226,13 +226,16 @@ def main(config_path):
         writeroles = 0
         scrub = 0
         db = 0
-        for disk in node['disks']:
+        for disk in storagenode['disks']:
             if disk['used'] and scrub == 0:
                 disks[disk['name']] = {'roles': ['SCRUB']}
-            elif disk['type'] == 'ssd' and writeroles > 2:
+                scrub += 1
+            elif not disk['used'] and disk['type'] == 'ssd' and writeroles < 2:
                 disks[disk['name']] = {'roles': ['WRITE']}
+                writeroles += 1
             elif disk['type'] == 'nvme' and db == 0:
                 disks[disk['name']] = {'roles': ['DB', 'DTL']}
+                db += 1
 
         for name, vpool in storagerouter['vpools'].items():
             vpool['storage_ip'] = storagenode['ip']
