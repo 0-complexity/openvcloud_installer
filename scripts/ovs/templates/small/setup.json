@@ -121,7 +121,7 @@
                             "strategy": {"cache_on_read":true, "cache_on_write":true},
                             "location": "backend",
                             "backend": {
-                                "name": "cachedbackend02",
+                                "name": "cachebackend02",
                                 "preset": "gigpreset"
                             }
                         },
