@@ -19,7 +19,7 @@ spec:
         imagePullPolicy: Always
         command: [/bin/bash]
         args: ['-c', 'jspython /var/run/scripts/system/configure-system.py --machineguid 000000000003 && jspython /var/run/scripts/portal/configure-portal.py']
-        image: openvcloud/portal7
+        image: openvcloud/cb_master
         workingDir: /var/run/scripts/system
         volumeMounts:
         - name: system-hrd
@@ -34,7 +34,7 @@ spec:
         imagePullPolicy: Always
         command: [jspython]
         args: [portal_start.py,  main]
-        image: openvcloud/portal7
+        image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/portals/main
         volumeMounts:
         - name:  system-hrd
