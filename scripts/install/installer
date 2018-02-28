@@ -939,7 +939,7 @@ class PNode(JumpScale7):
 @click.option('--url', help='version url to install from', envvar='OVC_VERSION_URL', default=None)
 @click.option('--loglevel', default=50, help='Set loglevel', type=int)
 @click.pass_context
-def cli(ctx, config, version, loglevel):
+def cli(ctx, config, version, url, loglevel):
     j.logger.set_level(loglevel)
     ctx.obj = {}
     if not config:
