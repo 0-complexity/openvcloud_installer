@@ -203,8 +203,9 @@ def prepare_config(config_path):
     j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
     return config
 
-def get_versions(version):
-    url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yaml'.format(version)
+def get_versions(version=None, url=None):
+    if not url:
+        url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yaml'.format(version)
     version_path = '$TMPDIR/version-manifest.yaml'
     try:
         j.tools.prefab.core.file_download(url, version_path)
@@ -935,6 +936,7 @@ class PNode(JumpScale7):
 @click.group()
 @click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
 @click.option('--version', help='version number to install or update to', envvar='OVC_VERSION', default=None)
+@click.option('--url', help='version url to install from', envvar='OVC_VERSION_URL', default=None)
 @click.option('--loglevel', default=50, help='Set loglevel', type=int)
 @click.pass_context
 def cli(ctx, config, version, loglevel):
@@ -944,7 +946,7 @@ def cli(ctx, config, version, loglevel):
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
     ctx.obj['config'] = config
-    ctx.obj['versions'] = get_versions(version) if version else None
+    ctx.obj['versions'] = get_versions(version, url) if version else None
 
 @cli.group()
 def cluster():
