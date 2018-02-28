@@ -79,7 +79,7 @@ def get_pnodes_names(config):
         pnodes_names.append(pnode['name'])
     return pnodes_names
 
-def pnode_action(pnames, action, config):
+def pnode_action(pnames, action, config, versions):
     futures = {}
     running_futures = {}
     results = ''
@@ -90,7 +90,7 @@ def pnode_action(pnames, action, config):
         print("Waiting for {action} node to be done...".format(action=action))
         print_status()
         for pname in pnames:
-            jumpscale = PNode(config, pname)
+            jumpscale = PNode(config, pname, versions)
             func = getattr(jumpscale, action)
             fut = proc.submit(func)
             futures[pname] =  fut
@@ -203,6 +203,22 @@ def prepare_config(config_path):
     j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
     return config
 
+def get_versions(version):
+    url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yaml'.format(version)
+    version_path = '$TMPDIR/version-manifest.yaml'
+    try:
+        j.tools.prefab.core.file_download(url, version_path)
+        versions = j.data.serializer.yaml.load(version_path)
+    finally:
+        j.tools.prefab.core.file_remove(version_path)
+
+    for repo in versions['repos']:
+        if repo['url'] in "https://github.com/jumpscale7/ays_jumpscale7":
+            versions['jsversion'] = repo.get('branch', repo['tag'])
+        if repo['url'] in "https://github.com/0-complexity/openvcloud_ays":
+            versions['ovcversion'] = repo.get('branch', repo['tag'])
+    return versions
+
 def get_controller_management_ips(config):
     for host in config['controller']['hosts']:
         yield get_ipaddress(host['management']['ipaddress'])
@@ -212,11 +228,17 @@ def get_controller_public_ips(config):
         yield get_ipaddress(host['fallback']['ipaddress'])
 
 class AbstractConfig:
-    def __init__(self, config):
+    def __init__(self, config, versions=None):
         self.config = config
         self._prefab = None
         self._nodes = None
-
+        if not versions:
+            error_code, version, err = self.kubectl('get configmap manifest-version -o jsonpath="{.data.software\.version}"', die=False)
+            if error_code != 0:
+                if 'NotFound' in err:
+                    raise RuntimeError('configmap minfests does not exist , version needs to be passed during deploy cluster to be registered.')
+                raise RuntimeError(err)
+        self.versions = get_versions(version)
     @property
     def prefab(self):
         if self._prefab is None:
@@ -315,15 +337,14 @@ class AbstractConfig:
 
 
 class Node(AbstractConfig):
-    def __init__(self, config, name):
-        super().__init__(config)
+    def __init__(self, config, name, versions):
+        super().__init__(config, versions)
         self.name = name
         self._node = None
         self._nodetype = None
         self.managementip = get_ipaddress(self.node['management']['ipaddress'])
         self._prefab = None
         self.config = config
-        self.versions = config['environment']['versions']
         self.password = config['environment']['password']
         self.gid = config['environment']['grid']['id']
         self.managementips = list(get_controller_management_ips(config))
@@ -372,8 +393,8 @@ class Node(AbstractConfig):
 
 class JumpScale7(Node):
     def install_core(self):
-        jsversion = self.versions['jumpscale']
-        ovcversion = self.versions['openvcloud']
+        jsversion = self.versions['jsversion']
+        ovcversion = self.versions['ovcversion']
         env = {'AYSBRANCH': jsversion, 'JSBRANCH': jsversion}
         cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(jsversion)
         self.prefab.system.ssh.define_host('git.aydo.com')
@@ -404,8 +425,8 @@ class JumpScale7(Node):
 
 
     def update(self):
-        js_version = self.config['environment']['versions']['jumpscale']
-        ovc_version = self.config['environment']['versions']['openvcloud']
+        js_version = self.versions['jsversion']
+        ovc_version = self.versions['ovcversion']
         self.log("Updating JumpScale repos")
         self.update_repo('jumpscale7', '*', js_version)
         self.log("Updating OpenvCloud repos")
@@ -582,8 +603,8 @@ class Cluster(AbstractConfig):
     """
     Cluster abstraction layer to allow for easier manipulation.
     """
-    def __init__(self, config_path, development=False):
-        super().__init__(config_path)
+    def __init__(self, config_path, versions, development=False):
+        super().__init__(config_path, versions)
         self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
         self.join_line = ''
         self.scripts_dir = '{}/kuberesources/'.format(REPO_PATH)
@@ -714,16 +735,40 @@ class Cluster(AbstractConfig):
             self.dump(template_loc, data)
 
         self.first_node.core.upload('{}/scripts/kubernetes/'.format(REPO_PATH), self.scripts_dir)
+
+        # have to use ls as it is a remote directory i need to traverse
+        def change_container_images(base_path):
+            types = ('Deployment', 'StatefulSet', 'Job')
+            dir_path = 'ls %s/%s' % (self.scripts_dir, base_path)
+            _, files_str, _ = self.first_node.core.run(dir_path)
+            files = files_str.splitlines()
+            for resource in files:
+                if resource.endswith('.yaml'):
+                    template_loc = '{dir}/{resource}'.format(dir=dir_path, name=resource)
+                    data = self.load(template_loc)
+                    if data['kind'] in types:
+                        for init_container in data['spec']['template']['spec']['initContainers']:
+                            #get image version from the self.versions dict loaded from 0-complexity/home
+                            init_container['image'] = self.versions['images'][init_container['image']]
+                    self.dump(data)
+
+        # have to use ls as it is a remote directory i need to traverse
+        _, dirs_str, _ = self.first_node.core.run('ls %s' % self.scripts_dir)
+        dirs = dirs_str.splitlines()
+        for directory in dirs:
+            change_container_images(base_path)
+
+        # add external ips to the specified services to expose to the internal network
         templates = ['agentcontroller', 'osis']
         externalips = list(get_controller_management_ips(self.config))
         for template in templates:
             self.write_service_template(template, externalips)
-
+        # add external ips to the specified services to expose to the internet
         pubtemplates = ['nginx', 'zero-access', 'management']
         pubips = list(get_controller_public_ips(self.config))
         for template in pubtemplates:
             self.write_service_template(template, pubips)
-
+        # add code to mount specdied repos for in developmnent mode
         if self.development:
             for template in ['osis', 'agentcontroller', 'portal']:
                 write_deployment_template(template)
@@ -739,11 +784,13 @@ class Cluster(AbstractConfig):
         log('Write system config')
         tmpdir = self.first_node.core.file_get_tmp_path()
         self.first_node.core.dir_ensure(tmpdir)
-        tmpfile = j.sal.fs.joinPaths(tmpdir, 'system-config.yaml')
+        tmp_config_file = j.sal.fs.joinPaths(tmpdir, 'system-config.yaml')
+        tmp_version_file = j.sal.fs.joinPaths(tmpdir, 'versions-manifest.yaml')
         try:
-            self.dump(tmpfile, self.config)
-            self.kubectl('create configmap system-config --from-file {path}'.format(
-                            path=tmpfile))
+            self.dump(tmp_config_file, self.config)
+            self.dump(tmp_version_file, self.versions)
+            self.kubectl('create configmap system-config --from-file {path}'.format(path=tmp_config_file))
+            self.kubectl('create configmap versions-manifest --from-file {path}'.format(path=tmp_version_file))
         finally:
             self.first_node.core.dir_remove(tmpdir)
 
@@ -887,14 +934,17 @@ class PNode(JumpScale7):
 
 @click.group()
 @click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
+@click.option('--version', help='version number to install or update to', envvar='OVC_VERSION', default=None)
 @click.option('--loglevel', default=50, help='Set loglevel', type=int)
 @click.pass_context
-def cli(ctx, config, loglevel):
+def cli(ctx, config, version, loglevel):
     j.logger.set_level(loglevel)
+    ctx.obj = {}
     if not config:
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
-    ctx.obj = config
+    ctx.obj['config'] = config
+    ctx.obj['versions'] = get_versions(version) if version else None
 
 @cli.group()
 def cluster():
@@ -902,10 +952,6 @@ def cluster():
 
 @cluster.group()
 def resources():
-    pass
-
-@cluster.group()
-def resource():
     pass
 
 @cli.group()
@@ -921,16 +967,10 @@ def image():
 @click.option('--name', help='Image name')
 @click.pass_context
 def image_deploy(ctx, name):
-    storage = random.choice(ctx.obj['nodes']['storage'])
-    jumpscale = JumpScale7(ctx.obj, storage['name'])
+    storage = random.choice(ctx.obj['config']['nodes']['storage'])
+    jumpscale = JumpScale7(ctx.obj['config'], storage['name'], ctx.obj['versions'])
     jumpscale.ays_install(name, 'openvcloud')
 
-
-@cluster.command('install_teleport')
-@click.pass_context
-def install_teleport(ctx):
-    cluster = Cluster(ctx.obj)
-    cluster.install_teleport()
 
 @node.command('action')
 @click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
@@ -941,14 +981,14 @@ def node_action(ctx, name, action):
     Execute command for node
     """
     if name != 'all' and ',' not in name:
-        cluster = PNode(ctx.obj, name)
+        cluster = PNode(ctx.obj['config'], name)
         getattr(cluster, action)()
     else:
         if name == 'all':
-            pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['nodes']['cpu'], ctx.obj['nodes']['storage'])]
+            pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['config']['nodes']['cpu'], ctx.obj['config']['nodes']['storage'])]
         else:
             pnames = name.split(',')
-        pnode_action(pnames, action, ctx.obj)
+        pnode_action(pnames, action, ctx.obj['config'], versions=ctx.obj['versions'])
 
 @node.command('update')
 @click.pass_context
@@ -959,10 +999,10 @@ def _node_update(ctx):
     """
     Update all pnodes
     """
-    config = ctx.obj
+    config = ctx.obj['config']
     pnames = get_pnodes_names(config)
-    pnode_action(pnames, 'update', config)
-    pnode_action(pnames, 'restart', config)
+    pnode_action(pnames, 'update', config, versions=ctx.obj['versions'])
+    pnode_action(pnames, 'restart', config, versions=ctx.obj['versions'])
 
 @resources.command('writeconfig')
 @click.pass_context
@@ -970,7 +1010,7 @@ def write_system_config(ctx):
     """
     Write or update system-config in kubernetes configmap based on yaml file
     """
-    cluster = Cluster(ctx.obj)
+    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
     cluster.write_system_config()
 
 
@@ -981,7 +1021,7 @@ def write_kube_resources(ctx, development):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj, development)
+    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'], development)
     cluster.prepare_templates()
 
 
@@ -991,7 +1031,7 @@ def kube_apply_all(ctx):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj)
+    cluster = Cluster(ctx.obj['config'], ctx.obj['vesions'])
     cluster.kube_client_apply()
 
 
@@ -1002,7 +1042,7 @@ def kube_apply(ctx, path):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj)
+    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
     cluster.apply_template(path, kind='deployment')
 
 @cluster.command('deploy')
@@ -1012,7 +1052,7 @@ def deploy_cluster(ctx, configure_cluster):
     """
     Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
     """
-    cluster = Cluster(ctx.obj)
+    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
     if configure_cluster:
         cluster.install_kubernetes_cluster()
     cluster.install_controller()
@@ -1027,7 +1067,7 @@ def _update_cluster(ctx, development):
     """
     Will update the cluster.
     """
-    cluster = Cluster(ctx.obj, development)
+    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'], development)
     cluster.update()
 
 @cluster.command('upgrade')
@@ -1039,22 +1079,20 @@ def upgrade_cluster(ctx, development):
     """
     if not development:
         j.logger.set_level(30)
-    config = ctx.obj
-    cluster = Cluster(config, development)
+    config = ctx.obj['config']
+    cluster = Cluster(config, ctx.obj['versions'], development)
     cluster.upgrade()
     try:
         pnames = get_pnodes_names(config)
-        pnode_action(pnames, 'stop', config)
-        pnode_action(pnames, 'update', config)
+        pnode_action(pnames, 'stop', config, versions=ctx.obj['versions'])
+        pnode_action(pnames, 'update', config, versions=ctx.obj['versions'])
         cluster.update()
-        pnode_action(pnames, 'start', config)
+        pnode_action(pnames, 'start', config, versions=ctx.obj['versions'])
         print('Updating env done.')
     except:
         cluster.revert()
         print("Failed to update env.")
 
-
 if __name__ == '__main__':
     cli()
-
 

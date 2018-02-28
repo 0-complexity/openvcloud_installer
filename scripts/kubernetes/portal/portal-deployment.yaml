@@ -65,7 +65,7 @@ spec:
         imagePullPolicy: Always
         command: [redis-server]
         args: ['--port', '9999', '--bind', '0.0.0.0', '--maxmemory', '100mb']
-        image: redis:3.2
+        image: redis
         ports:
         - containerPort: 9999
       volumes:
