@@ -378,6 +378,7 @@ class JumpScale7(Node):
         cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(jsversion)
         self.prefab.system.ssh.define_host('git.aydo.com')
         self.prefab.system.ssh.define_host('github.com')
+        self.prefab.system.ssh.define_host('docs.greenitglobe.com', port=10022)
 
         if self.prefab.bash.cmdGetPath('python', False) is False or self.prefab.bash.cmdGetPath('curl', False) is False:
             self.prefab.system.package.mdupdate()
