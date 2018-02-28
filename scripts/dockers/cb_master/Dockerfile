@@ -14,15 +14,10 @@ RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 RUN mkdir -p /var/run/scripts/system /opt/cfg/system /opt/jumpscale7/var/resourcetracking/
 COPY configure-system.py /var/run/scripts/system
 
-# Copy over private key
-# Set permissions
-# Create known_hosts
-ADD id_rsa /root/.ssh/id_rsa
-
 RUN touch /root/.ssh/known_hosts && \
     ssh-keyscan github.com >> /root/.ssh/known_hosts && \
     ssh-keyscan git.aydo.com >> /root/.ssh/known_hosts && \
-    chmod 600 /root/.ssh/id_rsa
+    ssh-keyscan -p 10022 docs.greenitglobe.com >> /root/.ssh/known_hosts
 
 RUN chmod +x start.sh
 
