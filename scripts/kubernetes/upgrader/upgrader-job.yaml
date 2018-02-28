@@ -31,6 +31,12 @@ spec:
       containers:
       - name: upgrader-container
         image: openvcloud/js9
+        env:
+        - name: OVC_VERSION
+          valueFrom:
+            configMapKeyRef:
+              name: manifest-version
+              key: software.version
         volumeMounts:
         - name: ssh-dir
           mountPath: /root/.ssh
