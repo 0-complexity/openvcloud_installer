@@ -955,7 +955,7 @@ def cli(ctx, config, version, url, loglevel):
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
     ctx.obj['config'] = config
-    ctx.obj['versions'] = get_versions(version, url) if version else None
+    ctx.obj['versions'] = get_versions(version, url) if (version or url) else None
 
 @cli.group()
 def cluster():
