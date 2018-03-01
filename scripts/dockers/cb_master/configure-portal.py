@@ -25,6 +25,9 @@ class Portal(object):
         self.fqdn = '%s.%s' % (self.config['environment']['subdomain'], self.config['environment']['basedomain'])
         # baseurl = "https://staging.itsyou.online/"
         self.baseurl = "https://itsyou.online/"
+        self.scl = j.clients.osis.getNamespace('system')
+        self.ccl = j.clients.osis.getNamespace('cloudbroker')
+        self.lcl = j.clients.osis.getNamespace('libvirt')
 
     @property
     def authheaders(self):
@@ -118,15 +121,13 @@ class Portal(object):
                 'scope': 'admin',
                 'theme': 'light'},
         }
-        for linkid, data in portal_links.iteritems():
+        for linkid, data in portal_links.items():
             if data['url']:
                 portalhrd.set('instance.navigationlinks.%s' % linkid, data)
         portalhrd.set('instance.param.cfg.defaultspace', 'vdc')
         portalhrd.set('instance.param.cfg.force_oauth_instance', 'itsyouonline')
         portalhrd.save()
-        scl = j.clients.osis.getNamespace('system')
-        ccl = j.clients.osis.getNamespace('cloudbroker')
-        lcl = j.clients.osis.getNamespace('libvirt')
+
 
         # update cloudbroker service
         cloudbrokerhrd = j.application.getAppInstanceHRD(name='cloudbroker', domain='openvcloud', instance='main')
@@ -136,34 +137,34 @@ class Portal(object):
 
         # setup user/groups
         for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3', '0-access'):
-            if not scl.group.search({'id': groupname})[0]:
-                group = scl.group.new()
+            if not self.scl.group.search({'id': groupname})[0]:
+                group = self.scl.group.new()
                 group.gid = gid
                 group.id = groupname
                 group.users = ['admin']
-                scl.group.set(group)
+                self.scl.group.set(group)
 
         # set location
-        if not ccl.location.search({'gid': j.application.whoAmI.gid})[0]:
-            loc = ccl.location.new()
+        if not self.ccl.location.search({'gid': j.application.whoAmI.gid})[0]:
+            loc = self.ccl.location.new()
             loc.gid = j.application.whoAmI.gid
             loc.name = ovc_environment
             loc.flag = 'black'
             loc.locationCode = ovc_environment
-            ccl.location.set(loc)
+            self.ccl.location.set(loc)
         # set grid
-        if not scl.grid.exists(j.application.whoAmI.gid):
-            grid = scl.grid.new()
+        if not self.scl.grid.exists(j.application.whoAmI.gid):
+            grid = self.scl.grid.new()
             grid.id = j.application.whoAmI.gid
             grid.name = ovc_environment
-            scl.grid.set(grid)
+            self.scl.grid.set(grid)
         # register vnc url
         url = 'https://novnc-{}/vnc_auto.html?token='.format(self.fqdn)
-        if lcl.vnc.count({'url': url, 'gid': gid}) == 0:
-            vnc = lcl.vnc.new()
+        if self.lcl.vnc.count({'url': url, 'gid': gid}) == 0:
+            vnc = self.lcl.vnc.new()
             vnc.gid = gid
             vnc.url = url
-            lcl.vnc.set(vnc)
+            self.lcl.vnc.set(vnc)
         # register sizes
         sizecbs = [('10GB at SSD Speed, Unlimited Transfer - 7.5 USD/month', 512, 1),
                  ('10GB at SSD Speed, Unlimited Transfer - 15 USD/month', 1024, 1),
@@ -173,22 +174,22 @@ class Portal(object):
                  ('10GB at SSD Speed, Unlimited Transfer - 140 USD/month', 16384, 8)]
         disksizes = [10, 20, 50, 100, 250, 500, 1000, 2000]
         for sizecb in sizecbs:
-            if ccl.size.count({'memory': sizecb[1], 'vcpus': sizecb[2]}) == 0:
-                size = ccl.size.new()
+            if self.ccl.size.count({'memory': sizecb[1], 'vcpus': sizecb[2]}) == 0:
+                size = self.ccl.size.new()
                 size.name = sizecb[0]
                 size.memory = sizecb[1]
                 size.vcpus = sizecb[2]
                 size.disks = disksizes
                 size.gids = [gid]
-                ccl.size.set(size)
+                self.ccl.size.set(size)
         # register network ids
         newrange = set(range(int(100), int(1000) + 1))
-        if not lcl.networkids.exists(gid):
+        if not self.lcl.networkids.exists(gid):
             networkids = {
                 'id': gid,
                 'networkids': list(newrange)
             }
-            lcl.networkids.set(networkids)
+            self.lcl.networkids.set(networkids)
 
     def configure_IYO(self):
         if not self.config['itsyouonline'].get('environment'):
@@ -254,10 +255,27 @@ class Portal(object):
             mailclienthrd.set('instance.smtp.%s' % key, value)
         mailclienthrd.save()
 
+
+    def configure_manifest(self):
+        with open('/opt/cfg/system/versions-manifest.yaml') as file_discriptor:
+            data_str = file_discriptor.read()
+            data_obj = yaml.load(data_str)
+        version = self.scl.version.new()
+        version_dict = self.scl.searchOne({'name': data_obj['version']})
+        version.load(version_dict)
+        if not version_dict:
+            version.creationTime = j.base.time.getTimeEpoch()
+        version.name = data_obj['version']
+        version.url = data_obj['url']
+        version.manifest = data_str
+        version.status = 'CURRENT'
+        self.scl.version.set(version)
+
 if __name__ == '__main__':
     portal = Portal()
     portal.add_user()
     portalhrd = portal.configure_IYO()
     portal.configure_user_groups(portalhrd)
     portal.patch_mail_client()
+    portal.configure_manifest()
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')

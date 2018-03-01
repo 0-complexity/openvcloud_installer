@@ -11,7 +11,7 @@ COPY services-migrator.py /tmp/
 RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 
 # add configuration script
-RUN mkdir -p /var/run/scripts/system /opt/cfg/system /opt/jumpscale7/var/resourcetracking/
+RUN mkdir -p /var/run/scripts/system /opt/cfg/system /opt/jumpscale7/var/resourcetracking/ /opt/cfg/version
 COPY configure-system.py /var/run/scripts/system
 RUN mkdir -p /var/run/scripts/portal/
 COPY configure-portal.py /var/run/scripts/portal/

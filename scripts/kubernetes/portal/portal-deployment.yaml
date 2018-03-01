@@ -24,6 +24,9 @@ spec:
         volumeMounts:
         - name: system-hrd
           mountPath:  /opt/cfg/system/
+        - name: versions-manifest
+          mountPath:  /opt/cfg/version/versions-manifest.yaml
+          subPath: versions-manifest.yaml
         - name: apps-hrd
           mountPath:  /opt/cfg/apps/
         - name:  system-config
@@ -77,6 +80,9 @@ spec:
         hostPath:
           path: /var/ovc/billing
           type: Directory
+      - name: versions-manifest
+        configMap:
+          name: versions-manifest
       - name: system-config
         configMap:
           name: system-config
