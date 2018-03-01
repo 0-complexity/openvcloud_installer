@@ -61,7 +61,7 @@ spec:
           mountPath: /etc/nginx/nginx.conf
           subPath: nginx.conf
         - name: root-certs
-          mountPath: /opt/cfg/nginx/ssl/root
+          mountPath: /opt/cfg/nginx/ssl/
           readOnly: true
       volumes:
       - name: ssh-dir
