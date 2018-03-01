@@ -208,7 +208,7 @@ def get_versions(version=None, url=None):
         url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yml'.format(version)
     tmpdir = j.tools.prefab.local.core.file_get_tmp_path()
     j.tools.prefab.local.core.dir_ensure(tmpdir)
-    version_path = '{}/version-manifest.yaml'.format(tmpdir)
+    version_path = '{}/versions-manifest.yaml'.format(tmpdir)
     try:
         j.tools.prefab.local.core.file_download(url, version_path, minsizekb=0)
         versions = j.data.serializer.yaml.load(version_path)
