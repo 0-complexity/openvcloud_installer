@@ -20,15 +20,14 @@ The script can be used for deploying the cluster across the three nodes, perform
 The script([here](../scripts/install/installer)) has the following commands:
 
 - `cluster`
-- `cpu`
-- `storage`
+- `node`
 
 ### cluster
 
 To deploy the cluster run the command:
 
 ```bash
-installer --config system-config.yaml cluster deploy  --configure-cluster
+installer --config system-config.yaml cluster deploy --configure-cluster
 ```
 
 - `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
@@ -44,7 +43,7 @@ For example the `ssh` key in the config is used to specify the key needed for au
 The command `cluster writeconfig` is used to create `configmap` from the specified config file. `configmap` is the specified configuration that can be mounted to the kubernetes pods when the application needs information from the config file to perform its operations. This is already handled using the above command but this command can be used if it is required to update the configmap with new config data. An example command:
 
 ```bash
-installer cluster writeconfig --config system-config.yaml
+installer --config system-config.yaml cluster writeconfig 
 ```
 
 
@@ -53,7 +52,7 @@ installer cluster writeconfig --config system-config.yaml
 This is used to exec ipmi commands on cpu/storage nodes:
 
 ```bash
-installer --config system-config.yaml node deploy --name node_name <action>
+installer --config system-config.yaml node action --name node_name <action>
 ```
 
 - `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
@@ -65,31 +64,8 @@ installer --config system-config.yaml node deploy --name node_name <action>
     - `enable_pxe` : Enable pxe on node.
     - `disable_pxe` : Disable pxe on node.
     - `install_os` : Install os on node.
+    - `install` : Install JumpsScale servces required for this node type
 
-
-### cpu
--------
-
-This is used to configure cpu nodes:
-
-```bash
-installer --config system-config.yaml cpu deploy --name node_name
-```
-- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
-- `--name` name of the cpu node to be cofigured. This needs to be in the config file
-
-
-### **Storage**
--------
-
-This is used to configure storage nodes:
-
-```bash
-installer --config system-config.yaml storage deploy --name node_name
-```
-
-- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
-- `--name` name of the storage node to be cofigured. This needs to be in the config file
 
 ### **Image**
 -------
@@ -104,20 +80,7 @@ installer --config system-config.yaml image deploy --name image_name
 
 
 
-### **Controller**
--------
-
-This is used to install jsagent on controller node:
-
-```bash
-installer --config system-config.yaml controller deploy --name controller_node_hostname
-```
-
-- `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
-- `--name` name of the controller node. This needs to be specified in the config file
-
-
-### **Resource**
+### **Resources**
 -------
 
 This is used handle kubernetes resource files:

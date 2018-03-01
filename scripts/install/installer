@@ -643,6 +643,12 @@ class Cluster(AbstractConfig):
         if not prefab.core.file_exists('/usr/local/bin/kubectl'):
             prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
 
+    def verify_certificates(self):
+        for key, value in self.config['environment']['ssl'].items():
+            for extension in ('crt', 'csr', 'key'):
+                path = os.path.join(value['path'], '{}.{}'.format(value['name'], extension))
+                if not j.sal.fs.exists(path):
+                    raise RuntimeError("Certificate {} does not exists.".format(path))
 
     def install_controller(self):
         """
@@ -1058,6 +1064,7 @@ def deploy_cluster(ctx, configure_cluster):
     Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
     """
     cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
+    cluster.verify_certificates()
     if configure_cluster:
         cluster.install_kubernetes_cluster()
     cluster.install_controller()
