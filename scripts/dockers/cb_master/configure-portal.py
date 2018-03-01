@@ -257,7 +257,7 @@ class Portal(object):
 
 
     def configure_manifest(self):
-        with open('/opt/cfg/system/versions-manifest.yaml') as file_discriptor:
+        with open('/opt/cfg/version/versions-manifest.yaml') as file_discriptor:
             data_str = file_discriptor.read()
             data_obj = yaml.load(data_str)
         version = self.scl.version.new()
