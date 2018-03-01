@@ -28,7 +28,7 @@ spec:
           mountPath: /etc/grafana/
       containers:
       - name: grafana-container
-        image: openvcloud/grafana # grafana/grafana:5.0.0
+        image: grafana/grafana
         env:
         - name: GF_PATHS_CONFIG
           value: "/etc/grafana/grafana.ini"
