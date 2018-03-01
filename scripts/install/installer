@@ -688,7 +688,7 @@ class Cluster(AbstractConfig):
         print('Waiting for {} to be ready..'.format(template_name))
         while time.time() < timeout:
             template_basename = template.split('/')[-1]
-            template_name = template_basename.strip('.yaml') if template_basename.endswith('.yaml') else template_basename
+            template_name = os.path.splitext(template_basename)[0] if template_basename.endswith('.yaml') else template_basename
             _, out, _ = self.kubectl('get %s %s -o json' % (kind, template_name))
             json_out = j.data.serializer.json.loads(out)
             ready = False
