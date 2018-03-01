@@ -67,6 +67,14 @@ def render(context, loader, filename):
     with open('output/{}'.format(filename), 'w') as f:
         f.write(data)
 
+def is_mounted(disk):
+    if disk['mountpoint']:
+        return True
+    for child in disk.get('children', []):
+        if is_mounted(child):
+            return True
+    return False
+
 def get_node_disks(nodeip):
     prefab = j.tools.prefab.getFromSSH(nodeip)
     rc, out = prefab.core.execute_bash('lsblk -b -J -o name,size,rota')
@@ -74,10 +82,7 @@ def get_node_disks(nodeip):
     if rc == 0:
         disks = json.loads(out)['blockdevices']
         for disk in disks:
-            used = False
-            if disk.get('children'):
-                used = True
-            disk['used'] = used
+            disk['mounted'] = is_mounted(disk)
             disk['size'] = float(disk['size']) / (1024 ** 3)
             if disk['rota'] == '1':
                 disk['type'] = 'hdd'
@@ -185,7 +190,7 @@ def main(config_path):
             for cpunode in cpu_nodes[:cpucount]:
                 # disk count
                 disks = {}
-                useabledisks = list(filter(lambda x: not x['used'] and x['type'] == 'ssd', cpunode['disks']))
+                useabledisks = list(filter(lambda x: not x['mounted'] and x['type'] == 'ssd', cpunode['disks']))
                 if backend['name'].endswith('01'):
                     # first half
                     useabledisks = useabledisks[:int(cachebackendcount/2)]
@@ -202,7 +207,7 @@ def main(config_path):
             for storagenode in storage_nodes[:storagecount]:
                 # disk count
                 disks = {}
-                useabledisks = list(filter(lambda x: not x['used'] and x['type'] == 'hdd', storagenode['disks']))
+                useabledisks = list(filter(lambda x: not x['mounted'] and x['type'] == 'hdd', storagenode['disks']))
                 if backend['name'].endswith('01'):
                     # first half
                     useabledisks = useabledisks[:int(backendcount/2)]
@@ -227,10 +232,10 @@ def main(config_path):
         scrub = 0
         db = 0
         for disk in storagenode['disks']:
-            if disk['used'] and scrub == 0:
+            if disk['mounted'] and scrub == 0:
                 disks[disk['name']] = {'roles': ['SCRUB']}
                 scrub += 1
-            elif not disk['used'] and disk['type'] == 'ssd' and writeroles < 2:
+            elif not disk['mounted'] and disk['type'] == 'ssd' and writeroles < 2:
                 disks[disk['name']] = {'roles': ['WRITE']}
                 writeroles += 1
             elif disk['type'] == 'nvme' and db == 0:

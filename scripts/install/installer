@@ -205,19 +205,23 @@ def prepare_config(config_path):
 
 def get_versions(version=None, url=None):
     if not url:
-        url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yaml'.format(version)
-    version_path = '$TMPDIR/version-manifest.yaml'
+        url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yml'.format(version)
+    tmpdir = j.tools.prefab.local.core.file_get_tmp_path()
+    j.tools.prefab.local.core.dir_ensure(tmpdir)
+    version_path = '{}/version-manifest.yaml'.format(tmpdir)
     try:
-        j.tools.prefab.core.file_download(url, version_path)
+        j.tools.prefab.local.core.file_download(url, version_path, minsizekb=0)
         versions = j.data.serializer.yaml.load(version_path)
     finally:
-        j.tools.prefab.core.file_remove(version_path)
+        j.tools.prefab.local.core.dir_remove(tmpdir)
 
+    if 404 in versions:
+        raise RuntimeError("Could not find manifest @ {}".format(url))
     for repo in versions['repos']:
         if repo['url'] in "https://github.com/jumpscale7/ays_jumpscale7":
-            versions['jsversion'] = repo.get('branch', repo['tag'])
+            versions['jsversion'] = repo['target'].get('branch', repo['target'].get('tag', version))
         if repo['url'] in "https://github.com/0-complexity/openvcloud_ays":
-            versions['ovcversion'] = repo.get('branch', repo['tag'])
+            versions['ovcversion'] = repo['target'].get('branch', repo['target'].get('tag', version))
     return versions
 
 def get_controller_management_ips(config):
@@ -234,12 +238,14 @@ class AbstractConfig:
         self._prefab = None
         self._nodes = None
         if not versions:
-            error_code, version, err = self.kubectl('get configmap manifest-version -o jsonpath="{.data.software\.version}"', die=False)
+            error_code, versions, err = self.kubectl('get configmap versions-manifest -o json', die=False)
             if error_code != 0:
                 if 'NotFound' in err:
                     raise RuntimeError('configmap minfests does not exist , version needs to be passed during deploy cluster to be registered.')
                 raise RuntimeError(err)
-        self.versions = get_versions(version)
+            self.versions = j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml']
+        else:
+            self.versions = versions
     @property
     def prefab(self):
         if self._prefab is None:
@@ -738,26 +744,18 @@ class Cluster(AbstractConfig):
         self.first_node.core.upload('{}/scripts/kubernetes/'.format(REPO_PATH), self.scripts_dir)
 
         # have to use ls as it is a remote directory i need to traverse
-        def change_container_images(base_path):
+        def change_container_images(template):
             types = ('Deployment', 'StatefulSet', 'Job')
-            dir_path = 'ls %s/%s' % (self.scripts_dir, base_path)
-            _, files_str, _ = self.first_node.core.run(dir_path)
-            files = files_str.splitlines()
-            for resource in files:
-                if resource.endswith('.yaml'):
-                    template_loc = '{dir}/{resource}'.format(dir=dir_path, name=resource)
-                    data = self.load(template_loc)
-                    if data['kind'] in types:
-                        for init_container in data['spec']['template']['spec']['initContainers']:
-                            #get image version from the self.versions dict loaded from 0-complexity/home
-                            init_container['image'] = self.versions['images'][init_container['image']]
-                    self.dump(data)
-
-        # have to use ls as it is a remote directory i need to traverse
-        _, dirs_str, _ = self.first_node.core.run('ls %s' % self.scripts_dir)
-        dirs = dirs_str.splitlines()
-        for directory in dirs:
-            change_container_images(base_path)
+            data = self.load(template)
+            if isinstance(data, dict) and data.get('kind') in types:
+                for conttype  in ('initContainers', 'containers'):
+                    if conttype not in data['spec']['template']['spec']:
+                        continue
+                    for container in data['spec']['template']['spec'][conttype]:
+                        #get image version from the self.versions dict loaded from 0-complexity/home
+                        if container['image'] in self.versions['images']:
+                            container['image'] = "{}:{}".format(container['image'], self.versions['images'][container['image']])
+                self.dump(template, data)
 
         # add external ips to the specified services to expose to the internal network
         templates = ['agentcontroller', 'osis']
@@ -775,6 +773,9 @@ class Cluster(AbstractConfig):
                 write_deployment_template(template)
             for repo in DEV_REPOS:
                 self.clone_repo(repo)
+
+        for template in self.first_node.core.find(self.scripts_dir, pattern='*.yaml'):
+            change_container_images(template)
 
         stat_template = self.scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = self.load(stat_template)
@@ -952,20 +953,20 @@ def cli(ctx, config, version, url, loglevel):
 def cluster():
     pass
 
-@cluster.group()
+@cluster.group(help='Manipulation of kubernetes resources')
 def resources():
     pass
 
 @cli.group()
-def node():
+def node(help='Node actions'):
     pass
 
 @cli.group()
-def image():
+def image(help='Image actions'):
     pass
 
 
-@image.command('deploy')
+@image.command('deploy', help='Deploy an VM Image')
 @click.option('--name', help='Image name')
 @click.pass_context
 def image_deploy(ctx, name):
@@ -976,7 +977,7 @@ def image_deploy(ctx, name):
 
 @node.command('action')
 @click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
-@click.argument('action')
+@click.argument('action', type=click.Choice(['start', 'stop', 'update', 'restart', 'install', 'reboot', 'is_up', 'wait_up', 'enable_pxe', 'disable_pxe', 'install_os']))
 @click.pass_context
 def node_action(ctx, name, action):
     """
@@ -992,7 +993,7 @@ def node_action(ctx, name, action):
             pnames = name.split(',')
         pnode_action(pnames, action, ctx.obj['config'], versions=ctx.obj['versions'])
 
-@node.command('update')
+@node.command('update', help='Update code and restart required services on node')
 @click.pass_context
 def node_update(ctx):
     return _node_update(ctx)
@@ -1006,7 +1007,7 @@ def _node_update(ctx):
     pnode_action(pnames, 'update', config, versions=ctx.obj['versions'])
     pnode_action(pnames, 'restart', config, versions=ctx.obj['versions'])
 
-@resources.command('writeconfig')
+@resources.command('writeconfig', help='Write system-config to kubernetes')
 @click.pass_context
 def write_system_config(ctx):
     """
@@ -1016,7 +1017,7 @@ def write_system_config(ctx):
     cluster.write_system_config()
 
 
-@resources.command('write')
+@resources.command('write', help='Rewrite all templates')
 @click.option('--development', default=False, is_flag=True)
 @click.pass_context
 def write_kube_resources(ctx, development):
@@ -1027,7 +1028,7 @@ def write_kube_resources(ctx, development):
     cluster.prepare_templates()
 
 
-@resources.command('applyall')
+@resources.command('applyall', help='Apply all kubernetes resources')
 @click.pass_context
 def kube_apply_all(ctx):
     """
@@ -1037,7 +1038,7 @@ def kube_apply_all(ctx):
     cluster.kube_client_apply()
 
 
-@resources.command('apply')
+@resources.command('apply', help='Apply a specifified kubernetes resource')
 @click.option('--path', help='path to template')
 @click.pass_context
 def kube_apply(ctx, path):
@@ -1047,7 +1048,7 @@ def kube_apply(ctx, path):
     cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
     cluster.apply_template(path, kind='deployment')
 
-@cluster.command('deploy')
+@cluster.command('deploy', help='Deploy kubernetes cluster on controller nodes')
 @click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
 @click.pass_context
 def deploy_cluster(ctx, configure_cluster):
@@ -1059,7 +1060,7 @@ def deploy_cluster(ctx, configure_cluster):
         cluster.install_kubernetes_cluster()
     cluster.install_controller()
 
-@cluster.command('update')
+@cluster.command('update', help='Update cluster, delete existing resources and reapply')
 @click.option('--development', default=False, is_flag=True)
 @click.pass_context
 def update_cluster(ctx, development):
@@ -1072,7 +1073,7 @@ def _update_cluster(ctx, development):
     cluster = Cluster(ctx.obj['config'], ctx.obj['versions'], development)
     cluster.update()
 
-@cluster.command('upgrade')
+@cluster.command('upgrade', help='Upgrade cluster, update all nodes and cluster and update kubernetes resources')
 @click.option('--development', default=False, is_flag=True)
 @click.pass_context
 def upgrade_cluster(ctx, development):
