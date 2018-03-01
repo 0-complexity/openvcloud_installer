@@ -261,7 +261,7 @@ class Portal(object):
             data_str = file_discriptor.read()
             data_obj = yaml.load(data_str)
         version = self.scl.version.new()
-        version_dict = self.scl.searchOne({'name': data_obj['version']})
+        version_dict = self.scl.version.searchOne({'name': data_obj['version']})
         version.load(version_dict)
         if not version_dict:
             version.creationTime = j.base.time.getTimeEpoch()

@@ -212,8 +212,8 @@ def get_versions(version=None, url=None):
     try:
         j.tools.prefab.local.core.file_download(url, version_path, minsizekb=0)
         versions = j.data.serializer.yaml.load(version_path)
-        version['url'] = url
-        version['version'] = version 
+        versions['url'] = url
+        versions['version'] = version
     finally:
         j.tools.prefab.local.core.dir_remove(tmpdir)
 
