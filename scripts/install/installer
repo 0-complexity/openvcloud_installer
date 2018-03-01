@@ -824,7 +824,7 @@ class Cluster(AbstractConfig):
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
         deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
-                       'portal', 'pxeboot', 'zero-access', 'management', 'controller-jsagent', 'nginx']
+                       'portal', 'pxeboot', 'zero-access', 'management', 'ovs', 'controller-jsagent', 'nginx']
         statefulSets = ['mongo', 'syncthing']
         for statefulSet in statefulSets:
             template_file = self.scripts_dir + statefulSet

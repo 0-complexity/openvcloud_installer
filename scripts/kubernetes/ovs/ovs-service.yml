@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: ovs
+  name: ovs
+  namespace: default
+spec:
+  clusterIP: None
+  ports:
+  - name: ssh
+    port: 22
+    protocol: TCP
+    targetPort: 22
+  selector:
+    app: ovs
+  sessionAffinity: None
+  type: ClusterIP
