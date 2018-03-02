@@ -992,7 +992,7 @@ def node_action(ctx, name, action):
     Execute command for node
     """
     if name != 'all' and ',' not in name:
-        cluster = PNode(ctx.obj['config'], name)
+        cluster = PNode(ctx.obj['config'], name, ctx.obj['versions'])
         getattr(cluster, action)()
     else:
         if name == 'all':
