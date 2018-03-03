@@ -239,15 +239,19 @@ class AbstractConfig:
         self.config = config
         self._prefab = None
         self._nodes = None
-        if not versions:
+        self._versions = versions
+
+    @property
+    def versions(self):
+        if not self._versions:
             error_code, versions, err = self.kubectl('get configmap versions-manifest -o json', die=False)
             if error_code != 0:
                 if 'NotFound' in err:
                     raise RuntimeError('configmap minfests does not exist , version needs to be passed during deploy cluster to be registered.')
                 raise RuntimeError(err)
-            self.versions = j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml']
-        else:
-            self.versions = versions
+            self._versions = j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml']
+        return self._versions
+
     @property
     def prefab(self):
         if self._prefab is None:
@@ -790,19 +794,15 @@ class Cluster(AbstractConfig):
         data['spec']['template']['spec']['containers'][0]['args'][4] = self.config['network']['management']['network']
         self.dump(stat_template, data)
 
+    def write_config_map(self, name, content):
+        if isinstance(content, (dict, list)):
+            content = j.data.serializer.yaml.dumps(content)
+        self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n {1}\nEOF".format(name, content))
+
     def write_system_config(self):
         log('Write system config')
-        tmpdir = self.first_node.core.file_get_tmp_path()
-        self.first_node.core.dir_ensure(tmpdir)
-        tmp_config_file = j.sal.fs.joinPaths(tmpdir, 'system-config.yaml')
-        tmp_version_file = j.sal.fs.joinPaths(tmpdir, 'versions-manifest.yaml')
-        try:
-            self.dump(tmp_config_file, self.config)
-            self.dump(tmp_version_file, self.versions)
-            self.kubectl('create configmap system-config --from-file {path}'.format(path=tmp_config_file))
-            self.kubectl('create configmap versions-manifest --from-file {path}'.format(path=tmp_version_file))
-        finally:
-            self.first_node.core.dir_remove(tmpdir)
+        self.write_config_map('system-config', self.config)
+        self.write_config_map('versions-manifest', self.versions)
 
     def install_teleport(self):
         for node in self.nodes:
@@ -874,13 +874,13 @@ class Cluster(AbstractConfig):
 
     def delete(self):
         log('Deleting configmaps')
-        self.first_node.core.execute_bash('kubectl delete configmap --all --namespace default')
+        self.kubectl('delete configmap --all --namespace default')
         log('Deleting services')
-        self.first_node.core.execute_bash("kubectl delete service --namespace default -l 'name != nginx'")
+        self.kubectl("delete service --namespace default -l 'name != nginx'")
         log('Deleting statefulset')
-        self.first_node.core.execute_bash('kubectl delete statefulset --all --namespace default')
+        self.kubectl('delete statefulset --all --namespace default')
         log('Deleting deployments')
-        self.first_node.core.execute_bash('kubectl delete deploy --all --namespace default')
+        self.kubectl('delete deploy --all --namespace default')
 
     def update(self):
         log('Restarting cluster...')
