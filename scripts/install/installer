@@ -249,7 +249,7 @@ class AbstractConfig:
                 if 'NotFound' in err:
                     raise RuntimeError('configmap minfests does not exist , version needs to be passed during deploy cluster to be registered.')
                 raise RuntimeError(err)
-            self._versions = j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml']
+            self._versions = j.data.serializer.yaml.loads(j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml'])
         return self._versions
 
     @property
