@@ -797,7 +797,7 @@ class Cluster(AbstractConfig):
     def write_config_map(self, name, content):
         if isinstance(content, (dict, list)):
             content = j.data.serializer.yaml.dumps(content)
-        self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n {1}\nEOF".format(name, content))
+        self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content))
 
     def write_system_config(self):
         log('Write system config')
