@@ -71,30 +71,30 @@ def print_status(clear=False):
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
 
-def get_pnodes_names(config):
-    pnodes_names = []
-    for host in config['controller']['hosts']:
-        pnodes_names.append(host['hostname'])
+def get_pnodes(config, versions=None, controllers=True):
+    pnodes = []
+    if controllers:
+        for host in config['controller']['hosts']:
+            pnodes.append(JumpScale7(config, host['hostname'], versions))
     for pnode in itertools.chain(config['nodes']['cpu'], config['nodes']['storage']):
-        pnodes_names.append(pnode['name'])
-    return pnodes_names
+        pnodes.append(JumpScale7(config, pnode['name'], versions))
+    return pnodes
 
-def pnode_action(pnames, action, config, versions):
+def pnode_action(pnodes, action):
     futures = {}
     running_futures = {}
     results = ''
-    with concurrent.futures.thread.ThreadPoolExecutor(len(pnames)) as proc:
-        for pname in pnames:
-            status[pname] = 'Started {}'.format(action)
+    with concurrent.futures.thread.ThreadPoolExecutor(len(pnodes)) as proc:
+        for pnode in pnodes:
+            status[pnode.name] = 'Started {}'.format(action)
 
         print("Waiting for {action} node to be done...".format(action=action))
         print_status()
-        for pname in pnames:
-            jumpscale = PNode(config, pname, versions)
-            func = getattr(jumpscale, action)
+        for pnode in pnodes:
+            func = getattr(pnode, action)
             fut = proc.submit(func)
-            futures[pname] =  fut
-            running_futures[pname] = fut
+            futures[pnode.name] =  fut
+            running_futures[pnode.name] = fut
 
         def update_status():
             messages = ''
@@ -204,18 +204,40 @@ def prepare_config(config_path):
     return config
 
 def get_versions(version=None, url=None):
-    if not url:
+    """
+    Loads the version manifests either from the existing cluster or downloads it from the provided url
+    param version ,, str version number to get from default 0-complexity/home/manifests location
+    param url ,, raw url to version-manifests yaml file 
+    """
+    local_prefab = j.tools.prefab.local
+    def download_load_yaml(url):
+        tmpdir = j.tools.prefab.local.core.file_get_tmp_path()
+        j.tools.prefab.local.core.dir_ensure(tmpdir)
+        version_path = '{}/versions-manifest.yaml'.format(tmpdir)
+        try:
+            j.tools.prefab.local.core.file_download(url, version_path, minsizekb=0)
+            versions = j.data.serializer.yaml.load(version_path)
+            versions['url'] = url
+            versions['version'] = version
+            return versions
+        finally:
+            j.tools.prefab.local.core.dir_remove(tmpdir)
+
+    if not version:
+        if not url:
+            if 'KUBERNETES_SERVICE_PORT' not in local_prefab.bash.env:
+                raise RuntimeError('Cannot run outside of management pod without version or url being provided.')
+            error_code, versions, err = local_prefab.core.run('kubectl get configmap versions-manifest -o json', die=False, showout=False)
+            if error_code != 0:
+                if 'NotFound' in err:
+                    raise RuntimeError('configmap manifest does not exist , version needs to be passed during deploy cluster to be registered.')
+                raise RuntimeError(err)
+            versions = j.data.serializer.yaml.loads(j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml'])
+        else:
+            versions = download_load_yaml(url)    
+    else:
         url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yml'.format(version)
-    tmpdir = j.tools.prefab.local.core.file_get_tmp_path()
-    j.tools.prefab.local.core.dir_ensure(tmpdir)
-    version_path = '{}/versions-manifest.yaml'.format(tmpdir)
-    try:
-        j.tools.prefab.local.core.file_download(url, version_path, minsizekb=0)
-        versions = j.data.serializer.yaml.load(version_path)
-        versions['url'] = url
-        versions['version'] = version
-    finally:
-        j.tools.prefab.local.core.dir_remove(tmpdir)
+        versions = download_load_yaml(url)
 
     if 404 in versions:
         raise RuntimeError("Could not find manifest @ {}".format(url))
@@ -239,18 +261,7 @@ class AbstractConfig:
         self.config = config
         self._prefab = None
         self._nodes = None
-        self._versions = versions
-
-    @property
-    def versions(self):
-        if not self._versions:
-            error_code, versions, err = self.kubectl('get configmap versions-manifest -o json', die=False)
-            if error_code != 0:
-                if 'NotFound' in err:
-                    raise RuntimeError('configmap minfests does not exist , version needs to be passed during deploy cluster to be registered.')
-                raise RuntimeError(err)
-            self._versions = j.data.serializer.yaml.loads(j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml'])
-        return self._versions
+        self.versions = versions
 
     @property
     def prefab(self):
@@ -697,7 +708,7 @@ class Cluster(AbstractConfig):
             json_out = j.data.serializer.json.loads(out)
             ready = False
             if kind == 'deployment':
-                for condition in  json_out['status'].get('conditions'):
+                for condition in  json_out['status'].get('conditions', []):
                     if condition['type'] == 'Available' and condition['status'] == 'True':
                         ready = True
                         break
@@ -707,6 +718,7 @@ class Cluster(AbstractConfig):
                     break
             if ready:
                 break
+            time.sleep(2)
         else:
             raise j.exceptions.Timeout('Deploying {} took longer than expected. Exiting..'.format(template_name))
 
@@ -726,20 +738,20 @@ class Cluster(AbstractConfig):
             self.dump(template_loc, data)
         return template_loc
 
-    def _apply_nginx(self, name):
+    def _reapply_service(self, name):
         pubips = list(get_controller_public_ips(self.config))
         loc = self.write_service_template(name, pubips)
         self.kubectl('apply -f {}'.format(loc))
 
     def upgrade(self):
         self.prepare_templates()
-        self._apply_nginx('upgrader')
+        self._reapply_service('upgrader')
 
     def revert(self):
         """
         Reconfigure nginx service to working state
         """
-        self._apply_nginx('nginx')
+        self._reapply_service('nginx')
 
     def prepare_templates(self):
         log('Preparing resources')
@@ -798,7 +810,7 @@ class Cluster(AbstractConfig):
     def write_config_map(self, name, content):
         if isinstance(content, (dict, list)):
             content = j.data.serializer.yaml.dumps(content)
-        self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content))
+        self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content), showout=False)
 
     def write_system_config(self):
         log('Write system config')
@@ -876,6 +888,7 @@ class Cluster(AbstractConfig):
     def delete(self):
         log('Deleting configmaps')
         self.kubectl('delete configmap --all --namespace default')
+        self.write_system_config()
         log('Deleting services')
         self.kubectl("delete service --namespace default -l 'name != nginx'")
         log('Deleting statefulset')
@@ -956,8 +969,7 @@ def cli(ctx, config, version, url, loglevel):
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
     ctx.obj['config'] = config
-    ctx.obj['versions'] = get_versions(version, url) if (version or url) else None
-
+    ctx.obj['versions'] = get_versions(version, url)
 @cli.group()
 def cluster():
     pass
@@ -997,10 +1009,10 @@ def node_action(ctx, name, action):
         getattr(cluster, action)()
     else:
         if name == 'all':
-            pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['config']['nodes']['cpu'], ctx.obj['config']['nodes']['storage'])]
+            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], controllers=False)
         else:
-            pnames = name.split(',')
-        pnode_action(pnames, action, ctx.obj['config'], versions=ctx.obj['versions'])
+            pnodes = [PNode(ctx.obj['config'], name, ctx.obj['versions']) for name in name.split(',')]
+        pnode_action(pnodes, action)
 
 @node.command('update', help='Update code and restart required services on node')
 @click.pass_context
@@ -1012,9 +1024,9 @@ def _node_update(ctx):
     Update all pnodes
     """
     config = ctx.obj['config']
-    pnames = get_pnodes_names(config)
-    pnode_action(pnames, 'update', config, versions=ctx.obj['versions'])
-    pnode_action(pnames, 'restart', config, versions=ctx.obj['versions'])
+    pnodes = get_pnodes(config, ctx.obj['versions'])
+    pnode_action(pnodes, 'update')
+    pnode_action(pnodes, 'restart')
 
 @resources.command('writeconfig', help='Write system-config to kubernetes')
 @click.pass_context
@@ -1090,21 +1102,20 @@ def upgrade_cluster(ctx, development):
     """
     Will upgrade the env.
     """
-    if not development:
-        j.logger.set_level(30)
     config = ctx.obj['config']
     cluster = Cluster(config, ctx.obj['versions'], development)
     cluster.upgrade()
     try:
-        pnames = get_pnodes_names(config)
-        pnode_action(pnames, 'stop', config, versions=ctx.obj['versions'])
-        pnode_action(pnames, 'update', config, versions=ctx.obj['versions'])
+        pnodes = get_pnodes(config, versions=ctx.obj['versions'])
+        pnode_action(pnodes, 'stop')
         cluster.update()
-        pnode_action(pnames, 'start', config, versions=ctx.obj['versions'])
+        pnode_action(pnodes, 'update')
+        pnode_action(pnodes, 'start')
         print('Updating env done.')
-    except:
+    except Exception as e:
         cluster.revert()
-        print("Failed to update env.")
+        logging.debug('update env failed.', exc_info=True)
+        log('update env failed.')
 
 if __name__ == '__main__':
     cli()
