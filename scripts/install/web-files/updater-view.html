@@ -35,7 +35,7 @@
                     }
                 },
                 error: function(resp, status, error) {
-                    if (resp.status != 416 && resp.status != 404 ) {
+                    if (resp.status != 416 && resp.status != 404 && resp.status != 403 ) {
                         $('#logs').append('\n' + resp.status + error);
                     }
                     setTimeout(send, 5000);
