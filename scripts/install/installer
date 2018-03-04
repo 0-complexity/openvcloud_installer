@@ -1154,7 +1154,7 @@ def upgrade_cluster(ctx, development):
         print('Updating env done.')
     except:
         cluster.revert()
-        logging.debug('update env failed.', exc_info=True)
+        logging.error('Error:', exc_info=True)
         log('update env failed.')
 
 
