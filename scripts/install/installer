@@ -1158,7 +1158,7 @@ def upgrade_cluster(ctx, development):
         log('update env failed.')
 
 
-@storage.comand("applyconfig", help="Apply storage config")
+@storage.command("applyconfig", help="Apply storage config")
 @click.pass_context
 def storage_apply_config(ctx, development):
     config = ctx.obj['config']
