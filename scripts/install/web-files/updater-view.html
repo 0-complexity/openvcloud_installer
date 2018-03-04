@@ -14,10 +14,11 @@
         $( document ).ready(function() {
             var seeker = 0;
             var doneMessage = '';
+            var url = "/logs/?" + new Date().getTime();
             var ansi_up = new AnsiUp;
             function send(){
                 $.ajax({
-                url: "/logs/",
+                url: url,
                 headers: {
                     'Range':'bytes=' + seeker + '-'
                 },
