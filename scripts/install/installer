@@ -1148,7 +1148,7 @@ def upgrade_cluster(ctx, development):
         cluster.update()
         pnode_action(pnodes, 'update')
         pnode_action(pnodes, 'start')
-        response = portal_api_call('/restmachine/cloudbroker/grid/run_upgrade_script', ctx.obj['config'])
+        response = portal_api_call('/cloudbroker/grid/run_upgrade_script', ctx.obj['config'])
         if response.status_code != 200:
             raise RuntimeError("%s: \n%s" % (response.content, response.status_code))
         log('Updating env done.')
