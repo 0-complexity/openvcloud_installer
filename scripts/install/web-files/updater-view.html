@@ -37,6 +37,7 @@
                 },
                 error: function(resp, status, error) {
                     if (resp.status != 416 && resp.status != 404 && resp.status != 403 ) {
+                        url = "/logs/?" + new Date().getTime();
                         $('#logs').append('\n' + resp.status + error);
                     }
                     setTimeout(send, 5000);
