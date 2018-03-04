@@ -1155,7 +1155,7 @@ def upgrade_cluster(ctx, development):
     except:
         cluster.revert()
         logging.error('Error:', exc_info=True)
-        log('update env failed.')
+        log('Failed to update env.')
 
 
 @storage.command("applyconfig", help="Apply storage config")
