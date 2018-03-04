@@ -1160,7 +1160,7 @@ def upgrade_cluster(ctx, development):
 
 @storage.command("applyconfig", help="Apply storage config")
 @click.pass_context
-def storage_apply_config(ctx, development):
+def storage_apply_config(ctx):
     config = ctx.obj['config']
     pnodes = get_pnodes(config, versions=ctx.obj['versions'], storage=True)
     pnode_action(pnodes, 'patch_ovs')
