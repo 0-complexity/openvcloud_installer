@@ -1,11 +1,13 @@
 # Setting up the kubernetes cluster
 
-This is a Documentation of the manual installation steps to setup an ovc cluster,for automated installation , please check the documentation for the script at [Installer-script](Installer-script.md)
+This is a Documentation of the installation steps to setup an ovc cluster, please check the documentation for the script at [Installer-script](Installer-script.md)
 
 ## Prerequisites
 
-- A JumpScale 9 installation(See [docs](https://github.com/Jumpscale/bash) for installation)
+- A JumpScale 9 installation(Preferably use docker image `openvcloud/js9`, otherwise see [docs](https://github.com/Jumpscale/bash) for installation)
 - Three nodes for deploying the cluster
+- Three nodes for deploying the cluster
+- Additional nodes for cpu/storage as required. 
 - For each node the user needs to have credentials to establish a SSH connection
 - Swap needs to be off on each node
 - Each node needs to be able to access each other node in the cluster
@@ -14,104 +16,77 @@ This is a Documentation of the manual installation steps to setup an ovc cluster
   - .csr
   - .crt
   - .key
-- Make sure that following directories exists on each node with mode 777(ex: chmod 777 /var/ovc/mongodb):
-  - `/var/ovc/mongodb`
-  - `/var/ovc/influxdb`
-  - `/var/ovc/grafana`
-  - `/var/ovc/billing`
-  - `/var/ovc/pxeboot`
-  - `/var/ovc/0-access/index`
+- `jsonschema` python library
 
-## Installing the cluster
+## Full environment setup
 
-The cluster is installed using [prefab](https://github.com/Jumpscale/prefab9).
-A remote prefab instance is used to establish a SSH connection to the different nodes.
-Root access is required to installing the cluster, the follwoing demonstrates how to authorize the access using prefab.
+Using the docker image `openvcloud/js9` create a docker container which will have a JumpScale 9 installation.
 
-Start a SSH agent instance and load it with your prefered keys to be authorized in each node.
-Open the JumpScale shell by typing `js9`.
-For each node perform the follwoing:
-
-```python
-sshclient = j.clients.ssh.get(addr=<node_addr>, port=<node_ssh_port>, login=<user>, passwd=<password>)
-sshclient.SSHAuthorizeKey(<key_name>)
-```
-
-We need a prefab instance for each node this is done by:
-
-```python
-executor = j.tools.executor.getSSHBased(<node_addr>)
-prefab = j.tools.prefab.get(executor)
-```
-
-Installing the cluster is done using a local prefab instance. For PrefabKubernetes docs check [here](https://github.com/Jumpscale/prefab9/blob/master/docs/prefab.kubernetes.md). The install takes a list that contains the prefab instances of each nodes:
-
-```python
-nodes = [<list of prefab instances>]
-config, _ = j.tools.prefab.local.virtualization.kubernetes.multihost_install(nodes, unsafe=True)
-j.tools.prefab.local.core.file_write('/tmp/config', config)
-```
-
-This will take some time. Once it finishes you should have a running cluster.
-The install method will return the config data necessary for sending requests to the cluster. It is now stored in a temporary file in `/tmp/config`, which should be changed depending on the use case explained in the next section.
-
-## Installing Kube client
-
-To connect to the cluster we are going to use `kubectl` command line tool. To install it, in a js9 shell do the following:
-
-```python
-j.tools.prefab.local.virtualization.kubernetes.install_kube_client()
-```
-
-Using `kubectl` it is possible to connect to multiple running clusters, this can be achieved by specifying the config file when executing the commands. By default it uses the config in `~/.kube/config`. If it is required to connect to only one cluster then the default config can be replaced by the config at `/tmp/config`.
-
-Alternatively the user has two options to specify the config:
-
-- Specifying the config file in the `kubectl` command, `kubectl <command> --kubeconfig=/tmp/config`
-- Exporting `KUBECONFIG` environment variable, `export KUBECONFIG=/tmp/config`
-
-## Deploying the application
-
-Deploying each component of the application is done by using the following command:
+You will need the openvcloud installer repo as well, clone it using the following command:
 
 ```bash
-kubectl apply -f <path>
+git clone https://github.com/0-complexity/openvcloud_installer/
 ```
 
-This needs to be applied on `rbac.yaml` first before doing any other operations. It can be found under `scripts/kubernetes/`
+Before starting a config file for the new environment needs to be ready. This config file will be used by the `installer` to get information necessary for its multiple functions. an example config file can be found in `{repo location}/scripts/kubernetes/config`. This config file needs to be pushed to a new repo on `docs.greenitglobe.com` under `gigtech` organization with the naming convention being `env_{env name}`. An example url: `https://docs.greenitglobe.com/gigtech/env_be-g8-4`
 
-Creating the config map:
+Go to the installer script directory: `{repo location}/scripts/install`, for easy access to the `installer` script.
 
-`kubectl create secret generic system-config --from-file <config path>`
+### Deploying the cluster
 
-The config file is a yaml file which specifies information needed for the application, check the available [example](../scripts/kubernetes/config/system-config.yaml) which gives a clearer idea about the use of each field in the file.
+Run the following command to deploy the kubernetes cluster:
 
-Same needs to be done for the certificats. Four secrets are needed, they can use the same certificate files or different files depending on the configuration. The following command needs to be executed for each secret:
+```bash
+./installer --config {config file} --version {installation version} cluster deploy
+```
 
-`kubectl create secret generic <name>  --from-file  <certs directory>`
+The two options in the command are:
 
-`certs directory` is the directory containing the certificate files. This directory should contain three files with the following extensions: `crt`, `csr` and `key`. `name` has the following values:
+- `config` specified the path of the config file on the filesystem.
+- `version` specified the required release to be installed, for all releases check [here](https://github.com/0-complexity/home/tree/master/manifests).
 
-- `defense-certs`
-- `novnc-certs`
-- `ovs-certs`
-- `root-certs`
+After the above command is done a kubernetes cluster should be up and pods handling several openvcloud environment process should be running.
+From the management pod(See next section for how to access) it is possible to check the status of all pods using the command:
 
-This needs to be done in a specific order and it is preferable to wait after each pod has been deployed.
-To check the status of pods run `kubectl get pods` to list names of available pods and then `kubectl get pod <podname>`.
-See docs for each component for how to run.
+```bash
+kubectl get pods
+```
 
-The required order is:
+If all pods are running then it is possible to continue to the next step.
 
-- `rbac.yaml`
-- [syncthing](../scripts/kubernetes/syncthing)
-- [mongocluster](../scripts/kubernetes/mongocluster)
-- [influx](../scripts/kubernetes/influxdb)
-- [osis](../scripts/kubernetes/osis)
-- [agentcontroller](../scripts/kubernetes/agentcontroller)
-- [stats-collector](../scripts/kubernetes/stats-collector)
-- [grafana](../scripts/kubernetes/grafana)
-- [portal](../scripts/kubernetes/portal)
-- [nginx](../scripts/kubernetes/nginx)
-- [pxeboot](../scripts/kubernetes/pxeboot)
-- [0-access](../scripts/kubernetes/0-access)
+### Accessing management pod
+
+Management pod is used to perform various admin opertaions on the environment. It is based on the same JumpScale 9 image and has `kubectl` tool installed that is needed to perform various kubernetes related operations.
+
+Accessing the management pod can be done using 0-access.
+
+From a web browser open the openvcloud portal and go to 0-access page at `https://{env name}.demo.greenitglobe.com/cbgrid/0-access`.
+
+![0-access](0-access.png)
+
+Choose `maangement` from the above list, you will be directed to a page that will allow you to request an access to the pod which will redirect you to a page with instructions about how to access the pod and the remaining time for this session.
+
+### Installing os on nodes
+
+You need to be in management pod to perform this operation.
+
+To prepare the cpu/storage nodes with necessary os run the following command:
+
+```bash
+./installer --config {config file} node action --name all install_os
+```
+
+### Installing storage nodes
+You do it.
+
+### Installing JumpScale services on nodes
+
+You need to be in management pod to perform this operation.
+
+The following command will install JumpScale services on all physical nodes(controllers, cpu, storage):
+
+```bash
+./installer --config {config file} node jsaction --name all install
+```
+
+Following the success of these steps the environment should be ready to use.

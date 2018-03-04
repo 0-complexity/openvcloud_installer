@@ -130,9 +130,6 @@ environment:
       name: demo.greenitglobe.com
       path: /certpath
   password: 'tester'
-  versions:
-      openvcloud: production
-      jumpscale: production
   type: small
   ovs_repo_url: http://ovsurl.com
   ovs_version: 2.3.4

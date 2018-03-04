@@ -996,9 +996,9 @@ def image_deploy(ctx, name):
     jumpscale.ays_install(name, 'openvcloud')
 
 
-@node.command('action')
+@node.command('action', help='Will apply the action on storage and cpu nodes')
 @click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
-@click.argument('action', type=click.Choice(['start', 'stop', 'update', 'restart', 'install', 'reboot', 'is_up', 'wait_up', 'enable_pxe', 'disable_pxe', 'install_os']))
+@click.argument('action', type=click.Choice(['reboot', 'is_up', 'wait_up', 'enable_pxe', 'disable_pxe', 'install_os']))
 @click.pass_context
 def node_action(ctx, name, action):
     """
@@ -1013,6 +1013,27 @@ def node_action(ctx, name, action):
         else:
             pnodes = [PNode(ctx.obj['config'], name, ctx.obj['versions']) for name in name.split(',')]
         pnode_action(pnodes, action)
+
+@node.command('jsaction', help='Will apply the action on all nodes (cpu, storage, controller)')
+@click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
+@click.argument('action', type=click.Choice(['start', 'stop', 'update', 'restart', 'install']))
+@click.pass_context
+def node_action(ctx, name, action):
+    """
+    Execute command for node
+    """
+    import ipdb; ipdb.set_trace()
+    if name != 'all' and ',' not in name:
+        cluster = PNode(ctx.obj['config'], name, ctx.obj['versions'])
+        getattr(cluster, action)()
+    else:
+        if name == 'all':
+            ctrls = [ctrl['hostname'] for ctrl in ctx.obj['config']['controller']['hosts']]
+            pnames = [pnode['name'] for pnode in itertools.chain(ctx.obj['config']['nodes']['cpu'], ctx.obj['config']['nodes']['storage'])]
+            pnames = ctrls + pnames
+        else:
+            pnames = name.split(',')
+        pnode_action(pnames, action, ctx.obj['config'], versions=ctx.obj['versions'])
 
 @node.command('update', help='Update code and restart required services on node')
 @click.pass_context

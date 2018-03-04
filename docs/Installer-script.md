@@ -2,16 +2,17 @@
 
 ## Prerequisites
 
-- A JumpScale 9 installation(See [docs](https://github.com/Jumpscale/bash) for installation)
-- `jsonschema` python library
+- A JumpScale 9 installation(Preferably use docker image `openvcloud/js9`, otherwise see [docs](https://github.com/Jumpscale/bash) for installation)
 - Three nodes for deploying the cluster
+- Additional nodes for cpu/storage as required. 
 - For each node the user needs to have credentials to establish a SSH connection
 - Each node needs to be able to access each other node in the cluster
-- three files for ssl verification need to be added to the  specified path in the yaml config on the machine all wit
+- three files for ssl verification need to be added to the  specified path in the yaml config on the machine all with
   the same name and have these extensions:
   - .csr
   - .crt
   - .key
+- `jsonschema` python library
 
 ## Using the script
 
@@ -21,9 +22,12 @@ The script([here](../scripts/install/installer)) has the following commands:
 
 - `cluster`
 - `node`
+- `resources`
+- `image`
 
 ### cluster
 
+The command is used to perform actions on the cluster which includes deploying the cluster, updating and upgrading the cluster.
 To deploy the cluster run the command:
 
 ```bash
@@ -57,15 +61,19 @@ installer --config system-config.yaml node action --name node_name <action>
 
 - `--config` takes path of the config file. The config file is needed for the installation as well as running the application.
 - `--name` name of the cpu/storage node to apply on ipmi commands. This needs to be in the config file
-- **action** to to use can be :
+- **action** supported actions:
     - `reboot` : Reboots the specified node.
     - `is_up` : Check that the and node is up and running.
     - `wait_up` : Wait till the node is up and running.
     - `enable_pxe` : Enable pxe on node.
     - `disable_pxe` : Disable pxe on node.
     - `install_os` : Install os on node.
-    - `install` : Install JumpsScale servces required for this node type
-
+- **jsaction** supported actions:
+    - `install` : Install JumpsScale services required for this node type.
+    - `start` : Start JumpScale services required for this node type.
+    - `stop` : Stop JumpScale services required for this node type.
+    - `restart` : Restart JumpScale services required for this node type.
+    - `update` : Update JumpScale services required for this node type.
 
 ### **Image**
 -------

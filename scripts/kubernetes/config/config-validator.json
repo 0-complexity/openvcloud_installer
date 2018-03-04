@@ -441,35 +441,8 @@
       "environment": {
         "$id": "/properties/environment",
         "type": "object",
-        "required": ["grid", "subdomain", "basedomain", "password", "versions", "ssl"],
+        "required": ["grid", "subdomain", "basedomain", "password", "ssl"],
         "properties": {
-          "versions": {
-            "$id": "/properties/environment/properties/versions",
-            "type": "object",
-            "required": ["openvcloud", "jumpscale"],
-            "properties": {
-              "jumpscale": {
-                "$id": "/properties/environment/properties/versions/properties/jumpscale",
-                "type": "string",
-                "title": "The Jumpscale Schema",
-                "description": "An explanation about the purpose of this instance.",
-                "default": "",
-                "examples": [
-                  "production"
-                ]
-              },
-              "openvcloud": {
-                "$id": "/properties/environment/properties/versions/properties/openvcloud",
-                "type": "string",
-                "title": "The Openvcloud Schema",
-                "description": "An explanation about the purpose of this instance.",
-                "default": "",
-                "examples": [
-                  "production"
-                ]
-              }
-            }
-          },
           "ssl": {
             "$id": "/properties/environment/properties/ssl",
             "type": "object",
