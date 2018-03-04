@@ -73,11 +73,34 @@ You need to be in management pod to perform this operation.
 To prepare the cpu/storage nodes with necessary os run the following command:
 
 ```bash
-./installer --config {config file} node action --name all install_os
+installer --config {config file} node action --name all install_os
 ```
 
 ### Installing storage nodes
-You do it.
+
+From Management pod
+```bash
+export ENVNAME="be-g8-3"
+ssh -A ovs # this will get you on the ovs pod (specially prepared to have systemd)  
+# lets generate the config
+cd /opt/code/github/0-complexity/openvcloud_installer/scripts/ovs/
+python3 ovs_configurator.py --config_path=/opt/cfg/system/system-config.yaml
+# clone ovs autoinstaller
+mkdir /opt/code/github/openvstorage/
+cd /opt/code/github/openvstorage
+git clone git@github.com:openvstorage/dev_ops.git -b 4.1.4
+mkdir -p dev_ops/Ansible/openvstorage/playbooks/inventories/$ENVNAME/group_vars
+# copy our generated files
+cp /opt/code/github/0-complexity/openvcloud_installer/scripts/ovs/output/{inventory,setup.json} /opt/code/github/openvstorage/dev_ops/Ansible/openvstorage/playbooks/inventoeries/$ENVNAME/
+cp /opt/code/github/0-complexity/openvcloud_installer/scripts/ovs/output/all /opt/code/github/openvstorage/dev_ops/Ansible/openvstorage/playbooks/inventoeries/$ENVNAME/group_vars
+# preinstall script which installs ansible
+bash /opt/code/github/openvstorage/dev_ops/Ansible/openvstorage/bin/pre-install.sh
+cd /opt/code/github/openvstorage/dev_ops/Ansible/playbooks/
+ansible-playbook -i inventories/$ENVNAME/inventory preInstall.yml
+# this last step is not very bullet proof and might need to be repeated
+ansible-playbook -i inventories/$ENVNAME/inventory full_setup.yml
+
+```
 
 ### Installing JumpScale services on nodes
 
@@ -86,7 +109,7 @@ You need to be in management pod to perform this operation.
 The following command will install JumpScale services on all physical nodes(controllers, cpu, storage):
 
 ```bash
-./installer --config {config file} node jsaction --name all install
+installer --config {config file} node jsaction --name all install
 ```
 
 Following the success of these steps the environment should be ready to use.
