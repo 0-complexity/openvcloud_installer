@@ -732,6 +732,7 @@ class Cluster(AbstractConfig):
         self.kubectl('apply -f {}'.format(loc))
 
     def upgrade(self):
+        self.prepare_templates()
         self._apply_nginx('upgrader')
 
     def revert(self):
