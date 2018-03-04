@@ -264,7 +264,7 @@ class Portal(object):
         version_dict = self.scl.version.searchOne({'name': data_obj['version']})
         version.load(version_dict)
         if not version_dict:
-            version.creationTime = j.base.time.getTimeEpoch()
+            version.updateTime = j.base.time.getTimeEpoch()
         version.name = data_obj['version']
         version.url = data_obj['url']
         version.manifest = data_str

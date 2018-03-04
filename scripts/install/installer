@@ -80,6 +80,11 @@ def get_pnodes(config, versions=None, controllers=True):
         pnodes.append(JumpScale7(config, pnode['name'], versions))
     return pnodes
 
+def portal_api_call(endpoint, config):
+    url = 'http://portal:82/restmachine/%s' % endpoint
+    response = requests.post(url, headers={'Authorization': 'authkey {0}'.format(config['environment']['password'])})
+    return response
+
 def pnode_action(pnodes, action):
     futures = {}
     running_futures = {}
@@ -1132,6 +1137,9 @@ def upgrade_cluster(ctx, development):
         cluster.update()
         pnode_action(pnodes, 'update')
         pnode_action(pnodes, 'start')
+        response = portal_api_call('/restmachine/cloudbroker/grid/run_upgrade_script', ctx.obj['config'])
+        if response.status_code != 200:
+            raise RuntimeError("%s: \n%s" % (response.content, response.status_code))
         print('Updating env done.')
     except Exception as e:
         cluster.revert()
