@@ -116,7 +116,7 @@ def pnode_action(pnodes, action):
                     else:
                         status[name] = '{}Finished{}'.format(COLORGREEN, RESET_COLOR)
                         print_status(True)
-                        running_futures.pop(name)
+                    running_futures.pop(name)
             return future_error, messages
 
         while running_futures:
