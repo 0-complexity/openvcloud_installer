@@ -16,6 +16,7 @@
             var doneMessage = '';
             var url = "/logs/?" + new Date().getTime();
             var ansi_up = new AnsiUp;
+            var elem = document.getElementById('logs');
             function send(){
                 $.ajax({
                 url: url,
@@ -25,14 +26,20 @@
                 success: function(data, status, resp) {
                     range = resp.getResponseHeader('content-range');
                     seeker = parseInt(range.split('/')[1]);
-                    if (data.search('Updating env done.') == -1 && data.search('Failed to update env.') == -1){
-                        data = ansi_up.ansi_to_html(data);
-                        $('#logs').append(data);
-                        bottom();
+                    var isdone = resp.getResponseHeader('X-Production');
+                    var scrolldown = false;
+                    data = ansi_up.ansi_to_html(data);
+                    if (elem.scrollTop == elem.scrollTopMax) {
+                        scrolldown = true;
+                    }
+                    $('#logs').append(data);
+                    if (scrolldown) {
+                        elem.scrollTop = elem.scrollTopMax;
+                    }
+                    if (isdone != 'true'){
                         setTimeout(send, 5000);
                     } else {
-                        doneMessage = data;
-                        finish();
+                        $("#redirect").toggleClass("hidden", false);
                     }
                 },
                 error: function(resp, status, error) {
@@ -46,28 +53,6 @@
                 });
             }
             send();
-            function bottom() {
-                var elem = document.getElementById('logs');
-                elem.scrollTop = elem.scrollHeight;
-            }
-            function finish(){
-                $.ajax({
-                url: "/testdone",
-                success: function(data, status, resp) {
-                    setTimeout(finish, 2000);
-                },
-                error: function(resp, status, error) {
-                    if (resp.status == 404 ) {
-                        $('#logs').append(doneMessage);
-                        bottom();
-                        $("#redirect").toggleClass("hidden", false);
-                        return;
-                    }
-                    setTimeout(finish, 2000);
-                }
-    
-                });
-            }
         });
 </script>
 </head>
