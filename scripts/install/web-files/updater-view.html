@@ -13,10 +13,20 @@
 <script>
         $( document ).ready(function() {
             var seeker = 0;
+            var hitupgrade = false;
             var doneMessage = '';
             var url = "/logs/";
             var ansi_up = new AnsiUp;
             var elem = document.getElementById('logs');
+            function isdone(resp) {
+                var isproduction = resp.getResponseHeader('X-Production') == 'true';
+                if (isproduction) {
+                    return hitupgrade;
+                } else {
+                    hitupgrade = true;
+                }
+                return false;
+            }
             function send(){
                 $.ajax({
                 url: url,
@@ -24,15 +34,13 @@
                     'Range':'bytes=' + seeker + '-'
                 },
                 success: function(data, status, resp) {
-                    range = resp.getResponseHeader('content-range');
+                    range = resp.getResponseHeader('content-range') || '0/0';
                     seeker = parseInt(range.split('/')[1]);
-                    var isdone = resp.getResponseHeader('X-Production');
-                    var scrolldown = false;
                     data = ansi_up.ansi_to_html(data);
                     $('#logs').append(data);
                     elem.scrollTop = elem.scrollHeight;
                    
-                    if (isdone != 'true'){
+                    if (!isdone(resp)){
                         setTimeout(send, 5000);
                     } else {
                         $("#redirect").toggleClass("hidden", false);
@@ -41,7 +49,7 @@
                 error: function(resp, status, error) {
                     if (resp.status != 416 && resp.status != 404 && resp.status != 403 && resp.status != 0) {
                         $('#logs').append('\n' + resp.status + error);
-                    } else if ( resp.getResponseHeader('X-Production') == 'true' ) {
+                    } else if (isdone(resp)) {
                         $("#redirect").toggleClass("hidden", false);
                         return;
                     }
