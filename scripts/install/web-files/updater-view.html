@@ -14,7 +14,7 @@
         $( document ).ready(function() {
             var seeker = 0;
             var doneMessage = '';
-            var url = "/logs/?" + new Date().getTime();
+            var url = "/logs/";
             var ansi_up = new AnsiUp;
             var elem = document.getElementById('logs');
             function send(){
@@ -39,9 +39,11 @@
                     }
                 },
                 error: function(resp, status, error) {
-                    if (resp.status != 416 && resp.status != 404 && resp.status != 403 ) {
-                        url = "/logs/?" + new Date().getTime();
+                    if (resp.status != 416 && resp.status != 404 && resp.status != 403 && resp.status != 0) {
                         $('#logs').append('\n' + resp.status + error);
+                    } else if ( resp.getResponseHeader('X-Production') == 'true' ) {
+                        $("#redirect").toggleClass("hidden", false);
+                        return;
                     }
                     setTimeout(send, 5000);
                 }
