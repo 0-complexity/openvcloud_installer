@@ -112,7 +112,6 @@ def pnode_action(pnodes, action):
                 if future.done():
                     if future.exception():
                         messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
-                        running_futures.clear()
                         future_error = future.exception()
                     else:
                         status[name] = '{}Finished{}'.format(COLORGREEN, RESET_COLOR)
