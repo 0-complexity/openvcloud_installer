@@ -19,7 +19,7 @@
             var ansi_up = new AnsiUp;
             var elem = document.getElementById('logs');
             function isdone(resp) {
-                var isproduction = resp.getResponseHeader('X-Production') == 'true';
+                var isproduction = resp.getResponseHeader('X-Production') != 'false';
                 if (isproduction) {
                     return hitupgrade;
                 } else {
@@ -30,11 +30,12 @@
             function send(){
                 $.ajax({
                 url: url,
+                cache: false,
                 headers: {
                     'Range':'bytes=' + seeker + '-'
                 },
                 success: function(data, status, resp) {
-                    range = resp.getResponseHeader('content-range') || '0/0';
+                    var range = resp.getResponseHeader('content-range') || '0/0';
                     seeker = parseInt(range.split('/')[1]);
                     data = ansi_up.ansi_to_html(data);
                     $('#logs').append(data);
