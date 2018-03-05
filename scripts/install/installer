@@ -3,7 +3,6 @@ from js9 import j
 import netaddr
 import sys
 import click
-import itertools
 import os
 import requests
 import random
@@ -119,13 +118,16 @@ def pnode_action(pnodes, action):
                     running_futures.pop(name)
             return future_error, messages
 
+        haserrors = False
         while running_futures:
             time.sleep(5)
             error, msg = update_status()
+            if error is not None:
+                haserrors = True
             results += msg
-        print(results)
-        if error:
-            raise error
+        log(results)
+        if haserrors:
+            raise RuntimeError("Failed to apply {}".format(action))
 
 def prepare_config(config_path):
     def _helper(nodes):
