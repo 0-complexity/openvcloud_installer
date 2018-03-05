@@ -50,6 +50,7 @@ The command `cluster writeconfig` is used to create `configmap` from the specifi
 installer --config system-config.yaml cluster writeconfig 
 ```
 
+The command `cluster updatedomain` is used to update the ssl certificates and the domain of the environment. This is done by updating the `environemnt` section in the passed config file: To update the certificates the `ssl` section needs to be updated with the new locations that contains the certificates and the `subdomain` and `basedomain` for the updated domain.
 
 ### node
 

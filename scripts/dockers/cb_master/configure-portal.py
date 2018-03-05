@@ -262,8 +262,11 @@ class Portal(object):
             data_obj = yaml.load(data_str)
         version = self.scl.version.new()
         version_dict = self.scl.version.searchOne({'name': data_obj['version']})
+        self.scl.updateSearch({'status': 'CURRENT'}, {'$set': {'status': 'PREVIOUS'}})
         version.load(version_dict)
         if not version_dict:
+            version.creationTime = j.base.time.getTimeEpoch()
+        else:
             version.updateTime = j.base.time.getTimeEpoch()
         version.name = data_obj['version']
         version.url = data_obj['url']

@@ -60,7 +60,7 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/nginx.conf
           subPath: nginx.conf
-        - name: root-certs
+        - name: certs
           mountPath: /opt/cfg/nginx/ssl/
           readOnly: true
       volumes:
@@ -85,6 +85,7 @@ spec:
           repository: "https://docs.greenitglobe.com/binary/web_python.git"
       - name: nginx-config
         emptyDir: {}
-      - name: root-certs
-        secret:
-          secretName: root-certs
+      - name: certs
+          hostPath:
+            path: /var/ovc/ssl/
+            type: Directory

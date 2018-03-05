@@ -212,7 +212,7 @@ def prepare_config(config_path):
     j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
     return config
 
-def get_versions(version=None, url=None):
+def get_versions(config, version=None, url=None):
     """
     Loads the version manifests either from the existing cluster or downloads it from the provided url
     param version ,, str version number to get from default 0-complexity/home/manifests location
@@ -234,9 +234,8 @@ def get_versions(version=None, url=None):
 
     if not version:
         if not url:
-            if 'KUBERNETES_SERVICE_PORT' not in local_prefab.bash.env:
-                raise RuntimeError('Cannot run outside of management pod without version or url being provided.')
-            error_code, versions, err = local_prefab.core.run('kubectl get configmap versions-manifest -o json', die=False, showout=False)
+            first_node = get_pnodes(config, controllers=True)[0].prefab
+            error_code, versions, err = first_node.core.run('kubectl get configmap versions-manifest -o json', die=False, showout=False)
             if error_code != 0:
                 if 'NotFound' in err:
                     raise RuntimeError('configmap manifest does not exist , version needs to be passed during deploy cluster to be registered.')
@@ -648,6 +647,17 @@ class Cluster(AbstractConfig):
         self.scripts_dir = '{}/kuberesources/'.format(REPO_PATH)
         self.development = development
 
+    def write_certificates(self):
+        log('Writing certificates')
+        copiedpaths = {}
+        ssldir = '/var/ovc/ssl/'
+        for key, value in self.config['environment']['ssl'].items():
+            path = os.path.join(value['path'], '')
+            if path not in copiedpaths:
+                for node in self.nodes:
+                    node.core.upload(path, ssldir)
+                copiedpaths[path] = ssldir
+
     def install_kubernetes_cluster(self):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
@@ -696,16 +706,7 @@ class Cluster(AbstractConfig):
             for directory in directories:
                 node.core.dir_ensure(directory['path'], mode='777')
 
-        log('Writing certificates')
-        copiedpaths = {}
-        ssldir = '/var/ovc/ssl/'
-        for key, value in self.config['environment']['ssl'].items():
-            path = os.path.join(value['path'], '')
-            if path not in copiedpaths:
-                for node in self.nodes:
-                    node.core.upload(path, ssldir)
-                copiedpaths[path] = ssldir
-
+        self.write_certificates()
         self.install_teleport()
         self.configure_keys()
         self.kube_client_apply()
@@ -983,7 +984,7 @@ def cli(ctx, config, version, url, loglevel):
         raise j.exceptions.Input('Please specify a config file')
     config = prepare_config(config)
     ctx.obj['config'] = config
-    ctx.obj['versions'] = get_versions(version, url)
+    ctx.obj['versions'] = get_versions(config, version, url)
 @cli.group()
 def cluster():
     pass
@@ -1040,7 +1041,6 @@ def node_jsaction(ctx, name, action):
     """
     Execute command for node
     """
-    import ipdb; ipdb.set_trace()
     if name != 'all' and ',' not in name:
         cluster = PNode(ctx.obj['config'], name, ctx.obj['versions'])
         getattr(cluster, action)()
@@ -1157,6 +1157,22 @@ def upgrade_cluster(ctx, development):
         logging.error('Error:', exc_info=True)
         log('Failed to update env.')
 
+@cluster.command('updatedomain', help='Update the environment certificates and domain')
+@click.pass_context
+def cluster_updatedomain(ctx):
+    config = ctx.obj['config']
+    cluster = Cluster(config, ctx.obj['versions'])
+    cluster.verify_certificates()
+    cluster.write_certificates()
+    cluster.write_system_config()
+    cluster.kubectl('delete deploy nginx')
+    cluster.kubectl('delete deploy portal')
+    template_path = cluster.scripts_dir + '{}'
+    cluster.apply_template(template_path.format('nginx'), 'deployment')
+    cluster.apply_template(template_path.format('portal'), 'deployment')
+    cluster.install_teleport()
+    pnodes = get_pnodes(config, versions=ctx.obj['versions'], storage=True)
+    pnode_action(pnodes, 'patch_ovs')
 
 @storage.command("applyconfig", help="Apply storage config")
 @click.pass_context
