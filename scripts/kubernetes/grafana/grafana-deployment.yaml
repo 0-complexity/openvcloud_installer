@@ -45,6 +45,10 @@ spec:
           mountPath: /var/lib/grafana/dashboards
         - name: grafana-persistant
           mountPath: /var/lib/grafana
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "grafana-cli admin reset-admin-password --homepath=/usr/share/grafana --config=/etc/grafana/grafana.ini admin"]
       volumes:
       - name: grafana-config
         emptyDir: {}
