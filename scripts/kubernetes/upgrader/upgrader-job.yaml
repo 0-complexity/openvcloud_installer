@@ -86,6 +86,6 @@ spec:
       - name: nginx-config
         emptyDir: {}
       - name: certs
-          hostPath:
-            path: /var/ovc/ssl/
-            type: Directory
+        hostPath:
+          path: /var/ovc/ssl/
+          type: Directory
