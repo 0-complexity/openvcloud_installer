@@ -6,7 +6,6 @@ This is a Documentation of the installation steps to setup an ovc cluster, pleas
 
 - A JumpScale 9 installation(Preferably use docker image `openvcloud/js9`, otherwise see [docs](https://github.com/Jumpscale/bash) for installation)
 - Three nodes for deploying the cluster
-- Three nodes for deploying the cluster
 - Additional nodes for cpu/storage as required. 
 - For each node the user needs to have credentials to establish a SSH connection
 - Swap needs to be off on each node

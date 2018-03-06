@@ -1,6 +1,9 @@
-FROM jumpscale/ays9nightly
-RUN mkdir -p /opt/code/github/jumpscale/ && \
-    git clone https://github.com/Jumpscale/core9 -b development /opt/code/github/jumpscale/core9 && \
-    git clone https://github.com/Jumpscale/lib9 -b development /opt/code/github/jumpscale/lib9 && \
-    git clone https://github.com/Jumpscale/prefab9 -b development /opt/code/github/jumpscale/prefab9 && \
-    js9 'j.tools.prefab.local.virtualization.kubernetes.install_kube_client(location="/usr/local/bin/kubectl")'
+FROM ubuntu:16.04
+RUN apt-get update && \
+    apt-get install -y curl sudo
+ENV JS9BRANCH=master \
+    LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+RUN touch /tmp/zutils.log
+RUN curl https://raw.githubusercontent.com/Jumpscale/core9/master/install.sh?$RANDOM > /tmp/install_js9.sh;bash /tmp/install_js9.sh
+RUN js9 'j.tools.prefab.local.virtualization.kubernetes.install_kube_client(location="/usr/local/bin/kubectl")'
