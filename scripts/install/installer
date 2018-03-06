@@ -217,9 +217,8 @@ def get_versions(config, version=None, url=None):
     """
     Loads the version manifests either from the existing cluster or downloads it from the provided url
     param version ,, str version number to get from default 0-complexity/home/manifests location
-    param url ,, raw url to version-manifests yaml file 
+    param url ,, raw url to version-manifests yaml file
     """
-    local_prefab = j.tools.prefab.local
     def download_load_yaml(url):
         tmpdir = j.tools.prefab.local.core.file_get_tmp_path()
         j.tools.prefab.local.core.dir_ensure(tmpdir)
@@ -243,7 +242,7 @@ def get_versions(config, version=None, url=None):
                 raise RuntimeError(err)
             versions = j.data.serializer.yaml.loads(j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml'])
         else:
-            versions = download_load_yaml(url)    
+            versions = download_load_yaml(url)
     else:
         url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yml'.format(version)
         versions = download_load_yaml(url)
@@ -257,13 +256,9 @@ def get_versions(config, version=None, url=None):
             versions['ovcversion'] = repo['target'].get('branch', repo['target'].get('tag', version))
     return versions
 
-def get_controller_management_ips(config):
+def get_controller_ips(config, iptype='management'):
     for host in config['controller']['hosts']:
-        yield get_ipaddress(host['management']['ipaddress'])
-
-def get_controller_public_ips(config):
-    for host in config['controller']['hosts']:
-        yield get_ipaddress(host['fallback']['ipaddress'])
+        yield get_ipaddress(host[iptype]['ipaddress'])
 
 class AbstractConfig:
     def __init__(self, config, versions=None):
@@ -282,7 +277,7 @@ class AbstractConfig:
     def nodes(self):
         if self._nodes is None:
             nodes = []
-            for address in get_controller_public_ips(self.config):
+            for address in get_controller_ips(self.config, 'backplane'):
                 executor = j.tools.executor.getSSHBased(address, usecache=False)
                 nodes.append(j.tools.prefab.get(executor))
             self._nodes = nodes
@@ -380,7 +375,8 @@ class Node(AbstractConfig):
         self.config = config
         self.password = config['environment']['password']
         self.gid = config['environment']['grid']['id']
-        self.managementips = list(get_controller_management_ips(config))
+        self.managementips = list(get_controller_ips(config, 'management'))
+        self.backplaneips = list(get_controller_ips(config, 'backplane'))
         self.fqdn = '{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
         self.iyourl = 'https://itsyou.online/'
 
@@ -481,7 +477,7 @@ class JumpScale7(Node):
             'instance.param.unixsocket': '0'
         }
         self.ays_install('redis', instance='system', data=redisdata)
-        masterips = ','.join(self.managementips)
+        masterips = ','.join(self.backplaneips)
 
         osisclientdata = {
             'param.osis.client.addr': masterips,
@@ -667,9 +663,8 @@ class Cluster(AbstractConfig):
         for node in self.nodes:
             node.core.run("sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
 
-        managementips = list(get_controller_management_ips(self.config))
         k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(
-                self.nodes, unsafe=True, reset=True, external_ips=managementips)
+                self.nodes, unsafe=True, reset=True, external_ips=self.managementips)
         self.prefab.core.dir_ensure('/root/.kube')
         self.prefab.core.file_write(self.k8s_config, k8s_config_data)
         if not self.prefab.core.file_exists('/root/.kube/config'):
@@ -755,7 +750,7 @@ class Cluster(AbstractConfig):
         return template_loc
 
     def _reapply_service(self, name):
-        pubips = list(get_controller_public_ips(self.config))
+        pubips = list(get_controller_ips(self.config, 'fallback'))
         loc = self.write_service_template(name, pubips)
         self.kubectl('apply -f {}'.format(loc))
 
@@ -800,12 +795,12 @@ class Cluster(AbstractConfig):
 
         # add external ips to the specified services to expose to the internal network
         templates = ['agentcontroller', 'osis']
-        externalips = list(get_controller_management_ips(self.config))
+        externalips = list(get_controller_ips(self.config, 'backplane'))
         for template in templates:
             self.write_service_template(template, externalips)
         # add external ips to the specified services to expose to the internet
         pubtemplates = ['nginx', 'zero-access', 'management']
-        pubips = list(get_controller_public_ips(self.config))
+        pubips = list(get_controller_ips(self.config, 'fallback'))
         for template in pubtemplates:
             self.write_service_template(template, pubips)
         # add code to mount specdied repos for in developmnent mode
