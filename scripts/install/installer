@@ -794,12 +794,12 @@ class Cluster(AbstractConfig):
                 self.dump(template, data)
 
         # add external ips to the specified services to expose to the internal network
-        templates = ['agentcontroller', 'osis']
+        templates = ['agentcontroller', 'osis', 'management']
         externalips = list(get_controller_ips(self.config, 'backplane'))
         for template in templates:
             self.write_service_template(template, externalips)
         # add external ips to the specified services to expose to the internet
-        pubtemplates = ['nginx', 'zero-access', 'management']
+        pubtemplates = ['nginx', 'zero-access']
         pubips = list(get_controller_ips(self.config, 'fallback'))
         for template in pubtemplates:
             self.write_service_template(template, pubips)
