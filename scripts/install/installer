@@ -480,21 +480,21 @@ class JumpScale7(Node):
         masterips = ','.join(self.backplaneips)
 
         osisclientdata = {
-            'param.osis.client.addr': masterips,
-            'param.osis.client.login': 'root',
-            'param.osis.client.passwd': self.password,
-            'param.osis.client.port': '5544',
+            'instance.param.osis.client.addr': masterips,
+            'instance.param.osis.client.login': 'root',
+            'instance.param.osis.client.passwd': self.password,
+            'instance.param.osis.client.port': '5544',
         }
-        self.ays_install('osis_client', instance='main', data=osisclientdata)
-        self.ays_install('osis_client', instance='jsagent', data=osisclientdata)
+        self.ays_install('osis_client', instance='main', data=osisclientdata, reinstall=True)
+        self.ays_install('osis_client', instance='jsagent', data=osisclientdata, reinstall=True)
 
         agentcontrollerdata = {
-            'agentcontroller.client.addr': masterips,
-            'agentcontroller.client.login': 'node',
-            'agentcontroller.client.passwd': '',
-            'agentcontroller.client.port': '4444'
+            'instance.agentcontroller.client.addr': masterips,
+            'instance.agentcontroller.client.login': 'node',
+            'instance.agentcontroller.client.passwd': '',
+            'instance.agentcontroller.client.port': '4444'
         }
-        self.ays_install('agentcontroller_client', instance='main', data=agentcontrollerdata)
+        self.ays_install('agentcontroller_client', instance='main', data=agentcontrollerdata, reinstall=True)
 
         agentdata = {
                 'agentcontroller.connection': 'main',
@@ -563,12 +563,12 @@ class JumpScale7(Node):
 
     def install_portal_client(self):
         portal_client = {
-            'param.addr' : self.fqdn,
-            'param.port': '443',
-            'param.secret': self.password,
+            'instance.param.addr' : self.fqdn,
+            'instance.param.port': '443',
+            'instance.param.secret': self.password,
         }
 
-        self.ays_install('portal_client', domain='jumpscale', instance='main', data=portal_client)
+        self.ays_install('portal_client', domain='jumpscale', instance='main', data=portal_client, reinstall=True)
 
     def configure_iyo_api_key(self, apikey):
         # TODO: check if we can do this in js9
@@ -1042,7 +1042,7 @@ def node_jsaction(ctx, name, action):
         getattr(cluster, action)()
     else:
         if name == 'all':
-            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], cpu=True, storage=True, controlers=True)
+            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], cpu=True, storage=True, controllers=True)
         else:
             pnodes = [PNode(ctx.obj['config'], pname, ctx.obj['versions']) for pname in name.split(',')]
         pnode_action(pnodes, action)
