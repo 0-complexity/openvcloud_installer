@@ -266,6 +266,8 @@ class AbstractConfig:
         self._prefab = None
         self._nodes = None
         self.versions = versions
+        self.backplaneips = list(get_controller_ips(config, 'backplane'))
+        self.managementips = list(get_controller_ips(config, 'management'))
 
     @property
     def prefab(self):
@@ -375,8 +377,6 @@ class Node(AbstractConfig):
         self.config = config
         self.password = config['environment']['password']
         self.gid = config['environment']['grid']['id']
-        self.managementips = list(get_controller_ips(config, 'management'))
-        self.backplaneips = list(get_controller_ips(config, 'backplane'))
         self.fqdn = '{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
         self.iyourl = 'https://itsyou.online/'
 
