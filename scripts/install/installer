@@ -206,9 +206,9 @@ def prepare_config(config_path):
     cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
     _, public_key, _ = j.sal.process.execute(cmd, showout=False)
     config['ssh']['public-key'] = public_key
-    j.clients.ssh.start_ssh_agent()
+    j.clients.sshkey.sshagent_check()
     if j.sal.fs.exists('~/.ssh/id_rsa'):
-        j.clients.ssh.load_ssh_key('~/.ssh/id_rsa')
+        j.clients.sshkey.key_load('~/.ssh/id_rsa')
     key = config['ssh']['private-key']
     j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
     return config
@@ -280,8 +280,7 @@ class AbstractConfig:
         if self._nodes is None:
             nodes = []
             for address in get_controller_ips(self.config, 'backplane'):
-                executor = j.tools.executor.getSSHBased(address, usecache=False)
-                nodes.append(j.tools.prefab.get(executor))
+                nodes.append(j.tools.prefab.getFromSSH(address))
             self._nodes = nodes
         return self._nodes
 
@@ -974,7 +973,7 @@ class PNode(JumpScale7):
 @click.option('--loglevel', default=50, help='Set loglevel', type=int)
 @click.pass_context
 def cli(ctx, config, version, url, loglevel):
-    j.logger.set_level(loglevel)
+    j.logger.handlers_level_set(loglevel)
     ctx.obj = {}
     if not config:
         raise j.exceptions.Input('Please specify a config file')
