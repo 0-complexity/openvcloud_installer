@@ -103,13 +103,13 @@ def get_pnodes(config, versions=None, controllers=False, cpu=False, storage=Fals
     pnodes = []
     if controllers:
         for host in config['controller']['hosts']:
-            pnodes.append(JumpScale7(config, host['hostname'], versions))
+            pnodes.append(PNode(config, host['hostname'], versions))
     if cpu:
         for pnode in config['nodes']['cpu']:
-            pnodes.append(JumpScale7(config, pnode['name'], versions))
+            pnodes.append(PNode(config, pnode['name'], versions))
     if storage:
         for pnode in config['nodes']['storage']:
-            pnodes.append(JumpScale7(config, pnode['name'], versions))
+            pnodes.append(PNode(config, pnode['name'], versions))
     return pnodes
 
 def portal_api_call(endpoint, config):
@@ -141,6 +141,8 @@ def pnode_action(pnodes, action):
                     if future.exception():
                         messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
                         future_error = future.exception()
+                        status[name] = '{}ERROR: details will follow{}'.format(ERROR_COLOR, RESET_COLOR)
+                        print_status(True)
                     else:
                         status[name] = '{}Finished{}'.format(COLORGREEN, RESET_COLOR)
                         print_status(True)
