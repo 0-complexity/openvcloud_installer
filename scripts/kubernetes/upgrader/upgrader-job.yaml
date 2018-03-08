@@ -79,7 +79,7 @@ spec:
           name: system-config
       - name: installer-volume
         gitRepo:
-          repository: "https://github.com/0-complexity/openvcloud_installer.git"
+          repository: "https://github.com/0-complexity/openvcloud_installer"
       - name: jslib-volume
         gitRepo:
           repository: "https://docs.greenitglobe.com/binary/web_python.git"

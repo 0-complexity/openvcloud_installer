@@ -44,7 +44,5 @@ spec:
           type: Directory
       - name: installer-volume
         gitRepo:
-          repository: "https://github.com/0-complexity/openvcloud_installer.git"
-
-
+          repository: "https://github.com/0-complexity/openvcloud_installer"
 

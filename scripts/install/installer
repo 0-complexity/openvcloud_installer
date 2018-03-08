@@ -24,6 +24,7 @@ metadata.openvcloud            =
     branch:'{ovcversion}',
     url:'git@github.com:0-complexity/openvcloud_ays',
 '''
+REPOREVISIONS = {}
 
 WHOAMI = '''
 email                          =
@@ -66,6 +67,34 @@ def print_status(clear=False):
                     eol=CLEAREOL
             )
             log(line)
+
+def get_revision(repo):
+    target = repo['target']
+    match = ''
+    if 'tag' in target:
+        match = 'tags/{}'.format(target['tag'])
+    elif 'branch' in target:
+        match = 'heads/{}'.format(target['branch'])
+    else:
+        raise RuntimeError("No tag or branch set on repo")
+    _, output, _ = j.sal.process.execute('git ls-remote {}'.format(repo['url']))
+    for line in output.splitlines():
+        if line.endswith(match):
+            return line.split()[0]
+
+
+def update_repo_volume(versions, repo):
+    url = repo['repository']
+    if url in REPOREVISIONS:
+        repo['revision'] = REPOREVISIONS[url]
+        return
+    for vrepo in versions['repos']:
+        if vrepo['url'] == url:
+            revision = get_revision(vrepo)
+            if revision:
+                repo['revision'] = revision
+                REPOREVISIONS[url] = revision
+            return
 
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
@@ -765,23 +794,20 @@ class Cluster(AbstractConfig):
 
     def prepare_templates(self):
         log('Preparing resources')
-        def write_deployment_template(template):
-            template_loc = '{dir}{name}/{name}-deployment.yaml'.format(dir=self.scripts_dir, name=template)
-            data = self.load(template_loc)
+        srcdir = '{}/scripts/kubernetes/'.format(REPO_PATH)
+
+        def patch_for_development(data):
             for container in data['spec']['template']['spec']['containers']:
                 volmounts = container.setdefault('volumeMounts', [])
                 volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/0-complexity', 'subPath': 'github/0-complexity'})
                 volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/jumpscale7', 'subPath': 'github/jumpscale7'})
             volumes = data['spec']['template']['spec'].setdefault('volumes', [])
             volumes.append({'name': 'code', 'hostPath': {'path': '/opt/code', 'type': 'Directory'}})
-            self.dump(template_loc, data)
 
-        self.first_node.core.upload('{}/scripts/kubernetes/'.format(REPO_PATH), self.scripts_dir)
-
-        # have to use ls as it is a remote directory i need to traverse
-        def change_container_images(template):
+        def update_template(template):
             types = ('Deployment', 'StatefulSet', 'Job')
-            data = self.load(template)
+            data = j.data.serializer.yaml.load(template)
+            changed = False
             if isinstance(data, dict) and data.get('kind') in types:
                 for conttype  in ('initContainers', 'containers'):
                     if conttype not in data['spec']['template']['spec']:
@@ -790,8 +816,20 @@ class Cluster(AbstractConfig):
                         #get image version from the self.versions dict loaded from 0-complexity/home
                         if container['image'] in self.versions['images']:
                             container['image'] = "{}:{}".format(container['image'], self.versions['images'][container['image']])
-                self.dump(template, data)
+                            changed = True
+                for volume in data['spec']['template']['spec'].get('volumes', []):
+                    repo = volume.get('gitRepo')
+                    if repo:
+                        update_repo_volume(self.versions, repo)
+                        changed = True
+                if data['spec']['template'].get('metadata', {}).get('labels', {}).get('app') in ['osis', 'agentcontroller', 'portal']:
+                    changed = True
+                    patch_for_development(data)
 
+                if changed:
+                    self.dump(template.replace(srcdir, self.scripts_dir), data)
+
+        self.first_node.core.upload(srcdir, self.scripts_dir)
         # add external ips to the specified services to expose to the internal network
         templates = ['agentcontroller', 'osis', 'management']
         externalips = list(get_controller_ips(self.config, 'backplane'))
@@ -802,15 +840,12 @@ class Cluster(AbstractConfig):
         pubips = list(get_controller_ips(self.config, 'fallback'))
         for template in pubtemplates:
             self.write_service_template(template, pubips)
-        # add code to mount specdied repos for in developmnent mode
+        # add code to mount specified repos for in developmnent mode
         if self.development:
-            for template in ['osis', 'agentcontroller', 'portal']:
-                write_deployment_template(template)
             for repo in DEV_REPOS:
                 self.clone_repo(repo)
-
-        for template in self.first_node.core.find(self.scripts_dir, pattern='*.yaml'):
-            change_container_images(template)
+        for template in j.tools.prefab.local.core.find(srcdir, pattern='*.yaml'):
+            update_template(template)
 
         stat_template = self.scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = self.load(stat_template)
@@ -980,6 +1015,7 @@ def cli(ctx, config, version, url, loglevel):
     config = prepare_config(config)
     ctx.obj['config'] = config
     ctx.obj['versions'] = get_versions(config, version, url)
+
 @cli.group()
 def cluster():
     pass

@@ -67,5 +67,5 @@ spec:
           type: Directory
         name: cgroup
       - gitRepo:
-          repository: https://github.com/0-complexity/openvcloud_installer.git
+          repository: https://github.com/0-complexity/openvcloud_installer
         name: installer-volume
