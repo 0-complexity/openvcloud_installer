@@ -68,7 +68,7 @@ def render(context, loader, filename):
         f.write(data)
 
 def is_mounted(disk):
-    if disk['mountpoint']:
+    if disk.get('mountpoint'):
         return True
     for child in disk.get('children', []):
         if is_mounted(child):
