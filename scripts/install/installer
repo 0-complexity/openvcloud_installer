@@ -11,6 +11,7 @@ import jsonschema
 import concurrent.futures.thread
 import logging
 import threading
+from functools import partial
 
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
@@ -665,6 +666,8 @@ class Cluster(AbstractConfig):
         for node in self.nodes:
             node.core.run("sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
 
+        # patch install_master to not use rlannel
+        self.prefab.virtualization.kubernetes.install_kube_masters = partial(self.prefab.virtualization.kubernetes.install_kube_masters, flannel=False, kube_cidr='10.244.0.0/16')
         k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(
                 self.nodes, unsafe=True, reset=True, external_ips=self.managementips)
         self.prefab.core.dir_ensure('/root/.kube')
@@ -839,11 +842,12 @@ class Cluster(AbstractConfig):
             node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
                                             cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
             node.apps.teleport.restart()
+            time.sleep(3)
             github = self.config['support']['github']
             teams = ['/'.join([team['org_name'], team['team_name']]) for team in github['teams']]
             _, resources, _ = node.core.run('tctl get github/%s' % node.core.hostname)
             if node.core.hostname in resources:
-                return
+                continue
             node.apps.teleport.apply_permissions(
                 name=node.core.hostname,
                 client_id=github['client_id'],
@@ -857,6 +861,7 @@ class Cluster(AbstractConfig):
         self.write_system_config()
 
         self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
+        self.kubectl('apply -f {path}/flannel/flannel.yml'.format(path=self.scripts_dir))
         deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
                        'portal', 'pxeboot', 'zero-access', 'management', 'ovs', 'controller-jsagent', 'nginx']
         statefulSets = ['mongo', 'syncthing']
