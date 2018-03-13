@@ -77,7 +77,7 @@ def is_mounted(disk):
 
 def get_node_disks(nodeip):
     prefab = j.tools.prefab.getFromSSH(nodeip)
-    rc, out = prefab.core.execute_bash('lsblk -b -J -o name,size,rota')
+    rc, out = prefab.core.execute_bash('lsblk -b -J -o name,size,rota,mountpoint')
     disks = []
     if rc == 0:
         disks = json.loads(out)['blockdevices']
