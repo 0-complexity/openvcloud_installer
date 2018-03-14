@@ -71,17 +71,11 @@ def print_status(clear=False):
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
 
-def get_pnodes(config, versions=None, controllers=False, cpu=False, storage=False):
+def get_pnodes(config, versions=None, roles=[]):
     pnodes = []
-    if controllers:
-        for host in config['controller']['hosts']:
-            pnodes.append(PNode(config, host['hostname'], versions))
-    if cpu:
-        for pnode in config['nodes']['cpu']:
-            pnodes.append(PNode(config, pnode['name'], versions))
-    if storage:
-        for pnode in config['nodes']['storage']:
-            pnodes.append(PNode(config, pnode['name'], versions))
+    for pnode in config['nodes']:
+        if set(roles).intersection(set(pnode['roles'])):
+            pnodes.append(JumpScale7(config, pnode['name'], versions))
     return pnodes
 
 def portal_api_call(endpoint, config):
@@ -181,7 +175,7 @@ def prepare_config(config_path):
             "sync": True
         }
     ]
-    config['controller']['directories'] = config['controller'].get('directories', []) + default_dirs
+    config['directories'] = config.get('directories', []) + default_dirs
     validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
     try:
         jsonschema.validate(config, validator)
@@ -203,9 +197,7 @@ def prepare_config(config_path):
 
     for key, value in config['network'].items():
         if 'network' in value:
-            for nodes in config['nodes'].values():
-                _helper(nodes)
-            _helper(config['controller']['hosts'])
+            _helper(config['nodes'])
     cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
     _, public_key, _ = j.sal.process.execute(cmd, showout=False)
     config['ssh']['public-key'] = public_key
@@ -237,7 +229,7 @@ def get_versions(config, version=None, url=None):
 
     if not version:
         if not url:
-            first_node = get_pnodes(config, controllers=True)[0].prefab
+            first_node = get_pnodes(config, roles=['controller'])[0].prefab
             error_code, versions, err = first_node.core.run('kubectl get configmap versions-manifest -o json', die=False, showout=False)
             if error_code != 0:
                 if 'NotFound' in err:
@@ -260,8 +252,9 @@ def get_versions(config, version=None, url=None):
     return versions
 
 def get_controller_ips(config, iptype='management'):
-    for host in config['controller']['hosts']:
-        yield get_ipaddress(host[iptype]['ipaddress'])
+    for node in config['nodes']:
+        if 'controller' in node['roles']:
+            yield get_ipaddress(node[iptype]['ipaddress'])
 
 class AbstractConfig:
     def __init__(self, config, versions=None):
@@ -271,6 +264,7 @@ class AbstractConfig:
         self.versions = versions
         self.backplaneips = list(get_controller_ips(config, 'backplane'))
         self.managementips = list(get_controller_ips(config, 'management'))
+        self._is_conv_env = None
 
     @property
     def prefab(self):
@@ -287,6 +281,20 @@ class AbstractConfig:
                 nodes.append(j.tools.prefab.get(executor))
             self._nodes = nodes
         return self._nodes
+
+    @property
+    def is_conv_env(self):
+        if self._is_conv_env is None:
+            nodes = self.config['nodes']
+            roles = {'controller', 'storage', 'cpu'}
+            for node in nodes:
+                roles_intersection = roles.intersection(set(node['roles']))
+                if len(roles_intersection) > 1 and 'controller' in node['roles']:
+                    self._is_conv_env = True
+                    break
+            else:
+                self._is_conv_env = False
+        return self._is_conv_env
 
     @property
     def first_node(self):
@@ -400,21 +408,14 @@ class Node(AbstractConfig):
     @property
     def node(self):
         if self._node is None:
-            for nodetype in ('cpu', 'storage'):
-                for node in self.config['nodes'][nodetype]:
-                    if node['name'] == self.name:
-                        self._nodetype = nodetype
-                        self._node = node
-                        return self._node
+            for node in self.config['nodes']:
+                if node['name'] == self.name:
+                    self._node = node
+                    break
             else:
-                for node in self.config['controller']['hosts']:
-                    if node['hostname'] == self.name:
-                        self._node = node
-                        self._nodetype = 'controller'
-                        break
-                else:
-                    raise LookupError("Failed to find node with name {}".format(self.name))
+                raise LookupError('Faild to find a node with name {}'.format(self.name))
         return self._node
+                
 
     @property
     def nodetype(self):
@@ -670,6 +671,14 @@ class Cluster(AbstractConfig):
         self.prefab.virtualization.kubernetes.install_kube_masters = partial(self.prefab.virtualization.kubernetes.install_kube_masters, flannel=False, kube_cidr='10.244.0.0/16')
         k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(
                 self.nodes, unsafe=True, reset=True, external_ips=self.managementips)
+        if self.is_conv_env:
+            pub_key = self.first_node.core.file_read('/root/.ssh/default.pub').strip()
+            # authorize non controller nodes
+            cpu_nodes = get_pnodes(self.config, role=['cpu'])
+            for node in cpu_nodes:
+                node.prefab.executor.sshclient.ssh_authorize('root', pub_key)
+                _, user, _ = self.first_node.core.run('whoami')
+                self.first_node.system.ssh.define_host(node.prefab.executor.sshclient.addr, user)
         self.prefab.core.dir_ensure('/root/.kube')
         self.prefab.core.file_write(self.k8s_config, k8s_config_data)
         if not self.prefab.core.file_exists('/root/.kube/config'):
@@ -702,7 +711,7 @@ class Cluster(AbstractConfig):
         self.clone_repo()
 
         log('Preparing directories')
-        directories = self.config['controller'].get('directories')
+        directories = self.config.get('directories')
         for node in self.nodes:
             for directory in directories:
                 node.core.dir_ensure(directory['path'], mode='777')
@@ -855,7 +864,7 @@ class Cluster(AbstractConfig):
                 teams=teams,
                 exposed_ip='{}.{}'.format(self.config['environment']['subdomain'], self.config['environment']['basedomain'])
             )
-
+    
     def kube_client_apply(self):
         self.prepare_templates()
         self.write_system_config()
@@ -864,6 +873,8 @@ class Cluster(AbstractConfig):
         self.kubectl('apply -f {path}/flannel/flannel.yml'.format(path=self.scripts_dir))
         deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
                        'portal', 'pxeboot', 'zero-access', 'management', 'ovs', 'controller-jsagent', 'nginx']
+        if self.is_conv_env:
+            deployments.remove('pxeboot')
         statefulSets = ['mongo', 'syncthing']
         for statefulSet in statefulSets:
             template_file = self.scripts_dir + statefulSet
@@ -1031,7 +1042,7 @@ def node_action(ctx, name, action):
         getattr(cluster, action)()
     else:
         if name == 'all':
-            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], cpu=True, storage=True)
+            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], roles=['cpu', 'storage'])
         else:
             pnodes = [PNode(ctx.obj['config'], pname, ctx.obj['versions']) for pname in name.split(',')]
         pnode_action(pnodes, action)
@@ -1049,7 +1060,7 @@ def node_jsaction(ctx, name, action):
         getattr(cluster, action)()
     else:
         if name == 'all':
-            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], cpu=True, storage=True, controllers=True)
+            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
         else:
             pnodes = [PNode(ctx.obj['config'], pname, ctx.obj['versions']) for pname in name.split(',')]
         pnode_action(pnodes, action)
@@ -1064,7 +1075,7 @@ def _node_update(ctx):
     Update all pnodes
     """
     config = ctx.obj['config']
-    pnodes = get_pnodes(config, ctx.obj['versions'], cpu=True, storage=True, controllers=True)
+    pnodes = get_pnodes(config, ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
     pnode_action(pnodes, 'update')
     pnode_action(pnodes, 'restart')
 
@@ -1146,7 +1157,7 @@ def upgrade_cluster(ctx, development):
     cluster = Cluster(config, ctx.obj['versions'], development)
     cluster.upgrade()
     try:
-        pnodes = get_pnodes(config, versions=ctx.obj['versions'], cpu=True, storage=True, controllers=True)
+        pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
         pnode_action(pnodes, 'stop')
         cluster.update()
         pnode_action(pnodes, 'update')
@@ -1174,14 +1185,14 @@ def cluster_updatedomain(ctx):
     cluster.apply_template(template_path.format('nginx'), 'deployment')
     cluster.apply_template(template_path.format('portal'), 'deployment')
     cluster.install_teleport()
-    pnodes = get_pnodes(config, versions=ctx.obj['versions'], storage=True)
+    pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['storage'])
     pnode_action(pnodes, 'patch_ovs')
 
 @storage.command("applyconfig", help="Apply storage config")
 @click.pass_context
 def storage_apply_config(ctx):
     config = ctx.obj['config']
-    pnodes = get_pnodes(config, versions=ctx.obj['versions'], storage=True)
+    pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['storage'])
     pnode_action(pnodes, 'patch_ovs')
 
 

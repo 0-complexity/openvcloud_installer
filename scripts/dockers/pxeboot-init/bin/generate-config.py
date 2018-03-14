@@ -31,20 +31,14 @@ dhcphosts file
 target = os.path.join(configroot, 'dhcphosts')
 
 with open(target, "w") as f:
-    for subgroup in ['cpu', 'storage']:
-        nodes = config['nodes'][subgroup]
-
-        f.write("#\n# %s\n#\n" % subgroup)
-
-        for node in nodes:
+    nodes = config['nodes']
+    roles = {'cpu', 'storage'}
+    for node in nodes: 
+        if roles.intersection(set(node['roles'])):
             f.write("%s,%s,infinite\n" % (node['management']['macaddress'].lower(), node['name']))
-
-        f.write("\n# %s (ipmi)\n" % subgroup)
-
-        for node in nodes:
             f.write("%s,%s,infinite\n" % (node['ipmi']['macaddress'].lower(), 'ipmi-%s' % node['name']))
 
-        f.write("\n")
+    f.write("\n")
 
 """
 hosts file
@@ -52,26 +46,18 @@ hosts file
 target = os.path.join(configroot, 'hosts')
 
 with open(target, "w") as f:
-    for subgroup in ['cpu', 'storage']:
-        nodes = config['nodes'][subgroup]
-
-        f.write("#\n# %s\n#\n" % subgroup)
-
-        nodenet = mgmtsubnet.split('.')
-
-        for node in nodes:
+    nodes = config['nodes']
+    nodenet = mgmtsubnet.split('.')
+    roles = {'cpu', 'storage'}
+    ipminet = ipmisubnet.split('.')
+    for node in nodes:
+        if roles.intersection(set(node['roles'])):
             ipaddr = ipaddr = "%s.%s.%s.%s" % (nodenet[0], nodenet[1], nodenet[2], node['ip-lsb'])
             f.write("%s %s.%s %s\n" % (ipaddr, node['name'], domain, node['name']))
-
-        f.write("\n# %s (ipmi)\n" % subgroup)
-
-        ipminet = ipmisubnet.split('.')
-
-        for node in nodes:
             ipaddr = "%s.%s.%s.%s" % (ipminet[0], ipminet[1], ipminet[2], node['ip-lsb'])
             f.write("%s %s.%s %s\n" % (ipaddr, 'ipmi-%s' % node['name'], domain, 'ipmi-%s' % node['name']))
 
-        f.write("\n")
+    f.write("\n")
 
 """
 dnsmasq and pxelinux
