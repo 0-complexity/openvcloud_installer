@@ -111,6 +111,6 @@ The following command will install JumpScale services on all physical nodes(cont
 installer --config {config file} node jsaction --name all install
 ```
 ```bash
-installer node jsaction --name ds1-ctrl-01,ds1-ctrl-02,ds1-ctrl-03 install
+installer node jsaction --name ctrl-01,ctrl-02,ctrl-03 install
 ```
 Following the success of these steps the environment should be ready to use.
