@@ -8,9 +8,6 @@ nodes:
   large:
     storage: 8
     cpu: 40
-  conv:
-    cpu: 4
-    storage: 4
 
 
 sizes:

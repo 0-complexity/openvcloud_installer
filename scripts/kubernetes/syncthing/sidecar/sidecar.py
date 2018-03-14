@@ -81,7 +81,7 @@ while True:
 
         with open('/opt/cfg/system/system-config.yaml') as file_discriptor :
             data  = yaml.load(file_discriptor)
-        for dirinfo in data['directories']:
+        for dirinfo in data['controller']['directories']:
             if dirinfo['sync']:
                 directory = dirinfo['path']
                 needschanges |= device['client'].add_folder('ovc-%s' % directory.split('/')[-1], directory, devlist)

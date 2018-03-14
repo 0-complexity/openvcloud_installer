@@ -93,6 +93,24 @@ ssh:
     -----END RSA PRIVATE KEY----- # key to be used for authorization on the nodes
   public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ # corresponding public key
 
+controller:
+  hosts: # Nodes in cluster info
+    - hostname: be-loc-4-ctrl-01
+      ip-lsb: 1
+      fallback:
+        ipaddress: 10.101.109.1/16
+        gateway: 10.101.0.1
+    - hostname: be-loc-4-ctrl-02
+      ip-lsb: 2
+      fallback:
+        ipaddress: 10.101.109.2/16
+        gateway: 10.101.0.1
+    - hostname: be-loc-4-ctrl-03
+      ip-lsb: 3
+      fallback:
+        ipaddress: 10.101.109.3/16
+        gateway: 10.101.0.1
+
 environment:
   grid:
     id: 109 # grid id
@@ -117,61 +135,26 @@ environment:
   ovs_version: 2.3.4
 
 nodes: # Environment nodes info
-  
-  - name: cpu-01
-    roles:
-      - cpu
-      - controller
-      - storage
-    ip-lsb: 11
-    fallback:
-      ipaddress: 10.101.109.1/16
-      gateway: 10.101.0.1
-    management:
-      macaddress: 0C:C4:7A:AC:11:36
-    ipmi:
-      username: ADMIN
-      password: ADMIN
-  - name: cpu-02
-    roles:
-      - cpu
-      - controller
-      - storage
-    ip-lsb: 12
-    fallback:
-      ipaddress: 10.101.109.1/16
-      gateway: 10.101.0.1
-    management:
-      macaddress: 0C:C4:7A:AC:11:36
-    ipmi:
-      username: ADMIN
-      password: ADMIN
-  - name: cpu-03
-    roles:
-      - storage
-      - cpu
-      - controller
-    ip-lsb: 41
-    fallback:
-      ipaddress: 10.101.109.1/16
-      gateway: 10.101.0.1
-    management:
-      macaddress: 2C:60:0C:BC:26:65
-    ipmi:
-      username: admin
-      password: admin
-
-  - name: cpu-04
-    roles:
-      - storage
-      - cpu
-      - controller
-    ip-lsb: 41
-    fallback:
-      ipaddress: 10.101.109.1/16
-      gateway: 10.101.0.1
-    management:
-      macaddress: 2C:60:0C:BC:26:65
-    ipmi:
-      username: admin
-      password: admin
+  cpu:
+    - name: cpu-01
+      ip-lsb: 11
+      management:
+        macaddress: 0C:C4:7A:AC:11:36
+      ipmi:
+        username: ADMIN
+        password: ADMIN
+    - name: cpu-02
+      ip-lsb: 12
+      management:
+        macaddress: 0C:C4:7A:AC:11:36
+      ipmi:
+        username: ADMIN
+        password: ADMIN
+  storage:
+    - name: stor-01
+      ip-lsb: 41
+      management:
+        macaddress: 2C:60:0C:BC:26:65
+      ipmi:
+        username: admin
+        password: admin
