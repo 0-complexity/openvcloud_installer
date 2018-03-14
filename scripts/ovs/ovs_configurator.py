@@ -47,9 +47,7 @@ def prepare_config(config_path):
 
     for key, value in config['network'].items():
         if 'network' in value:
-            for nodes in config['nodes'].values():
-                _helper(nodes)
-            _helper(config['controller']['hosts'])
+            _helper(config['nodes'])
     cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
     _, public_key, _ = j.sal.process.execute(cmd, showout=False)
     config['ssh']['public-key'] = public_key
@@ -122,6 +120,13 @@ def validate_node_disks(nodename, disks_specs, disks):
     if specs.get('nvme', {}).get('num', 0) > nvme_count:
         raise Exception('Not enough nvme disks on {}, found {}, required {}'.format(nodename, nvme_count, specs.get('nvme', {}).get('num', 0)))
 
+def get_nodes(config, role='cpu'):
+    nodes = []
+    for node in config['nodes']:
+        if role in node['roles']:
+            nodes.append(node)
+    return nodes
+
 @click.command()
 @click.option('--config_path', default='system-config.yaml', help='Path to system-config')
 def main(config_path):
@@ -130,8 +135,8 @@ def main(config_path):
     loader = jinja2.FileSystemLoader('./templates/{}'.format(env_type))
     nodes_ips = {}
     nodes = []
-    storage_nodes = config['nodes']['storage']
-    cpu_nodes = config['nodes']['cpu']
+    storage_nodes = get_nodes(config, 'storage')
+    cpu_nodes = get_nodes(config, 'cpu')
     cpucount = specs['nodes'][env_type]['cpu']
     storagecount = specs['nodes'][env_type]['storage']
     cachebackendcount = specs['disks']['cpu']['large_ssd']['num']
