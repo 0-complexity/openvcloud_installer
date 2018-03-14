@@ -194,7 +194,7 @@
         "items": {
           "$id": "/properties/nodes/items",
           "type": "object",
-          "required": ["name", "ip-lsb", "ipmi", "management"],
+          "required": ["name", "ip-lsb"],
           "properties": {
             "name": {
               "$id": "/properties/nodes/items/properties/name",

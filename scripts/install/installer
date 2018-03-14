@@ -155,6 +155,16 @@ def pnode_action(pnodes, action):
         if haserrors:
             raise RuntimeError("Failed to apply {}".format(action))
 
+
+def is_conv_env(config):
+    nodes = config['nodes']
+    roles = {'controller', 'storage', 'cpu'}
+    for node in nodes:
+        roles_intersection = roles.intersection(set(node['roles']))
+        if len(roles_intersection) > 1 and 'controller' in node['roles']:
+            return True
+    return False
+
 def prepare_config(config_path):
     def _helper(nodes):
         for node in nodes:
@@ -223,6 +233,12 @@ def prepare_config(config_path):
         elif validator == 'required':
             message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
         raise j.exceptions.RuntimeError(message)
+
+
+    is_conv = is_conv_env(config)
+    for node in config['nodes']:
+        if 'controller' not in node['roles'] and ('management' not in node or 'ipmi' not in node) and not is_conv:
+            raise j.exceptions.RuntimeError('Management and IPMI section required for node {}'.format(node['name']))
 
     for key, value in config['network'].items():
         if 'network' in value:
@@ -293,7 +309,7 @@ class AbstractConfig:
         self.versions = versions
         self.backplaneips = list(get_controller_ips(config, 'backplane'))
         self.managementips = list(get_controller_ips(config, 'management'))
-        self._is_conv_env = None
+        self.is_conv_env = is_conv_env(config)
 
     @property
     def prefab(self):
@@ -310,20 +326,6 @@ class AbstractConfig:
                 nodes.append(j.tools.prefab.get(executor))
             self._nodes = nodes
         return self._nodes
-
-    @property
-    def is_conv_env(self):
-        if self._is_conv_env is None:
-            nodes = self.config['nodes']
-            roles = {'controller', 'storage', 'cpu'}
-            for node in nodes:
-                roles_intersection = roles.intersection(set(node['roles']))
-                if len(roles_intersection) > 1 and 'controller' in node['roles']:
-                    self._is_conv_env = True
-                    break
-            else:
-                self._is_conv_env = False
-        return self._is_conv_env
 
     @property
     def first_node(self):
