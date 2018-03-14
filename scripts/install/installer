@@ -100,10 +100,11 @@ def update_repo_volume(versions, repo):
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
 
-def get_pnodes(config, versions=None, roles=[]):
+def get_pnodes(config, versions=None, roles=None):
     pnodes = []
+    roles = set(roles or [])
     for pnode in config['nodes']:
-        if set(roles).intersection(set(pnode['roles'])):
+        if roles.intersection(set(pnode['roles'])):
             pnodes.append(JumpScale7(config, pnode['name'], versions))
     return pnodes
 
@@ -413,7 +414,6 @@ class Node(AbstractConfig):
         super().__init__(config, versions)
         self.name = name
         self._node = None
-        self._nodetype = None
         self.managementip = get_ipaddress(self.node['management']['ipaddress'])
         self._prefab = None
         self.config = config
@@ -446,13 +446,6 @@ class Node(AbstractConfig):
             else:
                 raise LookupError('Faild to find a node with name {}'.format(self.name))
         return self._node
-                
-
-    @property
-    def nodetype(self):
-        if self._nodetype is None:
-            self.node
-        return self._nodetype
 
 
 class JumpScale7(Node):
@@ -553,11 +546,11 @@ class JumpScale7(Node):
         self.prefab.core.run(cmd)
 
     def install(self):
-        if self.nodetype == 'cpu':
+        if 'cpu' in self.node['roles']:
             self.install_compute_node()
-        elif self.nodetype == 'storage':
+        elif 'storage' in self.node['roles']:
             self.install_storage_node()
-        elif self.nodetype == 'controller':
+        elif 'controller' in self.node['roles']:
             self.install_controller()
 
     def install_controller(self):
@@ -705,7 +698,7 @@ class Cluster(AbstractConfig):
         if self.is_conv_env:
             pub_key = self.first_node.core.file_read('/root/.ssh/default.pub').strip()
             # authorize non controller nodes
-            cpu_nodes = get_pnodes(self.config, role=['cpu'])
+            cpu_nodes = get_pnodes(self.config, roles=['cpu'])
             for node in cpu_nodes:
                 node.prefab.executor.sshclient.ssh_authorize('root', pub_key)
                 _, user, _ = self.first_node.core.run('whoami')
