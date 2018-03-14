@@ -1,17 +1,23 @@
-# Influxdb application
-This directory creates , the influxdb deployment and service using the default influx configuration.
+# InfluxDB application
+
+This directory defines the Deployment and Service for InfluxDB using the default InfluxDB configuration.
+
 
 # Prerequisites
- - kubernetes cluster
- - kubectl or alternative kuberntes api client
- - the dir ```/var/ovc/influx``` needs to exist on all nodes
+
+- Kubernetes cluster
+- `kubectl` or alternative Kubernetes API client
+- the directory `/var/ovc/influx` needs to exist on all nodes
+
 
 # Installation
-To use , from within this directory run :
+
+To use from within this directory run:
+```bash
+kubectl appl -f .
 ```
- kubectl appl -f .
-```
-or directly:
-```
- kubectl appl -f <full-path>/
+
+Or directly:
+```bash
+kubectl appl -f <full-path>/
 ```

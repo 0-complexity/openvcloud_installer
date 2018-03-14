@@ -1,9 +1,8 @@
-# migaration using backup script
+# Migaration Script Details
 
 ## Prerequisites
 
-Prerquisites to be able to run this migration
- - An installed kubernetes cluster with ovc deployed docs for that are available [here](Installation.md).
+ - An installed Kubernetes cluster with ovc deployed docs for that are available [here](Installation.md).
  - A target to migrate from.
  - ssh/0-access access to one of the controller nodes
  
@@ -24,7 +23,7 @@ The script([here](../scripts/install/backup)) has the following flags:
 
 ### saving the data
 --------------------
-To save and upload the cluster data, on the old enviroment ovc_master docker run the command:
+To save and upload the cluster data, on the old environment ovc_master docker run the command:
 
 ```bash
 backup --save --url http://webdav-url/ 
@@ -35,10 +34,10 @@ This will create a snapshot of mongo and the billing files and add them to a fil
 
 ### loading the data
 --------------------
-To download and load the cluster data, on one of the new enviroment   controllers run the command:
+To download and load the cluster data, on one of the new environment   controllers run the command:
 
 ```bash
 backup --load --url http://webdav-url/  --date date-backup-made
 ```
 
-This will download a the tar file from the webdav into /tmp/backup.tar.gz expand the tar file and move the billings to the appropriate place as well as load the mongo database using a kubernetes job that will terminate once completed.
+This will download a the tar file from the webdav into /tmp/backup.tar.gz expand the tar file and move the billings to the appropriate place as well as load the mongo database using a Kubernetes job that will terminate once completed.

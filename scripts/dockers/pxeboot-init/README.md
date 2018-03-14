@@ -1,7 +1,8 @@
 # PXE Boot Initializer
+
 Here is where all the PXE Boot magic is created.
 
-This initializing container basicly creates the config files used by dnsmasq for the dhcp/dns/tftp
+This initializing container basically creates the config files used by dnsmasq for the DHCP/DNS/TFTP
 
 When the container starts, `bin/pxeboot-init` is called, copying `/source` to `/opt/pxeboot` (mount it to the host), and then run `bin/generate-config.py`
 
@@ -11,6 +12,6 @@ The configuration generator takes source from `/etc/global/system-config.yaml` a
 This docker depends on `openvcloud/pxeboot-base` which contains basic images already
 
 ## Creation
-```
+```bash
 docker build -t openvcloud/pxeboot-init .
 ```

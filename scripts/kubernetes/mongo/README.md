@@ -1,20 +1,26 @@
-# Influxdb application
-This directory creates , the mongodb mongo-replicaset statefulset and service with dynamic pod recognition , so if the replica number is changed the the set will adjust accordingly.
+# MongoDB application
+
+This directory defines the StatefulSet and Service for the MongoDB application.
+
+If the replica number is changed, the set will adjust accordingly.
 
 # Prerequisites
- - kubernetes cluster
- - kubectl or alternative kuberntes api client
- - You need your containers all cluster admin (for now), using rbac8 this can be done using the ```rbac.yaml``` file
-```
-kubectl apply -f ./../rbac.yaml
-```
+
+ - Kubernetes cluster
+ - `kubectl` or alternative Kubernetes API client
+ - You need your containers all cluster admin (for now), using rbac8 this can be done using the `rbac.yaml` file:
+    ```bash
+    kubectl apply -f ./../rbac.yaml
+    ```
 
 # Installation
-To use , from within this directory run :
+
+To use from within this directory run:
+```bash
+kubectl appl -f .
 ```
- kubectl appl -f .
-```
-or directly:
-```
- kubectl appl -f <full-path>/
+
+Or directly:
+```bash
+kubectl appl -f <full-path>/
 ```

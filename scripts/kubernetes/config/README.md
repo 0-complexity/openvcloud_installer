@@ -1,16 +1,21 @@
 # System wide configuration file
-The contents under data will be available as a yaml config-map that can be mounted as volume.
+
+The contents under data will be available as a ConfigMap that can be mounted as a volume.
+
 
 # Prerequisites
- - kubernetes cluster
- - kubectl or alternative kuberntes api client
+
+- Kubernetes cluster
+- `kubectl` or alternative Kubernetes API client
+
 
 # Installation
-To use , from within this directory run :
+To use from within this directory run:
+```bash
+kubectl appl -f .
 ```
- kubectl appl -f .
-```
-or directly:
-```
- kubectl appl -f <full-path>/system-config.yaml
+
+Or directly:
+```bash
+kubectl appl -f <full-path>/system-config.yaml
 ```

@@ -1,2 +1,3 @@
 # Slightcar (Light Sidecar)
-Light docker image for base sidecar project for openvcloud
+
+Light Docker image for base sidecar project for OpenvCloud

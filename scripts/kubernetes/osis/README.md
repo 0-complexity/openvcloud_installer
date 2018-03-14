@@ -1,18 +1,24 @@
-# Osis application
-This creates the osis deployment and service.
+# OSIS application
+
+This directory defines the Deployment and Service for the OSIS application.
+
 
 # Prerequisites
- - kubernetes cluster
- - kubectl or alternative kuberntes api client
- - applying the mongocluster
- - **dev**:  Building the docker image in  ```openvcloud_installer/scripts/dockers/cb_master```
+
+- Kubernetes cluster
+- `kubectl` or alternative Kubernetes API client
+- applying the MongoDB cluster directory: `openvcloud_installer/scripts/kubernetes/mongocluster`
+- **dev**: Building the Docker image in `openvcloud_installer/scripts/dockers/cb_master`
+
 
 # Installation
-To use , from within this directory run :
+
+To use from within this directory run:
+```bash
+kubectl appl -f .
 ```
- kubectl appl -f .
-```
-or directly:
-```
+
+Or directly:
+```bash
  kubectl appl -f <full-path>/
 ```
