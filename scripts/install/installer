@@ -546,20 +546,17 @@ class JumpScale7(Node):
         self.prefab.core.run(cmd)
 
     def install(self):
+        self.install_core()
+        roles = ['node']
+        if 'controller' in self.node['roles']:
+            roles.append('controllernode')
+        self.install_agent(roles)
         if 'cpu' in self.node['roles']:
             self.install_compute_node()
-        elif 'storage' in self.node['roles']:
+        if 'storage' in self.node['roles']:
             self.install_storage_node()
-        elif 'controller' in self.node['roles']:
-            self.install_controller()
-
-    def install_controller(self):
-        self.install_core()
-        self.install_agent(['node', 'controllernode'])
 
     def install_compute_node(self):
-        self.install_core()
-        self.install_agent()
         netinfo = {
             'vxbackend_vlan': self.config['network']['vxbackend']['vlan'],
             'vxbackend_ip': self.node['vxbackend']['ipaddress'],
@@ -625,8 +622,6 @@ class JumpScale7(Node):
         return apikey
 
     def install_storage_node(self):
-        self.install_core()
-        self.install_agent()
         self.install_portal_client()
 
         data_storage = {
