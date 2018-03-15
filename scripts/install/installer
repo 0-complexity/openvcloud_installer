@@ -1050,9 +1050,8 @@ def image(help='Image actions'):
 @click.option('--name', help='Image name')
 @click.pass_context
 def image_deploy(ctx, name):
-    storage = random.choice(ctx.obj['config']['nodes']['storage'])
-    jumpscale = JumpScale7(ctx.obj['config'], storage['name'], ctx.obj['versions'])
-    jumpscale.ays_install(name, 'openvcloud')
+    storage = random.choice(get_pnodes(ctx.obj['config'], roles=['storage']))
+    storage.ays_install(name, 'openvcloud')
 
 
 @node.command('action', help='Will apply the action on storage and cpu nodes')
