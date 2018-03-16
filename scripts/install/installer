@@ -16,6 +16,7 @@ from functools import partial
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
 REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
+DEV_TMPLS = ['osis', 'agentcontroller', 'portal']
 AYSCONFIG = '''
 metadata.jumpscale             =
     branch:'{version}',
@@ -808,6 +809,7 @@ class Cluster(AbstractConfig):
                 volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/jumpscale7', 'subPath': 'github/jumpscale7'})
             volumes = data['spec']['template']['spec'].setdefault('volumes', [])
             volumes.append({'name': 'code', 'hostPath': {'path': '/opt/code', 'type': 'Directory'}})
+            data['spec']['template']['spec']['nodeSelector'] = {'kubernetes.io/hostname': self.first_node.core.hostname}
 
         def update_template(template):
             types = ('Deployment', 'StatefulSet', 'Job')
@@ -827,9 +829,10 @@ class Cluster(AbstractConfig):
                     if repo:
                         update_repo_volume(self.versions, repo)
                         changed = True
-                if data['spec']['template'].get('metadata', {}).get('labels', {}).get('app') in ['osis', 'agentcontroller', 'portal']:
-                    changed = True
-                    patch_for_development(data)
+                if data['spec']['template'].get('metadata', {}).get('labels', {}).get('app') in DEV_TMPLS:
+                    if self.development:
+                        changed = True
+                        patch_for_development(data)
 
                 if changed:
                     self.dump(template.replace(srcdir, self.scripts_dir), data)
@@ -898,17 +901,20 @@ class Cluster(AbstractConfig):
         self.kubectl('apply -f {path}/flannel/flannel.yml'.format(path=self.scripts_dir))
         deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
                        'portal', 'pxeboot', 'zero-access', 'management', 'ovs', 'controller-jsagent', 'nginx']
-        if self.is_conv_env:
-            deployments.remove('pxeboot')
         statefulSets = ['mongo', 'syncthing']
+        if self.development:
+            deployments = DEV_TMPLS
+            statefulSets = []
+        elif self.is_conv_env:
+            deployments.remove('pxeboot')
         for statefulSet in statefulSets:
             template_file = self.scripts_dir + statefulSet
             self.apply_template(template_file, kind='statefulset')
         for deployment in deployments:
             template_file = self.scripts_dir + deployment
             self.apply_template(template_file, kind='deployment')
-
-        self.grafana_apply('{}/grafana'.format(self.scripts_dir))
+        if not self.development:
+            self.grafana_apply('{}/grafana'.format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
         log('Installing grafana')
@@ -949,10 +955,14 @@ class Cluster(AbstractConfig):
         self.kubectl('delete statefulset --all --namespace default')
         log('Deleting deployments')
         self.kubectl('delete deploy --all --namespace default')
+        self.kubectl('delete deploy --all --namespace development')
 
     def update(self):
         log('Restarting cluster...')
-        self.delete()
+        if self.development:
+            self.kubectl('delete deploy {}'.format(' '.join(DEV_TMPLS)), die=False)
+        else:
+            self.delete()
         self.kube_client_apply()
 
 class PNode(JumpScale7):
