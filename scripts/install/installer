@@ -218,23 +218,24 @@ def prepare_config(config_path):
     ]
     config['directories'] = config.get('directories', []) + default_dirs
     validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
-    try:
-        jsonschema.validate(config, validator)
-    except Exception as error:
-        message = getattr(error, "message", str(type(error)))
-        tree = ''
-        for seq in getattr(error, "path", list()):
-            if isinstance(seq, int):
-                tree += '/<sequence {}>'.format(seq)
-            else:
-                tree += "/{}".format(seq)
+    if not config['nodes'][0]['management'].get('ipaddress'):   
+        try:
+            jsonschema.validate(config, validator)
+        except Exception as error:
+            message = getattr(error, "message", str(type(error)))
+            tree = ''
+            for seq in getattr(error, "path", list()):
+                if isinstance(seq, int):
+                    tree += '/<sequence {}>'.format(seq)
+                else:
+                    tree += "/{}".format(seq)
 
-        validator = getattr(error, "validator")
-        if  validator == 'type':
-            message = '{msg} at {tree}'.format(msg=message, tree=tree)
-        elif validator == 'required':
-            message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
-        raise j.exceptions.RuntimeError(message)
+            validator = getattr(error, "validator")
+            if  validator == 'type':
+                message = '{msg} at {tree}'.format(msg=message, tree=tree)
+            elif validator == 'required':
+                message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
+            raise j.exceptions.RuntimeError(message)
 
 
     is_conv = is_conv_env(config)
