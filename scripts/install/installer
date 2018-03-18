@@ -79,7 +79,7 @@ def get_revision(repo):
         match = 'heads/{}'.format(target['branch'])
     else:
         raise RuntimeError("No tag or branch set on repo")
-    _, output, _ = j.sal.process.execute('git ls-remote {}'.format(repo['url']))
+    _, output, _ = j.sal.process.execute('git ls-remote {}'.format(repo['url']), showout=False)
     for line in output.splitlines():
         if line.endswith(match):
             return line.split()[0]
