@@ -32,6 +32,29 @@
           }
         }
       },
+      "alerta": {
+        "$id": "/properties/ssh",
+        "type": "object",
+        "required": ["api_key", "api_url"],
+        "properties": {
+          "api_key": {
+            "$id": "/properties/alerta/properties/api_key",
+            "type": "string",
+            "title": "The key Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": []
+          },
+          "api_url": {
+            "$id": "/properties/alerta/properties/api_url",
+            "type": "string",
+            "title": "The url Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": []
+          }
+        }
+      },
       "itsyouonline": {
         "$id": "/properties/itsyouonline",
         "type": "object",

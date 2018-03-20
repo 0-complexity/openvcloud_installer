@@ -117,7 +117,7 @@ environment:
   ovs_version: 2.3.4
 
 nodes: # Environment nodes info
-  
+
   - name: cpu-01
     roles:
       - cpu
@@ -175,3 +175,7 @@ nodes: # Environment nodes info
     ipmi:
       username: admin
       password: admin
+
+alerta:
+  api_key: 6541a651rv351aw512s
+  api_url: http://test.api/api
