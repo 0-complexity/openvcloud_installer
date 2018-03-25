@@ -61,6 +61,12 @@ class Portal(object):
             apikey = result.json()
         return apikey
 
+    def configure_portal_client(self):
+        portal_client_services = j.atyourservice.findServices(domain='jumpscale', name='portal_client')
+        for portal_client_service in portal_client_services:
+            portal_client_service.hrd.set('instance.param.addr', 'localhost')
+            portal_client_service.hrd.save()
+
     def add_user(self):
         """
         Add portal user using jsuser.
@@ -280,5 +286,6 @@ if __name__ == '__main__':
     portalhrd = portal.configure_IYO()
     portal.configure_user_groups(portalhrd)
     portal.patch_mail_client()
+    portal.configure_portal_client()
     portal.configure_manifest()
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')
