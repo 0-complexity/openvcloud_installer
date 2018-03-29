@@ -217,4 +217,12 @@ When done, the environment should be ready to use.
 <a id="deploy-images"></a>
 ## Deploy virtual machine images
 
-@TODO
+Login to management node via 0-access.  
+On the management pod install the image with the following command:
+```
+installer image deploy --name image_ubuntu-1604
+```
+
+To find out which images exists please check the [templates](https://github.com/0-complexity/openvcloud_ays/tree/master/_images)
+
+To add custom images [see](https://github.com/0-complexity/openvcloud/blob/master/docs/CloudBrokerPortal/Images/Images.md)
