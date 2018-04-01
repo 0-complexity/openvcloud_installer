@@ -50,8 +50,8 @@ The command `cluster writeconfig` is used to create Kubernetes **ConfigMaps** fr
 installer --config system-config.yaml cluster writeconfig 
 ```
 
-<a id="cluster-writeconfig"></a>
-### cluster writeconfig
+<a id="cluster-updatedomain"></a>
+### cluster updatedomain
 
 The command `cluster updatedomain` is used to update the SSL certificates and the domain of the environment. This is done by updating the `environment` section in the passed configuration file. To update the certificates the `ssl` section needs to be updated with the new locations that contains the certificates, the `subdomain` and `basedomain` for the updated domain.
 
