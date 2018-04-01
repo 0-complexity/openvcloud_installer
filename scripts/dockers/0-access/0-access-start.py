@@ -16,6 +16,6 @@ args.uri = "https://%s.%s/0-access" % (cfg['environment']['subdomain'], cfg['env
 args.ssh_port = 7022
 args.port = 5000
 args.ssh_ip = "%s.%s" % (cfg['environment']['subdomain'], cfg['environment']['basedomain'])
-args.session_timeout = 3600
+args.session_timeout = 28800 # eight hours
 
 run(args)
