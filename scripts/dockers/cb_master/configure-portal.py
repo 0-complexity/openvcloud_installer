@@ -172,15 +172,15 @@ class Portal(object):
             vnc.url = url
             self.lcl.vnc.set(vnc)
         # register sizes
-        sizecbs = [('10GB at SSD Speed, Unlimited Transfer - 7.5 USD/month', 512, 1),
-                 ('10GB at SSD Speed, Unlimited Transfer - 15 USD/month', 1024, 1),
-                 ('10GB at SSD Speed, Unlimited Transfer - 18 USD/month', 2048, 2),
-                 ('10GB at SSD Speed, Unlimited Transfer - 36 USD/month', 4096, 2),
-                 ('10GB at SSD Speed, Unlimited Transfer - 70 USD/month', 8192, 4),
-                 ('10GB at SSD Speed, Unlimited Transfer - 140 USD/month', 16384, 8)]
+        sizecbs = [('512 MiB Memory with 1 vcpu', 512, 1),
+                 ('1 GiB Memory with 1 vcpu', 1024, 1),
+                 ('2 GiB Memory with 2 vcpus', 2048, 2),
+                 ('4 GiB Memory with 2 vcpus', 4096, 2),
+                 ('8 GiB Memory with 4 vcpus', 8192, 4),
+                 ('16 GiB Memory with 8 vcpus', 16384, 8)]
         disksizes = [10, 20, 50, 100, 250, 500, 1000, 2000]
-        for sizecb in sizecbs:
-            if self.ccl.size.count({'memory': sizecb[1], 'vcpus': sizecb[2]}) == 0:
+        if self.ccl.size.count({}) == 0:
+            for sizecb in sizecbs:
                 size = self.ccl.size.new()
                 size.name = sizecb[0]
                 size.memory = sizecb[1]
