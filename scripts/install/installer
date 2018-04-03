@@ -218,7 +218,7 @@ def prepare_config(config_path):
     ]
     config['directories'] = config.get('directories', []) + default_dirs
     validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
-    if not config['nodes'][0]['management'].get('ipaddress'):   
+    if not config['nodes'][0].get('management', {}).get('ipaddress'):
         try:
             jsonschema.validate(config, validator)
         except Exception as error:
