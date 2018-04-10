@@ -38,14 +38,13 @@ def convert(file):
 
 @cli.command('migrate', help='Convert system-config to new format on existing cluster')
 def migrate():
-    config = subprocess.check_output(['kubectl get configmap system-config -o json'])
-    data = yaml.load(config['data']['system-config.yaml'])
+    config = subprocess.check_output(['kubectl', 'get', 'configmap', 'system-config', '-o', 'json'])
+    data = yaml.load(yaml.load(config)['data']['system-config.yaml'])
     convert_data(data)
-    stream = BytesIO()
-    yaml.dump(data, stream)
-    stream.seek(0)
-    proc = subprocess.Popen(['kubectl', 'create', 'configmap', 'system-config', '--dry-run', '--from-file=system-config.yaml=/dev/stdin', '-o', 'json'], stdin=stream, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(['kubectl', 'create', 'configmap', 'system-config', '--dry-run', '--from-file=system-config.yaml=/dev/stdin', '-o', 'json'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     applyproc = subprocess.Popen(['kubectl', 'apply', '-f', '-'], stdin=proc.stdout)
+    yaml.safe_dump(data, proc.stdin, encoding='utf-8', default_flow_style=False)
+    proc.stdin.close()
     proc.stdout.close()
     applyproc.communicate()
     if applyproc.returncode != 0:
