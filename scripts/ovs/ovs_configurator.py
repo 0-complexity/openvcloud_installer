@@ -1,6 +1,4 @@
 from js9 import j
-import netaddr
-import jsonschema
 import click
 import json
 import copy
@@ -17,37 +15,7 @@ small_ssd = sizes_specs['small_ssd']
 hdd = sizes_specs['hdd']
 
 def prepare_config(config_path):
-    def _helper(nodes):
-        for node in nodes:
-            net = netaddr.IPNetwork(value['network'])
-            ip = net.ip + node['ip-lsb']
-            if key not in node:
-                node[key] = {}
-            node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
-
     config = j.data.serializer.yaml.load(config_path)
-    validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
-    try:
-        jsonschema.validate(config, validator)
-    except Exception as error:
-        message = getattr(error, "message", str(type(error)))
-        tree = ''
-        for seq in getattr(error, "path", list()):
-            if isinstance(seq, int):
-                tree += '/<sequence {}>'.format(seq)
-            else:
-                tree += "/{}".format(seq)
-
-        validator = getattr(error, "validator")
-        if  validator == 'type':
-            message = '{msg} at {tree}'.format(msg=message, tree=tree)
-        elif validator == 'required':
-            message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
-        raise j.exceptions.RuntimeError(message)
-
-    for key, value in config['network'].items():
-        if 'network' in value:
-            _helper(config['nodes'])
     cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
     _, public_key, _ = j.sal.process.execute(cmd, showout=False)
     config['ssh']['public-key'] = public_key

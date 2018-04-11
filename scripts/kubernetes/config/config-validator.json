@@ -326,7 +326,7 @@
       "environment": {
         "$id": "/properties/environment",
         "type": "object",
-        "required": ["grid", "subdomain", "basedomain", "password", "ssl"],
+        "required": ["grid", "subdomain", "basedomain", "password", "ssl", "type"],
         "properties": {
           "ssl": {
             "$id": "/properties/environment/properties/ssl",
