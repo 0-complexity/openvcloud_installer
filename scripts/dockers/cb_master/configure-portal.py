@@ -163,7 +163,14 @@ class Portal(object):
             grid = self.scl.grid.new()
             grid.id = j.application.whoAmI.gid
             grid.name = ovc_environment
-            self.scl.grid.set(grid)
+        else:
+            grid = self.scl.grid.get(j.application.whoAmI.gid)
+        limits = {'limits': self.config.get('limits')}
+        if not grid.settings:
+            grid.settings = limits
+        grid.settings.update(limits)
+
+        self.scl.grid.set(grid)
         # register vnc url
         url = 'https://novnc-{}/vnc_auto.html?token='.format(self.fqdn)
         if self.lcl.vnc.count({'url': url, 'gid': gid}) == 0:

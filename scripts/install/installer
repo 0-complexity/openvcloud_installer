@@ -109,6 +109,12 @@ def get_pnodes(config, versions=None, roles=None):
             pnodes.append(JumpScale7(config, pnode['name'], versions))
     return pnodes
 
+def set_cgroup(node, cgroup, cpu_set, memory):
+    node.core.dir_ensure('/sys/fs/cgroup/memory/%s' % cgroup)
+    node.core.dir_ensure('/sys/fs/cgroup/cpuset/%s' % cgroup)
+    node.core.run('echo %s > /sys/fs/cgroup/cpuset/%s/cpuset.cpus' % (cpu_set, cgroup))
+    node.core.run('echo %sG > /sys/fs/cgroup/memory/%s/memory.limit_in_bytes' % (memory, cgroup))
+
 def portal_api_call(endpoint, config):
     url = 'http://portal:82/restmachine/%s' % endpoint
     response = requests.post(url, headers={'Authorization': 'authkey {0}'.format(config['environment']['password'])})
@@ -462,8 +468,7 @@ class JumpScale7(Node):
 
         if self.prefab.bash.cmdGetPath('python', False) is False or self.prefab.bash.cmdGetPath('curl', False) is False:
             self.prefab.system.package.mdupdate()
-            self.prefab.system.package.install('python')
-            self.prefab.system.package.install('curl')
+            self.prefab.system.package.install('python,curl')
         if self.prefab.bash.cmdGetPath('js', False) is False:
             self.prefab.core.run(cmd, env=env)
         self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion, ovcversion=ovcversion))
@@ -680,6 +685,15 @@ class Cluster(AbstractConfig):
                     node.core.upload(path, ssldir)
                 copiedpaths[path] = ssldir
 
+    def reset(self):
+        if self.first_node.core.file_exists('/etc/kubernetes/admin.conf'):
+            rc, out, err = self.kubectl('get deployment pxeboot', die=False)
+            if rc == 0:
+                self.kubectl('delete deployment pxeboot')
+        for node in self.nodes:
+            node.core.run('kubeadm reset')
+            node.core.run('service etcd stop')
+
     def install_kubernetes_cluster(self):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
@@ -689,9 +703,21 @@ class Cluster(AbstractConfig):
             node.core.run("sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
 
         # patch install_master to not use rlannel
-        self.prefab.virtualization.kubernetes.install_kube_masters = partial(self.prefab.virtualization.kubernetes.install_kube_masters, flannel=False, kube_cidr='10.244.0.0/16')
-        k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(
-                self.nodes, unsafe=True, reset=True, external_ips=self.managementips)
+        self.prefab.virtualization.kubernetes.install_kube_masters = partial(
+            self.prefab.virtualization.kubernetes.install_kube_masters, flannel=False,
+            kube_cidr='10.244.0.0/16')
+        k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(self.nodes,
+        unsafe=True, reset=True, external_ips=self.managementips)
+
+        # configure cgroups
+        if self.config.get('limits'):
+            if self.config['limits'].get('pods'):
+                cpu_set = self.config['limits']['pods']['cpu']
+                memory = self.config['limits']['pods']['memory']
+                for node in self.nodes:
+                    set_cgroup(node, 'kubepods', cpu_set, memory)
+
+
         if self.is_conv_env:
             pub_key = self.first_node.core.file_read('/root/.ssh/default.pub').strip()
             # authorize non controller nodes
@@ -893,7 +919,7 @@ class Cluster(AbstractConfig):
                 teams=teams,
                 exposed_ip='{}.{}'.format(self.config['environment']['subdomain'], self.config['environment']['basedomain'])
             )
-    
+
     def kube_client_apply(self):
         self.prepare_templates()
         self.write_system_config()
@@ -1158,13 +1184,16 @@ def kube_apply(ctx, path):
 
 @cluster.command('deploy', help='Deploy kubernetes cluster on controller nodes')
 @click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
+@click.option('--force', help='Reset installed environment for redployment',  default=False, is_flag=True)
 @click.pass_context
-def deploy_cluster(ctx, configure_cluster):
+def deploy_cluster(ctx, configure_cluster, force):
     """
     Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
     """
     cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
     cluster.verify_certificates()
+    if force:
+        cluster.reset()
     if configure_cluster:
         cluster.install_kubernetes_cluster()
     cluster.install_controller()

@@ -116,6 +116,14 @@ environment:
   ovs_repo_url: http://ovsurl.com
   ovs_version: 2.3.4
 
+limits:
+  pods: # total pod limits for cpu and memory 
+    memory: 10 # memory in GB
+    cpu: 0-4 # cpu set starting from 0
+  ovs:  # total disk limits for cpu and memory 
+    memory: 10 # memory in GB
+    cpu: 0-4 # cpu set starting from 0
+
 nodes: # Environment nodes info
 
   - name: cpu-01

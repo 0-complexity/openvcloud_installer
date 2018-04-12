@@ -55,6 +55,53 @@
           }
         }
       },
+      "limits": {
+        "$id": "/properties/",
+        "type": "object",
+        "properties": {
+          "ovs": {
+            "$id": "/properties/limits/properties/ovs",
+            "type": "object",
+            "title": "The ovs Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "properties": {
+              "cpu": {
+                "$id": "/properties/limits/properties/ovs/properties/cpu",
+                "type": "string",
+                "title": "The cpu Schema",
+                "description": "An explanation about the purpose of this instance."
+              },
+              "memory": {
+                "$id": "/properties/limits/properties/ovs/properties/memory",
+                "type": "integer",
+                "title": "The memory Schema",
+                "description": "An explanation about the purpose of this instance."
+              }
+            }
+          },
+          "pods": {
+            "$id": "/properties/limits/properties/pods",
+            "type": "object",
+            "title": "The Login Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "properties": {
+              "cpu": {
+                "$id": "/properties/limits/properties/ovs/properties/cpu",
+                "type": "string",
+                "title": "The cpu Schema",
+                "description": "An explanation about the purpose of this instance."
+              },
+              "memory": {
+                "$id": "/properties/limits/properties/ovs/properties/memory",
+                "type": "integer",
+                "title": "The memory Schema",
+                "description": "An explanation about the purpose of this instance."
+              }
+            }
+          }
+        }
+      },
       "itsyouonline": {
         "$id": "/properties/itsyouonline",
         "type": "object",
