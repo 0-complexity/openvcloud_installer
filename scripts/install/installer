@@ -14,7 +14,10 @@ import threading
 from functools import partial
 
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
-DEV_REPOS = ['https://github.com/0-complexity/openvcloud', 'https://github.com/jumpscale7/jumpscale_core7', 'https://github.com/jumpscale7/jumpscale_portal']
+DEV_REPOS = ['https://github.com/0-complexity/openvcloud',
+             'https://github.com/0-complexity/selfhealing'
+             'https://github.com/jumpscale7/jumpscale_core7',
+             'https://github.com/jumpscale7/jumpscale_portal']
 REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
 DEV_TMPLS = ['osis', 'agentcontroller', 'portal']
 AYSCONFIG = '''
