@@ -138,7 +138,7 @@ def restore(date, mongo, billing):
         exec_command = '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer node jsaction --name all install'
         j.system.process.execute('kubectl exec -it {name} -- {cmd}'.format(name=pod_name, cmd=exec_command))
         for node in scl.node.search({})[1:]:
-            ccl.stack.updateSearch({'name': node['name']}, {'referenceId': str(node['id'])})
+            ccl.stack.updateSearch({'name': node['name']}, {'$set': {'referenceId': str(node['id'])}})
         versionmodel = scl.version.new()
         versionmodel.name = '2.2.6'
         scl.version.set(versionmodel)
