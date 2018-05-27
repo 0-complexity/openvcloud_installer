@@ -2,6 +2,7 @@
 from js9 import j
 from collections import namedtuple
 import netaddr
+import copy
 import sys
 import click
 import os
@@ -905,7 +906,10 @@ class Cluster(AbstractConfig):
     def write_system_config(self):
         log('Write system config')
         self.write_config_map('system-config', self.config)
-        self.write_config_map('versions-manifest', self.versions)
+        versions = copy.deepcopy(self.versions)
+        versions.pop('jsversion', None)
+        versions.pop('ovcversion', None)
+        self.write_config_map('versions-manifest', versions)
 
     def install_teleport(self):
         for node in self.nodes:
