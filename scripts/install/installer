@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from js9 import j
+from collections import namedtuple
 import netaddr
 import sys
 import click
@@ -13,6 +14,7 @@ import logging
 import threading
 from functools import partial
 
+Version = namedtuple('Version', ('version', 'type'))
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
 DEV_REPOS = ['https://github.com/0-complexity/openvcloud',
              'https://github.com/0-complexity/selfhealing'
@@ -74,18 +76,19 @@ def print_status(clear=False):
             log(line)
 
 def get_revision(repo):
-    target = repo['target']
-    match = ''
-    if 'tag' in target:
-        match = 'tags/{}'.format(target['tag'])
-    elif 'branch' in target:
-        match = 'heads/{}'.format(target['branch'])
-    else:
-        raise RuntimeError("No tag or branch set on repo")
+    version = version_type(repo)
+    match = 'tags/' if version.type == 'tag' else 'heads/'
+    match += version.version
     _, output, _ = j.sal.process.execute('git ls-remote {}'.format(repo['url']), showout=False)
     for line in output.splitlines():
         if line.endswith(match):
             return line.split()[0]
+
+def version_type(repo):
+    for vtype in ('tag', 'branch'):
+        if vtype in repo['target']:
+            return Version(repo['target'][vtype], vtype)
+    raise RuntimeError("No tag or branch set on repo")
 
 
 def update_repo_volume(versions, repo):
@@ -136,7 +139,7 @@ def pnode_action(pnodes, action):
         for pnode in pnodes:
             func = getattr(pnode, action)
             fut = proc.submit(func)
-            futures[pnode.name] =  fut
+            futures[pnode.name] = fut
             running_futures[pnode.name] = fut
 
         def update_status():
@@ -303,9 +306,9 @@ def get_versions(config, version=None, url=None):
         raise RuntimeError("Could not find manifest @ {}".format(url))
     for repo in versions['repos']:
         if repo['url'] in "https://github.com/jumpscale7/ays_jumpscale7":
-            versions['jsversion'] = repo['target'].get('branch', repo['target'].get('tag', version))
+            versions['jsversion'] = version_type(repo)
         if repo['url'] in "https://github.com/0-complexity/openvcloud_ays":
-            versions['ovcversion'] = repo['target'].get('branch', repo['target'].get('tag', version))
+            versions['ovcversion'] = version_type(repo)
     return versions
 
 def get_controller_ips(config, iptype='management'):
@@ -463,7 +466,7 @@ class JumpScale7(Node):
     def install_core(self):
         jsversion = self.versions['jsversion']
         ovcversion = self.versions['ovcversion']
-        env = {'AYSBRANCH': jsversion, 'JSBRANCH': jsversion}
+        env = {'AYSBRANCH': jsversion.version, 'JSBRANCH': jsversion.version}
         cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(jsversion)
         self.prefab.system.ssh.define_host('git.aydo.com')
         self.prefab.system.ssh.define_host('github.com')
@@ -474,7 +477,7 @@ class JumpScale7(Node):
             self.prefab.system.package.install('python,curl')
         if self.prefab.bash.cmdGetPath('js', False) is False:
             self.prefab.core.run(cmd, env=env)
-        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion, ovcversion=ovcversion))
+        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version))
         self.prefab.core.file_write('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
 
     def start(self):
@@ -487,7 +490,11 @@ class JumpScale7(Node):
         self.prefab.core.run('fuser -k 4446/tcp || true')
 
     def update_repo(self, account, repo, version):
-        cmd = "jscode update -a '%s' -n '%s' -d -b %s --https" % (account, repo, version)
+        cmd = "jscode update -a '{}' -n '{}' -d".format(account, repo)
+        if version.type == 'branch':
+            cmd += " -b {} --https".format(version.version)
+        elif version.type == 'tag':
+            cmd += " -t {} --https".format(version.version)
         self.prefab.core.run(cmd)
 
 
