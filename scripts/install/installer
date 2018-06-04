@@ -468,7 +468,7 @@ class JumpScale7(Node):
         jsversion = self.versions['jsversion']
         ovcversion = self.versions['ovcversion']
         env = {'AYSBRANCH': jsversion.version, 'JSBRANCH': jsversion.version}
-        cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(jsversion)
+        cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(jsversion.version)
         self.prefab.system.ssh.define_host('git.aydo.com')
         self.prefab.system.ssh.define_host('github.com')
         self.prefab.system.ssh.define_host('docs.greenitglobe.com', port=10022)
