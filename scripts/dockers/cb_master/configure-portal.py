@@ -139,7 +139,12 @@ class Portal(object):
         cloudbrokerhrd = j.application.getAppInstanceHRD(name='cloudbroker', domain='openvcloud', instance='main')
         cloudbrokerhrd.set('instance.cloudbroker.portalurl', 'https://{}'.format(self.fqdn))
         cloudbrokerhrd.set('instance.openvcloud.cloudbroker.defense_proxy', 'https://defense-{}'.format(self.fqdn))
+        cloudbrokerhrd.set('instance.openvcloud.supportemail', self.config['mailclient']['sender'])
         cloudbrokerhrd.save()
+        # update cbportal service
+        cbportalhrd = j.application.getAppInstanceHRD(name='cbportal', domain='openvcloud', instance='main')
+        cbportalhrd.set('instance.openvcloud.supportemail', self.config['mailclient']['sender'])
+        cbportalhrd.save()
 
         # setup user/groups
         for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3', '0-access'):
