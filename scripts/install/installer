@@ -252,9 +252,12 @@ def prepare_config(config_path):
 
 
     is_conv = is_conv_env(config)
-    for node in config['nodes']:
-        if 'controller' not in node['roles'] and ('management' not in node or 'ipmi' not in node) and not is_conv:
-            raise j.exceptions.RuntimeError('Management and IPMI section required for node {}'.format(node['name']))
+    if not is_conv:
+        for node in config['nodes']:
+            if 'ipmi' not in node:
+                raise j.exceptions.RuntimeError('IPMI section required for node {}'.format(node['name']))
+            elif 'management' not in node and 'controller' not in node['roles']:
+                raise j.exceptions.RuntimeError('Management section required for node {}'.format(node['name']))
 
     for key, value in config['network'].items():
         if 'network' in value:

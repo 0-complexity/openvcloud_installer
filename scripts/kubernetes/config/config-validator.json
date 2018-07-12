@@ -326,7 +326,7 @@
             "ipmi": {
               "$id": "/properties/nodes/items/properties/ipmi",
               "type": "object",
-              "required": ["username", "password"],
+              "required": ["username", "password", "macaddress"],
               "properties": {
                 "password": {
                   "$id": "/properties/nodes/items/properties/ipmi/properties/password",
@@ -346,6 +346,16 @@
                   "default": "",
                   "examples": [
                     "admin"
+                  ]
+                },
+                "macaddress": {
+                  "$id": "/properties/nodes/items/properties/ipmi/properties/macaddress",
+                  "type": "string",
+                  "title": "The macaddress of the IPMI interface",
+                  "description": "Macaddress for the IPMI interface.",
+                  "default": "",
+                  "examples": [
+                    "00:24:ec:f0:25:cc"
                   ]
                 }
               }

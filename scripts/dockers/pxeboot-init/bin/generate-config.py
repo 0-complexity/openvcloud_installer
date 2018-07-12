@@ -32,11 +32,13 @@ target = os.path.join(configroot, 'dhcphosts')
 
 with open(target, "w") as f:
     nodes = config['nodes']
-    roles = {'cpu', 'storage'}
+    roles = {'cpu', 'storage', 'controller'}
     for node in nodes: 
         if roles.intersection(set(node['roles'])):
-            f.write("%s,%s,infinite\n" % (node['management']['macaddress'].lower(), node['name']))
-            f.write("%s,%s,infinite\n" % (node['ipmi']['macaddress'].lower(), 'ipmi-%s' % node['name']))
+            if 'macaddress' in node['management']:
+                f.write("%s,%s,infinite\n" % (node['management']['macaddress'].lower(), node['name']))
+            if 'macaddress' in node['ipmi']:
+                f.write("%s,%s,infinite\n" % (node['ipmi']['macaddress'].lower(), 'ipmi-%s' % node['name']))
 
     f.write("\n")
 
@@ -52,9 +54,12 @@ with open(target, "w") as f:
     ipminet = ipmisubnet.split('.')
     for node in nodes:
         if roles.intersection(set(node['roles'])):
-            ipaddr = ipaddr = "%s.%s.%s.%s" % (nodenet[0], nodenet[1], nodenet[2], node['ip-lsb'])
+            ipaddr = "%s.%s.%s.%s" % (nodenet[0], nodenet[1], nodenet[2], node['ip-lsb'])
             f.write("%s %s.%s %s\n" % (ipaddr, node['name'], domain, node['name']))
             ipaddr = "%s.%s.%s.%s" % (ipminet[0], ipminet[1], ipminet[2], node['ip-lsb'])
+            f.write("%s %s.%s %s\n" % (ipaddr, 'ipmi-%s' % node['name'], domain, 'ipmi-%s' % node['name']))
+        elif 'controller' in node['roles']:
+            ipaddr = "%s.%s.%s.%s" % (ipminet[0], ipminet[1], ipminet[2], 255 - node['ip-lsb'])
             f.write("%s %s.%s %s\n" % (ipaddr, 'ipmi-%s' % node['name'], domain, 'ipmi-%s' % node['name']))
 
     f.write("\n")
