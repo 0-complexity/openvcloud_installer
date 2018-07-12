@@ -1,1 +1,2213 @@
-{"links": [], "sharedCrosshair": false, "tags": [], "refresh": false, "annotations": {"list": []}, "templating": {"list": []}, "title": "Overall System Performance", "id": null, "schemaVersion": 12, "__requires": [{"name": "Graph", "version": "", "id": "graph", "type": "panel"}, {"name": "Table", "version": "", "id": "table", "type": "panel"}, {"name": "Grafana", "version": "3.1.0", "id": "grafana", "type": "grafana"}, {"name": "InfluxDB", "version": "1.0.0", "id": "influxdb", "type": "datasource"}], "time": {"from": "now-3h", "to": "now"}, "gnetId": null, "editable": true, "timepicker": {"refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"], "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]}, "timezone": "browser", "style": "dark", "description": "ggregate results - total IOPS over all machines / average CPU util over all machines / average MEM util over all machines", "hideControls": true, "rows": [{"title": "Row", "editable": true, "collapse": false, "panels": [{"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 12, "pointradius": 5, "id": 1, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "rightSide": true, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": true, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "Total IOPS (for al virtual disks)", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "iops", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": false, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "disk.iops.read|m", "groupBy": [{"params": ["auto"], "type": "time"}], "tags": [{"operator": "=", "value": "virtual", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "sum"}]], "rawQuery": false, "refId": "A", "query": "SELECT mean(\"value\") FROM \"disk.iops.read|m\" WHERE \"type\" = 'virtual' AND $timeFilter GROUP BY time($interval)", "dsType": "influxdb", "alias": "Total amount of IOPS READ (all virtual disks)", "policy": "default"}, {"resultFormat": "time_series", "measurement": "disk.iops.write|m", "groupBy": [{"params": ["auto"], "type": "time"}], "tags": [{"operator": "=", "value": "virtual", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "sum"}]], "rawQuery": false, "refId": "B", "query": "SELECT sum(\"value\") FROM \"disk.iops.read|m\" WHERE \"type\" = 'virtual' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Total amount of IOPS WRITTEN (all virtual disks)", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}], "height": "250px"}, {"title": "New row", "editable": true, "collapse": false, "panels": [{"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 6, "pointradius": 5, "id": 2, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "rightSide": true, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": false, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "CPU Utilization (for all physical nodes)", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "s", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "machine.CPU.utilisation|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "mean"}]], "rawQuery": false, "refId": "A", "query": "SELECT mean(\"value\") FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Average CPU utilization (all Physical Nodes)", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.CPU.utilisation|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "min"}]], "rawQuery": false, "refId": "B", "query": "SELECT min(\"value\") *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Minimum CPU utilization (all Physical Nodes)", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.CPU.utilisation|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "max"}]], "rawQuery": false, "refId": "C", "query": "SELECT max(\"value\")  *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Maximum CPU utilization (all Physical Nodes)", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}, {"links": [], "targets": [{"resultFormat": "time_series", "measurement": "machine.CPU.utilisation|m", "groupBy": [{"params": ["5m"], "type": "time"}, {"params": ["nid"], "type": "tag"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "distinct"}]], "dsType": "influxdb", "policy": "default", "refId": "A"}], "error": false, "title": "CPU Utilization (for all physical nodes)", "isNew": true, "sort": {"col": 3, "desc": true}, "height": "", "scroll": true, "span": 5.851755883260818, "id": 4, "styles": [{"colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(236, 11, 7, 0.9)"], "type": "number", "pattern": "/.*/", "thresholds": ["0.7", "0.95"], "colorMode": "cell", "unit": "s", "decimals": 1}], "fontSize": "100%", "editable": true, "columns": [{"text": "Min", "value": "min"}, {"text": "Avg", "value": "avg"}, {"text": "Max", "value": "max"}, {"text": "Current", "value": "current"}], "type": "table", "datasource": "influxdb_main", "transform": "timeseries_aggregations", "pageSize": 200, "showHeader": true}, {"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 6, "pointradius": 5, "id": 11, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "rightSide": true, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": false, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "CPU % (for all physical nodes)", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "percent", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "machine.CPU.percent|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "mean"}]], "rawQuery": false, "refId": "A", "query": "SELECT mean(\"value\") FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Average CPU % (all Physical Nodes)", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.CPU.percent|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "min"}]], "rawQuery": false, "refId": "B", "query": "SELECT min(\"value\") *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Minimum CPU % (all Physical Nodes)", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.CPU.percent|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "max"}]], "rawQuery": false, "refId": "C", "query": "SELECT max(\"value\")  *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Maximum CPU % (all Physical Nodes)", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}, {"links": [], "targets": [{"resultFormat": "time_series", "measurement": "machine.CPU.percent|m", "groupBy": [{"params": ["5m"], "type": "time"}, {"params": ["nid"], "type": "tag"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "distinct"}]], "dsType": "influxdb", "policy": "default", "refId": "A"}], "error": false, "title": "CPU % (for all physical nodes)", "isNew": true, "sort": {"col": null, "desc": false}, "height": "", "scroll": true, "span": 5.655632184119238, "id": 12, "styles": [{"dateFormat": "YYYY-MM-DD HH:mm:ss", "type": "date", "pattern": "Time"}, {"colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(236, 11, 7, 0.9)"], "type": "number", "pattern": "/.*/", "thresholds": ["75", "90"], "colorMode": "cell", "unit": "percent", "decimals": 1}], "fontSize": "100%", "editable": true, "columns": [{"text": "Min", "value": "min"}, {"text": "Avg", "value": "avg"}, {"text": "Max", "value": "max"}, {"text": "Current", "value": "current"}], "type": "table", "datasource": "influxdb_main", "transform": "timeseries_aggregations", "pageSize": 200, "showHeader": true}], "height": 233.079833984375}, {"title": "New row", "editable": true, "collapse": false, "panels": [{"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 6, "pointradius": 5, "id": 7, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "sideWidth": 100, "rightSide": true, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": true, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "Mem available (on phyiscal nodes)", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "gbytes", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "machine.memory.ram.available|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "mean"}, {"params": [" / 1024"], "type": "math"}]], "rawQuery": false, "refId": "A", "query": "SELECT mean(\"value\")  / 1024 FROM \"machine.memory.ram.available|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Average GBytes Mem Available", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.memory.ram.available|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "min"}, {"params": [" / 1024"], "type": "math"}]], "rawQuery": false, "refId": "B", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Min GBytes Mem Available", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.memory.ram.available|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "max"}, {"params": [" / 1024"], "type": "math"}]], "rawQuery": false, "refId": "C", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Max GBytes Mem Available", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}, {"links": [], "targets": [{"resultFormat": "time_series", "measurement": "machine.memory.ram.available|m", "groupBy": [{"params": ["5m"], "type": "time"}, {"params": ["nid"], "type": "tag"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "distinct"}, {"params": [" /1024"], "type": "math"}]], "dsType": "influxdb", "policy": "default", "refId": "A"}], "error": false, "title": "GiB RAM available (for all physical nodes)", "isNew": true, "sort": {"col": 1, "desc": false}, "height": "", "scroll": true, "span": 6, "id": 5, "styles": [{"dateFormat": "YYYY-MM-DD HH:mm:ss", "type": "date", "pattern": "Time"}, {"colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(236, 11, 7, 0.9)"], "type": "number", "pattern": "/.*/", "thresholds": ["50", "80"], "colorMode": null, "unit": "gbytes", "decimals": 1}], "fontSize": "100%", "editable": true, "columns": [{"text": "Min", "value": "min"}, {"text": "Avg", "value": "avg"}, {"text": "Max", "value": "max"}, {"text": "Current", "value": "current"}], "type": "table", "datasource": "influxdb_main", "transform": "timeseries_aggregations", "pageSize": 200, "showHeader": true}, {"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 3, "pointradius": 5, "id": 6, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "sideWidth": 100, "rightSide": false, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": true, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "Rx in Gbit/s (for all physical NICs)", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "Gbits", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "network.throughput.incoming|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "mean"}, {"params": [" /2.1333"], "type": "math"}]], "rawQuery": true, "refId": "A", "query": "SELECT mean(\"value\")  /128 FROM \"network.throughput.incoming|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Average Rx for physical nodes", "policy": "default"}, {"resultFormat": "time_series", "measurement": "network.throughput.incoming|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "min"}, {"params": ["/128"], "type": "math"}]], "rawQuery": false, "refId": "B", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Minimum Rx for physical nodes", "policy": "default"}, {"resultFormat": "time_series", "measurement": "network.throughput.incoming|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "max"}, {"params": ["/128"], "type": "math"}]], "rawQuery": false, "refId": "C", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Maximum Rx for physical nodes", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}, {"links": [], "targets": [{"resultFormat": "time_series", "measurement": "network.throughput.incoming|m", "groupBy": [{"params": ["5m"], "type": "time"}, {"params": ["nid"], "type": "tag"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "distinct"}, {"params": [" /128"], "type": "math"}]], "dsType": "influxdb", "policy": "default", "refId": "A"}], "error": false, "title": "Distribution of Rx on physcal NICs (in Gbits/s)", "isNew": true, "sort": {"col": 3, "desc": true}, "height": "", "scroll": true, "span": 3, "id": 9, "styles": [{"dateFormat": "YYYY-MM-DD HH:mm:ss", "type": "date", "pattern": "Time"}, {"colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(236, 11, 7, 0.9)"], "type": "number", "pattern": "/.*/", "thresholds": ["50", "80"], "colorMode": null, "unit": "none", "decimals": 1}], "fontSize": "80%", "editable": true, "columns": [{"text": "Min", "value": "min"}, {"text": "Avg", "value": "avg"}, {"text": "Max", "value": "max"}, {"text": "Current", "value": "current"}], "type": "table", "datasource": "influxdb_main", "transform": "timeseries_aggregations", "pageSize": 200, "showHeader": true}, {"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 3, "pointradius": 5, "id": 8, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "sideWidth": 100, "rightSide": false, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": true, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "Tx in Gbit/s (for all physical NICs)", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "Gbits", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "network.throughput.outgoing|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "mean"}, {"params": ["/128"], "type": "math"}]], "rawQuery": false, "refId": "A", "query": "SELECT mean(\"value\")  / 1024 FROM \"machine.memory.ram.available|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Average Tx for physical nodes", "policy": "default"}, {"resultFormat": "time_series", "measurement": "network.throughput.outgoing|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "min"}, {"params": ["/128"], "type": "math"}]], "rawQuery": false, "refId": "B", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Minimum Tx for physical nodes", "policy": "default"}, {"resultFormat": "time_series", "measurement": "network.throughput.outgoing|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "max"}, {"params": ["/128"], "type": "math"}]], "rawQuery": false, "refId": "C", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Maximum Tx for physical nodes", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}, {"links": [], "targets": [{"resultFormat": "time_series", "measurement": "network.throughput.outgoing|m", "groupBy": [{"params": ["5m"], "type": "time"}, {"params": ["nid"], "type": "tag"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "distinct"}, {"params": [" /128"], "type": "math"}]], "dsType": "influxdb", "policy": "default", "refId": "A"}], "error": false, "title": "Distribution of Tx on phiscal NICs (in Gbits/s)", "isNew": true, "sort": {"col": 3, "desc": true}, "height": "", "scroll": true, "span": 3, "id": 10, "styles": [{"dateFormat": "YYYY-MM-DD HH:mm:ss", "type": "date", "pattern": "Time"}, {"colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(236, 11, 7, 0.9)"], "type": "number", "pattern": "/.*/", "thresholds": ["50", "80"], "colorMode": null, "unit": "none", "decimals": 1}], "fontSize": "80%", "editable": true, "columns": [{"text": "Min", "value": "min"}, {"text": "Avg", "value": "avg"}, {"text": "Max", "value": "max"}, {"text": "Current", "value": "current"}], "type": "table", "datasource": "influxdb_main", "transform": "timeseries_aggregations", "pageSize": 200, "showHeader": true}, {"lines": true, "nullPointMode": "connected", "error": false, "timeFrom": null, "grid": {"threshold2Color": "rgba(234, 112, 112, 0.22)", "threshold1Color": "rgba(216, 200, 27, 0.27)", "threshold2": null, "threshold1": null}, "span": 6, "pointradius": 5, "id": 13, "seriesOverrides": [], "percentage": false, "type": "graph", "aliasColors": {}, "bars": false, "xaxis": {"show": true}, "renderer": "flot", "legend": {"values": false, "max": false, "avg": false, "min": false, "total": false, "sideWidth": 100, "rightSide": true, "current": false, "show": true, "alignAsTable": true}, "isNew": true, "links": [], "timeShift": null, "tooltip": {"shared": true, "msResolution": true, "sort": 0, "value_type": "cumulative"}, "fill": 1, "title": "# Cont Switch", "datasource": "influxdb_main", "yaxes": [{"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}, {"logBase": 1, "max": null, "min": null, "format": "short", "show": true, "label": null}], "targets": [{"resultFormat": "time_series", "measurement": "machine.CPU.contextswitch|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "mean"}]], "rawQuery": false, "refId": "A", "query": "SELECT mean(\"value\")  / 1024 FROM \"machine.memory.ram.available|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Average # Cont Switch", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.CPU.contextswitch|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "min"}]], "rawQuery": false, "refId": "B", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Min # Cont Switch", "policy": "default"}, {"resultFormat": "time_series", "measurement": "machine.CPU.contextswitch|m", "groupBy": [{"params": ["$interval"], "type": "time"}, {"params": ["null"], "type": "fill"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "max"}]], "rawQuery": false, "refId": "C", "query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)", "dsType": "influxdb", "alias": "Max # Cont Switch", "policy": "default"}], "editable": true, "linewidth": 2, "stack": false, "points": false, "steppedLine": false}, {"links": [], "targets": [{"resultFormat": "time_series", "measurement": "machine.CPU.contextswitch|m", "groupBy": [{"params": ["5m"], "type": "time"}, {"params": ["nid"], "type": "tag"}], "tags": [{"operator": "=", "value": "physical", "key": "type"}], "select": [[{"params": ["value"], "type": "field"}, {"params": [], "type": "distinct"}]], "dsType": "influxdb", "policy": "default", "refId": "A"}], "error": false, "title": "# Context Switches (physical CPU)", "isNew": true, "sort": {"col": null, "desc": false}, "height": "", "scroll": true, "span": 6, "id": 14, "styles": [{"dateFormat": "YYYY-MM-DD HH:mm:ss", "type": "date", "pattern": "Time"}, {"colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(236, 11, 7, 0.9)"], "type": "number", "pattern": "/.*/", "thresholds": ["150000", "500000"], "colorMode": "cell", "unit": "none", "decimals": 1}], "fontSize": "100%", "editable": true, "columns": [{"text": "Min", "value": "min"}, {"text": "Avg", "value": "avg"}, {"text": "Max", "value": "max"}, {"text": "Current", "value": "current"}], "type": "table", "datasource": "influxdb_main", "transform": "timeseries_aggregations", "pageSize": 200, "showHeader": true}], "height": "250px"}], "version": 14, "__inputs": [{"name": "DS_INFLUXDB_CONTROLLER", "pluginId": "influxdb", "description": "", "type": "datasource", "pluginName": "InfluxDB", "label": "influxdb_controller"}]}
+{
+	"links": [],
+	"sharedCrosshair": false,
+	"tags": [],
+	"refresh": false,
+	"annotations": {
+		"list": []
+	},
+	"templating": {
+		"list": []
+	},
+	"uid": "1",
+	"title": "Overall System Performance",
+	"id": null,
+	"schemaVersion": 12,
+	"__requires": [
+		{
+			"name": "Graph",
+			"version": "",
+			"id": "graph",
+			"type": "panel"
+		},
+		{
+			"name": "Table",
+			"version": "",
+			"id": "table",
+			"type": "panel"
+		},
+		{
+			"name": "Grafana",
+			"version": "3.1.0",
+			"id": "grafana",
+			"type": "grafana"
+		},
+		{
+			"name": "InfluxDB",
+			"version": "1.0.0",
+			"id": "influxdb",
+			"type": "datasource"
+		}
+	],
+	"time": {
+		"from": "now-3h",
+		"to": "now"
+	},
+	"gnetId": null,
+	"editable": true,
+	"timepicker": {
+		"refresh_intervals": [
+			"5s",
+			"10s",
+			"30s",
+			"1m",
+			"5m",
+			"15m",
+			"30m",
+			"1h",
+			"2h",
+			"1d"
+		],
+		"time_options": [
+			"5m",
+			"15m",
+			"1h",
+			"6h",
+			"12h",
+			"24h",
+			"2d",
+			"7d",
+			"30d"
+		]
+	},
+	"timezone": "browser",
+	"style": "dark",
+	"description": "ggregate results - total IOPS over all machines / average CPU util over all machines / average MEM util over all machines",
+	"hideControls": true,
+	"rows": [
+		{
+			"title": "Row",
+			"editable": true,
+			"collapse": false,
+			"panels": [
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 12,
+					"pointradius": 5,
+					"id": 1,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"rightSide": true,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": true,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "Total IOPS (for al virtual disks)",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "iops",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": false,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "disk.iops.read|m",
+							"groupBy": [
+								{
+									"params": [
+										"auto"
+									],
+									"type": "time"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "virtual",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "sum"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "A",
+							"query": "SELECT mean(\"value\") FROM \"disk.iops.read|m\" WHERE \"type\" = 'virtual' AND $timeFilter GROUP BY time($interval)",
+							"dsType": "influxdb",
+							"alias": "Total amount of IOPS READ (all virtual disks)",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "disk.iops.write|m",
+							"groupBy": [
+								{
+									"params": [
+										"auto"
+									],
+									"type": "time"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "virtual",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "sum"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT sum(\"value\") FROM \"disk.iops.read|m\" WHERE \"type\" = 'virtual' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Total amount of IOPS WRITTEN (all virtual disks)",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				}
+			],
+			"height": "250px"
+		},
+		{
+			"title": "New row",
+			"editable": true,
+			"collapse": false,
+			"panels": [
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 6,
+					"pointradius": 5,
+					"id": 2,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"rightSide": true,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": false,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "CPU Utilization (for all physical nodes)",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "s",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.utilisation|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "mean"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "A",
+							"query": "SELECT mean(\"value\") FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Average CPU utilization (all Physical Nodes)",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.utilisation|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "min"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT min(\"value\") *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Minimum CPU utilization (all Physical Nodes)",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.utilisation|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "max"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "C",
+							"query": "SELECT max(\"value\")  *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Maximum CPU utilization (all Physical Nodes)",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				},
+				{
+					"links": [],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.utilisation|m",
+							"groupBy": [
+								{
+									"params": [
+										"5m"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"nid"
+									],
+									"type": "tag"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "distinct"
+									}
+								]
+							],
+							"dsType": "influxdb",
+							"policy": "default",
+							"refId": "A"
+						}
+					],
+					"error": false,
+					"title": "CPU Utilization (for all physical nodes)",
+					"isNew": true,
+					"sort": {
+						"col": 3,
+						"desc": true
+					},
+					"height": "",
+					"scroll": true,
+					"span": 5.851755883260818,
+					"id": 4,
+					"styles": [
+						{
+							"colors": [
+								"rgba(50, 172, 45, 0.97)",
+								"rgba(237, 129, 40, 0.89)",
+								"rgba(236, 11, 7, 0.9)"
+							],
+							"type": "number",
+							"pattern": "/.*/",
+							"thresholds": [
+								"0.7",
+								"0.95"
+							],
+							"colorMode": "cell",
+							"unit": "s",
+							"decimals": 1
+						}
+					],
+					"fontSize": "100%",
+					"editable": true,
+					"columns": [
+						{
+							"text": "Min",
+							"value": "min"
+						},
+						{
+							"text": "Avg",
+							"value": "avg"
+						},
+						{
+							"text": "Max",
+							"value": "max"
+						},
+						{
+							"text": "Current",
+							"value": "current"
+						}
+					],
+					"type": "table",
+					"datasource": "influxdb_main",
+					"transform": "timeseries_aggregations",
+					"pageSize": 200,
+					"showHeader": true
+				},
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 6,
+					"pointradius": 5,
+					"id": 11,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"rightSide": true,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": false,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "CPU % (for all physical nodes)",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "percent",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.percent|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "mean"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "A",
+							"query": "SELECT mean(\"value\") FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Average CPU % (all Physical Nodes)",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.percent|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "min"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT min(\"value\") *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Minimum CPU % (all Physical Nodes)",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.percent|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "max"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "C",
+							"query": "SELECT max(\"value\")  *100 FROM \"machine.CPU.utilisation|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Maximum CPU % (all Physical Nodes)",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				},
+				{
+					"links": [],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.percent|m",
+							"groupBy": [
+								{
+									"params": [
+										"5m"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"nid"
+									],
+									"type": "tag"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "distinct"
+									}
+								]
+							],
+							"dsType": "influxdb",
+							"policy": "default",
+							"refId": "A"
+						}
+					],
+					"error": false,
+					"title": "CPU % (for all physical nodes)",
+					"isNew": true,
+					"sort": {
+						"col": null,
+						"desc": false
+					},
+					"height": "",
+					"scroll": true,
+					"span": 5.655632184119238,
+					"id": 12,
+					"styles": [
+						{
+							"dateFormat": "YYYY-MM-DD HH:mm:ss",
+							"type": "date",
+							"pattern": "Time"
+						},
+						{
+							"colors": [
+								"rgba(50, 172, 45, 0.97)",
+								"rgba(237, 129, 40, 0.89)",
+								"rgba(236, 11, 7, 0.9)"
+							],
+							"type": "number",
+							"pattern": "/.*/",
+							"thresholds": [
+								"75",
+								"90"
+							],
+							"colorMode": "cell",
+							"unit": "percent",
+							"decimals": 1
+						}
+					],
+					"fontSize": "100%",
+					"editable": true,
+					"columns": [
+						{
+							"text": "Min",
+							"value": "min"
+						},
+						{
+							"text": "Avg",
+							"value": "avg"
+						},
+						{
+							"text": "Max",
+							"value": "max"
+						},
+						{
+							"text": "Current",
+							"value": "current"
+						}
+					],
+					"type": "table",
+					"datasource": "influxdb_main",
+					"transform": "timeseries_aggregations",
+					"pageSize": 200,
+					"showHeader": true
+				}
+			],
+			"height": 233.079833984375
+		},
+		{
+			"title": "New row",
+			"editable": true,
+			"collapse": false,
+			"panels": [
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 6,
+					"pointradius": 5,
+					"id": 7,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"sideWidth": 100,
+						"rightSide": true,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": true,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "Mem available (on phyiscal nodes)",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "gbytes",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.memory.ram.available|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "mean"
+									},
+									{
+										"params": [
+											" / 1024"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "A",
+							"query": "SELECT mean(\"value\")  / 1024 FROM \"machine.memory.ram.available|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Average GBytes Mem Available",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.memory.ram.available|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "min"
+									},
+									{
+										"params": [
+											" / 1024"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Min GBytes Mem Available",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.memory.ram.available|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "max"
+									},
+									{
+										"params": [
+											" / 1024"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "C",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Max GBytes Mem Available",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				},
+				{
+					"links": [],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.memory.ram.available|m",
+							"groupBy": [
+								{
+									"params": [
+										"5m"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"nid"
+									],
+									"type": "tag"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "distinct"
+									},
+									{
+										"params": [
+											" /1024"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"dsType": "influxdb",
+							"policy": "default",
+							"refId": "A"
+						}
+					],
+					"error": false,
+					"title": "GiB RAM available (for all physical nodes)",
+					"isNew": true,
+					"sort": {
+						"col": 1,
+						"desc": false
+					},
+					"height": "",
+					"scroll": true,
+					"span": 6,
+					"id": 5,
+					"styles": [
+						{
+							"dateFormat": "YYYY-MM-DD HH:mm:ss",
+							"type": "date",
+							"pattern": "Time"
+						},
+						{
+							"colors": [
+								"rgba(50, 172, 45, 0.97)",
+								"rgba(237, 129, 40, 0.89)",
+								"rgba(236, 11, 7, 0.9)"
+							],
+							"type": "number",
+							"pattern": "/.*/",
+							"thresholds": [
+								"50",
+								"80"
+							],
+							"colorMode": null,
+							"unit": "gbytes",
+							"decimals": 1
+						}
+					],
+					"fontSize": "100%",
+					"editable": true,
+					"columns": [
+						{
+							"text": "Min",
+							"value": "min"
+						},
+						{
+							"text": "Avg",
+							"value": "avg"
+						},
+						{
+							"text": "Max",
+							"value": "max"
+						},
+						{
+							"text": "Current",
+							"value": "current"
+						}
+					],
+					"type": "table",
+					"datasource": "influxdb_main",
+					"transform": "timeseries_aggregations",
+					"pageSize": 200,
+					"showHeader": true
+				},
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 3,
+					"pointradius": 5,
+					"id": 6,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"sideWidth": 100,
+						"rightSide": false,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": true,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "Rx in Gbit/s (for all physical NICs)",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "Gbits",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.incoming|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "mean"
+									},
+									{
+										"params": [
+											" /2.1333"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": true,
+							"refId": "A",
+							"query": "SELECT mean(\"value\")  /128 FROM \"network.throughput.incoming|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Average Rx for physical nodes",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.incoming|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "min"
+									},
+									{
+										"params": [
+											"/128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Minimum Rx for physical nodes",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.incoming|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "max"
+									},
+									{
+										"params": [
+											"/128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "C",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Maximum Rx for physical nodes",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				},
+				{
+					"links": [],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.incoming|m",
+							"groupBy": [
+								{
+									"params": [
+										"5m"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"nid"
+									],
+									"type": "tag"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "distinct"
+									},
+									{
+										"params": [
+											" /128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"dsType": "influxdb",
+							"policy": "default",
+							"refId": "A"
+						}
+					],
+					"error": false,
+					"title": "Distribution of Rx on physcal NICs (in Gbits/s)",
+					"isNew": true,
+					"sort": {
+						"col": 3,
+						"desc": true
+					},
+					"height": "",
+					"scroll": true,
+					"span": 3,
+					"id": 9,
+					"styles": [
+						{
+							"dateFormat": "YYYY-MM-DD HH:mm:ss",
+							"type": "date",
+							"pattern": "Time"
+						},
+						{
+							"colors": [
+								"rgba(50, 172, 45, 0.97)",
+								"rgba(237, 129, 40, 0.89)",
+								"rgba(236, 11, 7, 0.9)"
+							],
+							"type": "number",
+							"pattern": "/.*/",
+							"thresholds": [
+								"50",
+								"80"
+							],
+							"colorMode": null,
+							"unit": "none",
+							"decimals": 1
+						}
+					],
+					"fontSize": "80%",
+					"editable": true,
+					"columns": [
+						{
+							"text": "Min",
+							"value": "min"
+						},
+						{
+							"text": "Avg",
+							"value": "avg"
+						},
+						{
+							"text": "Max",
+							"value": "max"
+						},
+						{
+							"text": "Current",
+							"value": "current"
+						}
+					],
+					"type": "table",
+					"datasource": "influxdb_main",
+					"transform": "timeseries_aggregations",
+					"pageSize": 200,
+					"showHeader": true
+				},
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 3,
+					"pointradius": 5,
+					"id": 8,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"sideWidth": 100,
+						"rightSide": false,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": true,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "Tx in Gbit/s (for all physical NICs)",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "Gbits",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.outgoing|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "mean"
+									},
+									{
+										"params": [
+											"/128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "A",
+							"query": "SELECT mean(\"value\")  / 1024 FROM \"machine.memory.ram.available|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Average Tx for physical nodes",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.outgoing|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "min"
+									},
+									{
+										"params": [
+											"/128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Minimum Tx for physical nodes",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.outgoing|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "max"
+									},
+									{
+										"params": [
+											"/128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "C",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Maximum Tx for physical nodes",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				},
+				{
+					"links": [],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "network.throughput.outgoing|m",
+							"groupBy": [
+								{
+									"params": [
+										"5m"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"nid"
+									],
+									"type": "tag"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "distinct"
+									},
+									{
+										"params": [
+											" /128"
+										],
+										"type": "math"
+									}
+								]
+							],
+							"dsType": "influxdb",
+							"policy": "default",
+							"refId": "A"
+						}
+					],
+					"error": false,
+					"title": "Distribution of Tx on phiscal NICs (in Gbits/s)",
+					"isNew": true,
+					"sort": {
+						"col": 3,
+						"desc": true
+					},
+					"height": "",
+					"scroll": true,
+					"span": 3,
+					"id": 10,
+					"styles": [
+						{
+							"dateFormat": "YYYY-MM-DD HH:mm:ss",
+							"type": "date",
+							"pattern": "Time"
+						},
+						{
+							"colors": [
+								"rgba(50, 172, 45, 0.97)",
+								"rgba(237, 129, 40, 0.89)",
+								"rgba(236, 11, 7, 0.9)"
+							],
+							"type": "number",
+							"pattern": "/.*/",
+							"thresholds": [
+								"50",
+								"80"
+							],
+							"colorMode": null,
+							"unit": "none",
+							"decimals": 1
+						}
+					],
+					"fontSize": "80%",
+					"editable": true,
+					"columns": [
+						{
+							"text": "Min",
+							"value": "min"
+						},
+						{
+							"text": "Avg",
+							"value": "avg"
+						},
+						{
+							"text": "Max",
+							"value": "max"
+						},
+						{
+							"text": "Current",
+							"value": "current"
+						}
+					],
+					"type": "table",
+					"datasource": "influxdb_main",
+					"transform": "timeseries_aggregations",
+					"pageSize": 200,
+					"showHeader": true
+				},
+				{
+					"lines": true,
+					"nullPointMode": "connected",
+					"error": false,
+					"timeFrom": null,
+					"grid": {
+						"threshold2Color": "rgba(234, 112, 112, 0.22)",
+						"threshold1Color": "rgba(216, 200, 27, 0.27)",
+						"threshold2": null,
+						"threshold1": null
+					},
+					"span": 6,
+					"pointradius": 5,
+					"id": 13,
+					"seriesOverrides": [],
+					"percentage": false,
+					"type": "graph",
+					"aliasColors": {},
+					"bars": false,
+					"xaxis": {
+						"show": true
+					},
+					"renderer": "flot",
+					"legend": {
+						"values": false,
+						"max": false,
+						"avg": false,
+						"min": false,
+						"total": false,
+						"sideWidth": 100,
+						"rightSide": true,
+						"current": false,
+						"show": true,
+						"alignAsTable": true
+					},
+					"isNew": true,
+					"links": [],
+					"timeShift": null,
+					"tooltip": {
+						"shared": true,
+						"msResolution": true,
+						"sort": 0,
+						"value_type": "cumulative"
+					},
+					"fill": 1,
+					"title": "# Cont Switch",
+					"datasource": "influxdb_main",
+					"yaxes": [
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						},
+						{
+							"logBase": 1,
+							"max": null,
+							"min": null,
+							"format": "short",
+							"show": true,
+							"label": null
+						}
+					],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.contextswitch|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "mean"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "A",
+							"query": "SELECT mean(\"value\")  / 1024 FROM \"machine.memory.ram.available|m\" WHERE \"type\" = 'physical' AND $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Average # Cont Switch",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.contextswitch|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "min"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "B",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Min # Cont Switch",
+							"policy": "default"
+						},
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.contextswitch|m",
+							"groupBy": [
+								{
+									"params": [
+										"$interval"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"null"
+									],
+									"type": "fill"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "max"
+									}
+								]
+							],
+							"rawQuery": false,
+							"refId": "C",
+							"query": "SELECT mean(\"value\") FROM \"machine.memory.ram.available|m\" WHERE $timeFilter GROUP BY time($interval) fill(null)",
+							"dsType": "influxdb",
+							"alias": "Max # Cont Switch",
+							"policy": "default"
+						}
+					],
+					"editable": true,
+					"linewidth": 2,
+					"stack": false,
+					"points": false,
+					"steppedLine": false
+				},
+				{
+					"links": [],
+					"targets": [
+						{
+							"resultFormat": "time_series",
+							"measurement": "machine.CPU.contextswitch|m",
+							"groupBy": [
+								{
+									"params": [
+										"5m"
+									],
+									"type": "time"
+								},
+								{
+									"params": [
+										"nid"
+									],
+									"type": "tag"
+								}
+							],
+							"tags": [
+								{
+									"operator": "=",
+									"value": "physical",
+									"key": "type"
+								}
+							],
+							"select": [
+								[
+									{
+										"params": [
+											"value"
+										],
+										"type": "field"
+									},
+									{
+										"params": [],
+										"type": "distinct"
+									}
+								]
+							],
+							"dsType": "influxdb",
+							"policy": "default",
+							"refId": "A"
+						}
+					],
+					"error": false,
+					"title": "# Context Switches (physical CPU)",
+					"isNew": true,
+					"sort": {
+						"col": null,
+						"desc": false
+					},
+					"height": "",
+					"scroll": true,
+					"span": 6,
+					"id": 14,
+					"styles": [
+						{
+							"dateFormat": "YYYY-MM-DD HH:mm:ss",
+							"type": "date",
+							"pattern": "Time"
+						},
+						{
+							"colors": [
+								"rgba(50, 172, 45, 0.97)",
+								"rgba(237, 129, 40, 0.89)",
+								"rgba(236, 11, 7, 0.9)"
+							],
+							"type": "number",
+							"pattern": "/.*/",
+							"thresholds": [
+								"150000",
+								"500000"
+							],
+							"colorMode": "cell",
+							"unit": "none",
+							"decimals": 1
+						}
+					],
+					"fontSize": "100%",
+					"editable": true,
+					"columns": [
+						{
+							"text": "Min",
+							"value": "min"
+						},
+						{
+							"text": "Avg",
+							"value": "avg"
+						},
+						{
+							"text": "Max",
+							"value": "max"
+						},
+						{
+							"text": "Current",
+							"value": "current"
+						}
+					],
+					"type": "table",
+					"datasource": "influxdb_main",
+					"transform": "timeseries_aggregations",
+					"pageSize": 200,
+					"showHeader": true
+				}
+			],
+			"height": "250px"
+		}
+	],
+	"version": 14,
+	"__inputs": [
+		{
+			"name": "DS_INFLUXDB_CONTROLLER",
+			"pluginId": "influxdb",
+			"description": "",
+			"type": "datasource",
+			"pluginName": "InfluxDB",
+			"label": "influxdb_controller"
+		}
+	]
+}

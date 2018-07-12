@@ -101,7 +101,7 @@ class Portal(object):
                 'external': 'true'},
             'grafana': {
                 'name': 'Statistics',
-                'url': '/grafana',
+                'url': '/grafana/d/1/overall-system-performance',
                 'scope': 'admin',
                 'theme': 'light',
                 'external': 'true'},
