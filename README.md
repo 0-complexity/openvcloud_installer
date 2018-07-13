@@ -2,7 +2,7 @@
 
 This repository provides the installation and configuration scripts to deploy the OpenvCloud master node and all other OpenvCloud components into a Kubernetes cluster running on the three Controller nodes.
 
-All documentation is available in the [/docs directory](/docs/README.md).
+All documentation is available in the [OpenvCloud GitBook](https://gig-tech.gitbook.io/ovc/summary/installation).
 
 ![image](https://docs.google.com/drawings/d/e/2PACX-1vSqbL-YMqMbzhS6Bd9kUo1YYnEs1a9cwoVTl3Q1jT203vThUxC3Uqcj4mBUzk26S7dV_gBKbtMvofaP/pub?w=953&h=579)
 
