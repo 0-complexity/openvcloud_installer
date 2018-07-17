@@ -1,5 +1,5 @@
 FROM openvcloud/0-access:latest
-
+RUN rm -f /opt/0-access/zero_access.py
 RUN ln -s /opt/0-access/0-access.py /opt/0-access/zero_access.py
 ADD 0-access-start.py /opt/0-access
 
