@@ -113,7 +113,7 @@ def get_pnodes(config, versions=None, roles=None):
     roles = set(roles or [])
     for pnode in config['nodes']:
         if roles.intersection(set(pnode['roles'])):
-            pnodes.append(JumpScale7(config, pnode['name'], versions))
+            pnodes.append(PNode(config, pnode['name'], versions))
     return pnodes
 
 def set_cgroup(node, cgroup, cpu_set, memory):
