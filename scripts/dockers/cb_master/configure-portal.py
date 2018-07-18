@@ -87,12 +87,6 @@ class Portal(object):
         ovc_environment = self.config['itsyouonline']['environment']
         gid = j.application.whoAmI.gid
         portal_links = {
-            'ays': {
-                'name': 'At Your Service',
-                'url': '/AYS',
-                'scope': 'admin',
-                'theme': 'light',
-            },
             'vdc': {
                 'name': 'End User',
                 'url': 'https://{}'.format(self.fqdn),
