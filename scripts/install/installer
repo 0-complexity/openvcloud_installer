@@ -8,6 +8,7 @@ import click
 import os
 import requests
 import random
+import yaml
 import time
 import jsonschema
 import concurrent.futures.thread
@@ -690,14 +691,27 @@ class Cluster(AbstractConfig):
 
     def write_certificates(self):
         log('Writing certificates')
-        copiedpaths = {}
         ssldir = '/var/ovc/ssl/'
-        for key, value in self.config['environment']['ssl'].items():
-            path = os.path.join(value['path'], '')
-            if path not in copiedpaths:
-                for node in self.nodes:
-                    node.core.upload(path, ssldir)
-                copiedpaths[path] = ssldir
+        tmpdir = '/tmp/cert'
+        if not os.path.exists(tmpdir):
+            os.makedirs(tmpdir)
+
+        ssl_items = self.config['environment']['ssl'].items()
+        cert_items = ['crt', 'key', 'csr']
+        paths = {}
+        copiedpaths = {}
+        for _, cert_name in ssl_items:
+            # get certificates from config
+            for item in cert_items:
+                value = self.config['certificates'][cert_name][item]
+                paths[item] = os.path.join(tmpdir, "{}.{}".format(cert_name, item))
+                with open(paths[item], 'w+') as file:
+                    file.write(value)
+            for _, path in paths.items():
+                if path not in copiedpaths:
+                    for node in self.nodes:
+                        node.core.upload(path, ssldir)
+                        copiedpaths[path] = ssldir
 
     def reset(self):
         if self.first_node.core.file_exists('/etc/kubernetes/admin.conf'):
@@ -754,11 +768,13 @@ class Cluster(AbstractConfig):
             prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
 
     def verify_certificates(self):
-        for key, value in self.config['environment']['ssl'].items():
+        for key, cert_name in self.config['environment']['ssl'].items():
+            cert = self.config['certificates'][cert_name]
+            if not cert:
+                raise RuntimeError("Certificate {} not found.".format(cert_name))
             for extension in ('crt', 'csr', 'key'):
-                path = os.path.join(value['path'], '{}.{}'.format(value['name'], extension))
-                if not j.sal.fs.exists(path):
-                    raise RuntimeError("Certificate {} does not exists.".format(path))
+                if not cert.get(extension):
+                    raise RuntimeError('ERROR: "{}" is required property in config /certificates/{}/'.format(extension, cert_name))
 
     def install_controller(self):
         """
@@ -903,7 +919,7 @@ class Cluster(AbstractConfig):
 
     def write_config_map(self, name, content):
         if isinstance(content, (dict, list)):
-            content = j.data.serializer.yaml.dumps(content)
+            content = yaml.dump(content, default_style='|')
         self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content), showout=False)
 
     def write_system_config(self):
@@ -917,7 +933,7 @@ class Cluster(AbstractConfig):
     def install_teleport(self):
         for node in self.nodes:
             log('Installing teleport {}'.format(node.core.hostname))
-            ssl_name = self.config['environment']['ssl']['root']['name']
+            ssl_name = self.config['environment']['ssl']['root']
             if not node.core.file_exists('/usr/local/bin/teleport') or not node.core.file_exists('/usr/local/bin/tctl') or not node.core.file_exists('/usr/local/bin/tsh'):
                 node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
             node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
@@ -1261,8 +1277,8 @@ def cluster_updatedomain(ctx):
     cluster.verify_certificates()
     cluster.write_certificates()
     cluster.write_system_config()
-    cluster.kubectl('delete deploy nginx')
-    cluster.kubectl('delete deploy portal')
+    cluster.kubectl('delete deploy nginx || true')
+    cluster.kubectl('delete deploy portal || true')
     template_path = cluster.scripts_dir + '{}'
     cluster.apply_template(template_path.format('nginx'), 'deployment')
     cluster.apply_template(template_path.format('portal'), 'deployment')

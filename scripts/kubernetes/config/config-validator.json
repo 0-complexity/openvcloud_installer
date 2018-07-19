@@ -392,111 +392,35 @@
             "properties": {
               "ovs": {
                 "$id": "/properties/environment/properties/ssl/properties/ovs",
-                "type": "object",
-                "required": ["name", "path"],
-                "properties": {
-                  "name": {
-                    "$id": "/properties/environment/properties/ssl/properties/ovs/properties/name",
-                    "type": "string",
-                    "title": "The Name Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
+                "type": "string",
                     "examples": [
-                      "demo.greenitglobe.com"
+                      "demo.greenitglobe.com",
+                      "cert01"
                     ]
-                  },
-                  "path": {
-                    "$id": "/properties/environment/properties/ssl/properties/ovs/properties/path",
-                    "type": "string",
-                    "title": "The Path Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                      "/certpath"
-                    ]
-                  }
-                }
-              },
-              "root": {
-                "$id": "/properties/environment/properties/ssl/properties/root",
-                "type": "object",
-                "required": ["name", "path"],
-                "properties": {
-                  "name": {
-                    "$id": "/properties/environment/properties/ssl/properties/root/properties/name",
-                    "type": "string",
-                    "title": "The Name Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                      "demo.greenitglobe.com"
-                    ]
-                  },
-                  "path": {
-                    "$id": "/properties/environment/properties/ssl/properties/root/properties/path",
-                    "type": "string",
-                    "title": "The Path Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                      "/certpath"
-                    ]
-                  }
-                }
-              },
+                },
               "defense": {
                 "$id": "/properties/environment/properties/ssl/properties/defense",
-                "type": "object",
-                "required": ["name", "path"],
-                "properties": {
-                  "name": {
-                    "$id": "/properties/environment/properties/ssl/properties/defense/properties/name",
-                    "type": "string",
-                    "title": "The Name Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
+                "type": "string",
                     "examples": [
-                      "demo.greenitglobe.com"
+                      "demo.greenitglobe.com",
+                      "cert01"
                     ]
-                  },
-                  "path": {
-                    "$id": "/properties/environment/properties/ssl/properties/defense/properties/path",
-                    "type": "string",
-                    "title": "The Path Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                      "/certpath"
-                    ]
-                  }
-                }
-              },
+                },
               "novnc": {
                 "$id": "/properties/environment/properties/ssl/properties/novnc",
-                "type": "object",
-                "required": ["name", "path"],
-                "properties": {
-                  "name": {
-                    "$id": "/properties/environment/properties/ssl/properties/novnc/properties/name",
-                    "type": "string",
-                    "title": "The Name Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
+                "type": "string",
                     "examples": [
-                      "demo.greenitglobe.com"
+                      "demo.greenitglobe.com",
+                      "cert01"
                     ]
-                  },
-                  "path": {
-                    "$id": "/properties/environment/properties/ssl/properties/novnc/properties/path",
-                    "type": "string",
-                    "title": "The Path Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
+                },
+              "root": {
+                "$id": "/properties/environment/properties/ssl/properties/root",
+                "type": "string",
                     "examples": [
-                      "/certpath"
+                      "demo.greenitglobe.com",
+                      "cert01"
                     ]
-                  }
-                }
               }
             }
           },
