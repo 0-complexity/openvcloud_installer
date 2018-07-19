@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+import click
+import yaml
+import subprocess
+from io import BytesIO
+
+def convert_data(systemconfig):
+    """
+    Converts system-config data
+    """
+    if not isinstance(systemconfig['nodes'], dict):
+        raise RuntimeError("System-config is not in the old format")
+    oldnodes = systemconfig.pop('nodes')
+    nodes = []
+    systemconfig['nodes'] = nodes
+    controller = systemconfig.pop('controller')
+    for node in controller['hosts']:
+        node['roles'] = ['controller']
+        node['name'] = node.pop('hostname')
+        nodes.append(node)
+    for nodetype, nodesoftype in oldnodes.items():
+        for node in nodesoftype:
+            node['roles'] = [nodetype]
+            nodes.append(node)
+
+@click.group()
+def cli():
+    pass
+
+@cli.command('convert', help='Convert system-config to new format')
+@click.option('--file', help='Filepath to convert')
+def convert(file):
+    with open(file) as fd:
+        data = yaml.load(fd)
+    convert_data(data)
+    with open(file, 'w+') as fd:
+        yaml.safe_dump(data, fd, default_flow_style=False)
+
+@cli.command('migrate', help='Convert system-config to new format on existing cluster')
+def migrate():
+    config = subprocess.check_output(['kubectl', 'get', 'configmap', 'system-config', '-o', 'json'])
+    data = yaml.load(yaml.load(config)['data']['system-config.yaml'])
+    convert_data(data)
+    proc = subprocess.Popen(['kubectl', 'create', 'configmap', 'system-config', '--dry-run', '--from-file=system-config.yaml=/dev/stdin', '-o', 'json'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    applyproc = subprocess.Popen(['kubectl', 'apply', '-f', '-'], stdin=proc.stdout)
+    yaml.safe_dump(data, proc.stdin, encoding='utf-8', default_flow_style=False)
+    proc.stdin.close()
+    proc.stdout.close()
+    applyproc.communicate()
+    if applyproc.returncode != 0:
+        raise RuntimeError("Failed to apply converted config")
+
+
+
+if __name__ == '__main__':
+    cli()
+

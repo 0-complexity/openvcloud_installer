@@ -22,6 +22,11 @@ def configure(roles, machineguid, controller_addr, ssh):
     j.application.config.set('grid.id', gid)
     j.application.config.set('grid.node.id', '')
     j.application.config.set('grid.node.roles', roles)
+    if config.get('alerta'):
+        system = j.core.hrd.get('/opt/jumpscale7/hrd/system/system.hrd')
+        system.set('system.alerta.api_key', config['alerta']['api_key'])
+        system.set('system.alerta.api_url', config['alerta']['api_url'])
+        system.save()
     if machineguid:
         j.application.config.set('grid.node.machineguid', machineguid)
 

@@ -113,8 +113,10 @@ def restore(date, mongo, billing):
     hostname = execute_command(['hostname'])
     if mongo:
         print('[+] restoring mongo')
+        ccl = j.clients.osis.getNamespace('cloudbroker')
+        ccl.size.destroy()
         mongo_container = MONGO_CONTAINER.format(
-            mongo_command="'mongorestore', '--host', 'mongo', '/tmp/backup/%s-mongo'" % date)
+            mongo_command="'mongorestore', '--host', 'mongo', '--nsExclude', 'system.node', '/tmp/backup/%s-mongo'" % date)
         containers += mongo_container
     # if influx:
     #     print('[+] restoring influx')
@@ -128,6 +130,15 @@ def restore(date, mongo, billing):
         execute_command(['kubectl', 'apply', '-f',
                                        '/tmp/migration.yaml'])
         scl = j.clients.osis.getNamespace('system')
+        _, pod_names = j.system.process.execute("""kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{" "}}{{end}}'""")
+        pod_names = pod_names.split(' ')
+        for pod_name in pod_names:
+            if 'management' in pod_name:
+                break
+        exec_command = '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer node jsaction --name all install'
+        j.system.process.execute('kubectl exec -it {name} -- {cmd}'.format(name=pod_name, cmd=exec_command))
+        for node in scl.node.search({})[1:]:
+            ccl.stack.updateSearch({'name': node['name']}, {'$set': {'referenceId': str(node['id'])}})
         versionmodel = scl.version.new()
         versionmodel.name = '2.2.6'
         scl.version.set(versionmodel)

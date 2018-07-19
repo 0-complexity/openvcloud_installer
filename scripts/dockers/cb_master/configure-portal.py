@@ -61,6 +61,12 @@ class Portal(object):
             apikey = result.json()
         return apikey
 
+    def configure_portal_client(self):
+        portal_client_services = j.atyourservice.findServices(domain='jumpscale', name='portal_client')
+        for portal_client_service in portal_client_services:
+            portal_client_service.hrd.set('instance.param.addr', 'localhost')
+            portal_client_service.hrd.save()
+
     def add_user(self):
         """
         Add portal user using jsuser.
@@ -81,12 +87,6 @@ class Portal(object):
         ovc_environment = self.config['itsyouonline']['environment']
         gid = j.application.whoAmI.gid
         portal_links = {
-            'ays': {
-                'name': 'At Your Service',
-                'url': '/AYS',
-                'scope': 'admin',
-                'theme': 'light',
-            },
             'vdc': {
                 'name': 'End User',
                 'url': 'https://{}'.format(self.fqdn),
@@ -133,7 +133,12 @@ class Portal(object):
         cloudbrokerhrd = j.application.getAppInstanceHRD(name='cloudbroker', domain='openvcloud', instance='main')
         cloudbrokerhrd.set('instance.cloudbroker.portalurl', 'https://{}'.format(self.fqdn))
         cloudbrokerhrd.set('instance.openvcloud.cloudbroker.defense_proxy', 'https://defense-{}'.format(self.fqdn))
+        cloudbrokerhrd.set('instance.openvcloud.supportemail', self.config['mailclient']['sender'])
         cloudbrokerhrd.save()
+        # update cbportal service
+        cbportalhrd = j.application.getAppInstanceHRD(name='cbportal', domain='openvcloud', instance='main')
+        cbportalhrd.set('instance.openvcloud.supportemail', self.config['mailclient']['sender'])
+        cbportalhrd.save()
 
         # setup user/groups
         for groupname in ('user', 'ovs_admin', 'level1', 'level2', 'level3', '0-access'):
@@ -157,7 +162,14 @@ class Portal(object):
             grid = self.scl.grid.new()
             grid.id = j.application.whoAmI.gid
             grid.name = ovc_environment
-            self.scl.grid.set(grid)
+        else:
+            grid = self.scl.grid.get(j.application.whoAmI.gid)
+        limits = {'limits': self.config.get('limits')}
+        if not grid.settings:
+            grid.settings = limits
+        grid.settings.update(limits)
+
+        self.scl.grid.set(grid)
         # register vnc url
         url = 'https://novnc-{}/vnc_auto.html?token='.format(self.fqdn)
         if self.lcl.vnc.count({'url': url, 'gid': gid}) == 0:
@@ -166,15 +178,15 @@ class Portal(object):
             vnc.url = url
             self.lcl.vnc.set(vnc)
         # register sizes
-        sizecbs = [('10GB at SSD Speed, Unlimited Transfer - 7.5 USD/month', 512, 1),
-                 ('10GB at SSD Speed, Unlimited Transfer - 15 USD/month', 1024, 1),
-                 ('10GB at SSD Speed, Unlimited Transfer - 18 USD/month', 2048, 2),
-                 ('10GB at SSD Speed, Unlimited Transfer - 36 USD/month', 4096, 2),
-                 ('10GB at SSD Speed, Unlimited Transfer - 70 USD/month', 8192, 4),
-                 ('10GB at SSD Speed, Unlimited Transfer - 140 USD/month', 16384, 8)]
+        sizecbs = [('512 MiB Memory with 1 vcpu', 512, 1),
+                 ('1 GiB Memory with 1 vcpu', 1024, 1),
+                 ('2 GiB Memory with 2 vcpus', 2048, 2),
+                 ('4 GiB Memory with 2 vcpus', 4096, 2),
+                 ('8 GiB Memory with 4 vcpus', 8192, 4),
+                 ('16 GiB Memory with 8 vcpus', 16384, 8)]
         disksizes = [10, 20, 50, 100, 250, 500, 1000, 2000]
-        for sizecb in sizecbs:
-            if self.ccl.size.count({'memory': sizecb[1], 'vcpus': sizecb[2]}) == 0:
+        if self.ccl.size.count({}) == 0:
+            for sizecb in sizecbs:
                 size = self.ccl.size.new()
                 size.name = sizecb[0]
                 size.memory = sizecb[1]
@@ -207,23 +219,38 @@ class Portal(object):
         apikey = self.configure_api_key(apikey)
 
         # install oauth_client
-        scopes = ['user:name', 'user:email', 'user:publickey:ssh']
-        for group in groups:
-            scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
+        admin_scopes = ['user:name', 'user:email', 'user:publickey:ssh']
+        user_scopes = ['user:name', 'user:email']
 
-        data = {'instance.oauth.client.id': self.client_id,
-                'instance.oauth.client.logout_url': '',
-                'instance.oauth.client.redirect_url': callbackURL,
-                'instance.oauth.client.scope': ','.join(scopes),
-                'instance.oauth.client.secret': apikey['secret'],
-                'instance.oauth.client.url': os.path.join(self.baseurl, 'v1/oauth/authorize'),
-                'instance.oauth.client.url2': os.path.join(self.baseurl, 'v1/oauth/access_token'),
-                'instance.oauth.client.user_info_url': os.path.join(self.baseurl, 'api/users/{username}/info')
-                }
+        for group in groups:
+            admin_scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
+            user_scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
+
+        data = {
+            'instance.oauth.client.id': self.client_id,
+            'instance.oauth.client.logout_url': '',
+            'instance.oauth.client.redirect_url': callbackURL,
+            'instance.oauth.client.secret': apikey['secret'],
+            'instance.oauth.client.url': os.path.join(self.baseurl, 'v1/oauth/authorize'),
+            'instance.oauth.client.url2': os.path.join(self.baseurl, 'v1/oauth/access_token'),
+            'instance.oauth.client.user_info_url': os.path.join(self.baseurl, 'api/users/{username}/info')
+        }
+
+        admin_data = dict(data)
+        user_data = dict(data)
+
+        admin_data['instance.oauth.client.scope'] =  ','.join(admin_scopes),
+        user_data['instance.oauth.client.scope'] = ','.join(user_scopes)
+
         oauthclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='oauth_client', instance='itsyouonline')
-        for key, val in data.items():
+        for key, val in admin_data.items():
             oauthclienthrd.set(key, val)
         oauthclienthrd.save()
+
+        useroauthclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='oauth_client', instance='itsyouonline_user')
+        for key, val in user_data.items():
+            useroauthclienthrd.set(key, val)
+        useroauthclienthrd.save()
 
         # configure groups on itsyouonline
         for group in groups:
@@ -280,5 +307,6 @@ if __name__ == '__main__':
     portalhrd = portal.configure_IYO()
     portal.configure_user_groups(portalhrd)
     portal.patch_mail_client()
+    portal.configure_portal_client()
     portal.configure_manifest()
     j.system.fs.copyDirTree('/opt/jumpscale7/hrd/apps/', '/opt/cfg/apps/')

@@ -3,7 +3,7 @@
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "http://example.com/example.json",
     "type": "object",
-    "required": ["timezone", "support", "ssh", "mailclient", "controller", "nodes", "environment", "network", "itsyouonline"],
+    "required": ["timezone", "support", "ssh", "mailclient", "nodes", "environment", "network", "itsyouonline"],
     "properties": {
       "timezone": {
         "$id": "/properties/timezone",
@@ -29,6 +29,76 @@
             "examples": [
               "-----BEGIN RSA PRIVATE KEY-----\\nMIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG\\n...\\nTZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==\\n-----END RSA PRIVATE KEY-----\\n"
             ]
+          }
+        }
+      },
+      "alerta": {
+        "$id": "/properties/ssh",
+        "type": "object",
+        "required": ["api_key", "api_url"],
+        "properties": {
+          "api_key": {
+            "$id": "/properties/alerta/properties/api_key",
+            "type": "string",
+            "title": "The key Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": []
+          },
+          "api_url": {
+            "$id": "/properties/alerta/properties/api_url",
+            "type": "string",
+            "title": "The url Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": []
+          }
+        }
+      },
+      "limits": {
+        "$id": "/properties/",
+        "type": "object",
+        "properties": {
+          "ovs": {
+            "$id": "/properties/limits/properties/ovs",
+            "type": "object",
+            "title": "The ovs Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "properties": {
+              "cpu": {
+                "$id": "/properties/limits/properties/ovs/properties/cpu",
+                "type": "string",
+                "title": "The cpu Schema",
+                "description": "An explanation about the purpose of this instance."
+              },
+              "memory": {
+                "$id": "/properties/limits/properties/ovs/properties/memory",
+                "type": "integer",
+                "title": "The memory Schema",
+                "description": "An explanation about the purpose of this instance."
+              }
+            }
+          },
+          "pods": {
+            "$id": "/properties/limits/properties/pods",
+            "type": "object",
+            "title": "The Login Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "properties": {
+              "cpu": {
+                "$id": "/properties/limits/properties/ovs/properties/cpu",
+                "type": "string",
+                "title": "The cpu Schema",
+                "description": "An explanation about the purpose of this instance."
+              },
+              "memory": {
+                "$id": "/properties/limits/properties/ovs/properties/memory",
+                "type": "integer",
+                "title": "The memory Schema",
+                "description": "An explanation about the purpose of this instance."
+              }
+            }
           }
         }
       },
@@ -188,250 +258,122 @@
           }
         }
       },
-      "controller": {
-        "$id": "/properties/controller",
-        "type": "object",
-        "required": ["hosts"],
-        "properties": {
-          "directories": {
-            "$id": "/properties/controller/properties/directories",
-            "type": "array",
-            "items": {
-              "$id": "/properties/controller/properties/directories/items",
-              "type": "object",
-              "required": ["path", "sync"],
-              "title": "The directory Schema",
-              "description": "An explanation about the purpose of this instance.",
-              "default": "",
-              "properties": {
-                "path": {
-                  "$id": "/properties/controller/properties/directories/items/properties/path",
-                  "type": "string",
-                  "title": "The path Schema",
-                  "description": "An explanation about the purpose of this instance.",
-                  "default": ""
-                },
-                "sync": {
-                  "$id": "/properties/controller/properties/directories/items/properties/sync",
-                  "type": "boolean",
-                  "title": "The sync Schema",
-                  "description": "Wether or not directory should be sync.",
-                  "default": ""
-                }
-              }
-            }
-          },
-          "hosts": {
-            "$id": "/properties/controller/properties/hosts",
-            "type": "array",
-            "items": {
-              "$id": "/properties/controller/properties/hosts/items",
-              "type": "object",
-              "required": ["hostname", "fallback", "ip-lsb"],
-              "properties": {
-                "hostname": {
-                  "$id": "/properties/controller/properties/hosts/items/properties/hostname",
-                  "type": "string",
-                  "title": "The Hostname Schema",
-                  "description": "An explanation about the purpose of this instance.",
-                  "default": "",
-                  "examples": [
-                    "be-loc-4-ctrl-01"
-                  ]
-                },
-                "fallback": {
-                  "$id": "/properties/controller/properties/hosts/items/properties/fallback",
-                  "type": "object",
-                  "required": ["ipaddress", "gateway"],
-                  "properties": {
-                    "ipaddress": {
-                      "$id": "/properties/controller/properties/hosts/items/properties/fallback/properties/ipaddress",
-                      "type": "string",
-                      "title": "The Ipaddress Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "10.101.109.1/16"
-                      ]
-                    },
-                    "gateway": {
-                      "$id": "/properties/controller/properties/hosts/items/properties/fallback/properties/gateway",
-                      "type": "string",
-                      "title": "The Gateway Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "10.101.0.1"
-                      ]
-                    }
-                  }
-                },
-                "ip-lsb": {
-                  "$id": "/properties/controller/properties/hosts/items/properties/ip-lsb",
-                  "type": "integer",
-                  "title": "The Ip-lsb Schema",
-                  "description": "An explanation about the purpose of this instance.",
-                  "default": 0,
-                  "examples": [
-                    1
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
       "nodes": {
         "$id": "/properties/nodes",
-        "type": "object",
-        "required": ["cpu", "storage"],
-        "properties": {
-          "cpu": {
-            "$id": "/properties/nodes/properties/cpu",
-            "type": "array",
-            "items": {
-              "$id": "/properties/nodes/properties/cpu/items",
+        "type": "array",
+        "items": {
+          "$id": "/properties/nodes/items",
+          "type": "object",
+          "required": ["name", "ip-lsb"],
+          "properties": {
+            "name": {
+              "$id": "/properties/nodes/items/properties/name",
+              "type": "string",
+              "title": "The Name Schema",
+              "description": "An explanation about the purpose of this instance.",
+              "default": "",
+              "examples": [
+                "stor-01"
+              ]
+            },
+            "roles": {
+              "$id": "/properties/nodes/items/properties/roles",
+              "type": "array",
+              "title": "The Roles Schema",
+              "description": "An explanation about the purpose of this instance.",
+              "default": "",
+              "examples": [
+                "controller"
+              ]
+            },
+            "ip-lsb": {
+              "$id": "/properties/nodes/items/properties/ip-lsb",
+              "type": "integer",
+              "title": "The Ip-lsb Schema",
+              "description": "An explanation about the purpose of this instance.",
+              "default": 0,
+              "examples": [
+                41
+              ]
+            },
+            "fallback": {
+              "$id": "/properties/nodes/items/properties/fallback",
               "type": "object",
-              "required": ["name", "ip-lsb", "ipmi", "management"],
+              "required": ["ipaddress", "gateway"],
               "properties": {
-                "name": {
-                  "$id": "/properties/nodes/properties/cpu/items/properties/name",
+                "ipaddress": {
+                  "$id": "/properties/nodes/items/properties/fallback/properties/ipaddress",
                   "type": "string",
-                  "title": "The Name Schema",
+                  "title": "The Ipaddress Schema",
                   "description": "An explanation about the purpose of this instance.",
                   "default": "",
                   "examples": [
-                    "cpu-01"
+                    "10.101.109.1/16"
                   ]
                 },
-                "ip-lsb": {
-                  "$id": "/properties/nodes/properties/cpu/items/properties/ip-lsb",
-                  "type": "integer",
-                  "title": "The Ip-lsb Schema",
+                "gateway": {
+                  "$id": "/properties/nodes/items/properties/fallback/properties/gateway",
+                  "type": "string",
+                  "title": "The Gateway Schema",
                   "description": "An explanation about the purpose of this instance.",
-                  "default": 0,
+                  "default": "",
                   "examples": [
-                    11
+                    "10.101.0.1"
                   ]
-                },
-                "ipmi": {
-                  "$id": "/properties/nodes/properties/cpu/items/properties/ipmi",
-                  "type": "object",
-                  "required": ["password", "username"],
-                  "properties": {
-                    "password": {
-                      "$id": "/properties/nodes/properties/cpu/items/properties/ipmi/properties/password",
-                      "type": "string",
-                      "title": "The Password Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "ADMIN"
-                      ]
-                    },
-                    "username": {
-                      "$id": "/properties/nodes/properties/cpu/items/properties/ipmi/properties/username",
-                      "type": "string",
-                      "title": "The Username Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "ADMIN"
-                      ]
-                    }
-                  }
-                },
-                "management": {
-                  "$id": "/properties/nodes/properties/cpu/items/properties/management",
-                  "type": "object",
-                  "required": ["macaddress"],
-                  "properties": {
-                    "macaddress": {
-                      "$id": "/properties/nodes/properties/cpu/items/properties/management/properties/macaddress",
-                      "type": "string",
-                      "title": "The Macaddress Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "0C:C4:7A:AC:11:36"
-                      ]
-                    }
-                  }
                 }
               }
-            }
-          },
-          "storage": {
-            "$id": "/properties/nodes/properties/storage",
-            "type": "array",
-            "items": {
-              "$id": "/properties/nodes/properties/storage/items",
+            },
+            "ipmi": {
+              "$id": "/properties/nodes/items/properties/ipmi",
               "type": "object",
-              "required": ["name", "ip-lsb", "ipmi", "management"],
+              "required": ["username", "password", "macaddress"],
               "properties": {
-                "name": {
-                  "$id": "/properties/nodes/properties/storage/items/properties/name",
+                "password": {
+                  "$id": "/properties/nodes/items/properties/ipmi/properties/password",
                   "type": "string",
-                  "title": "The Name Schema",
+                  "title": "The Password Schema",
                   "description": "An explanation about the purpose of this instance.",
                   "default": "",
                   "examples": [
-                    "stor-01"
+                    "admin"
                   ]
                 },
-                "ip-lsb": {
-                  "$id": "/properties/nodes/properties/storage/items/properties/ip-lsb",
-                  "type": "integer",
-                  "title": "The Ip-lsb Schema",
+                "username": {
+                  "$id": "/properties/nodes/items/properties/ipmi/properties/username",
+                  "type": "string",
+                  "title": "The Username Schema",
                   "description": "An explanation about the purpose of this instance.",
-                  "default": 0,
+                  "default": "",
                   "examples": [
-                    41
+                    "admin"
                   ]
                 },
-                "ipmi": {
-                  "$id": "/properties/nodes/properties/storage/items/properties/ipmi",
-                  "type": "object",
-                  "required": ["username", "password"],
-                  "properties": {
-                    "password": {
-                      "$id": "/properties/nodes/properties/storage/items/properties/ipmi/properties/password",
-                      "type": "string",
-                      "title": "The Password Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "admin"
-                      ]
-                    },
-                    "username": {
-                      "$id": "/properties/nodes/properties/storage/items/properties/ipmi/properties/username",
-                      "type": "string",
-                      "title": "The Username Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "admin"
-                      ]
-                    }
-                  }
-                },
-                "management": {
-                  "$id": "/properties/nodes/properties/storage/items/properties/management",
-                  "type": "object",
-                  "required": ["macaddress"],
-                  "properties": {
-                    "macaddress": {
-                      "$id": "/properties/nodes/properties/storage/items/properties/management/properties/macaddress",
-                      "type": "string",
-                      "title": "The Macaddress Schema",
-                      "description": "An explanation about the purpose of this instance.",
-                      "default": "",
-                      "examples": [
-                        "2C:60:0C:BC:26:65"
-                      ]
-                    }
-                  }
+                "macaddress": {
+                  "$id": "/properties/nodes/items/properties/ipmi/properties/macaddress",
+                  "type": "string",
+                  "title": "The macaddress of the IPMI interface",
+                  "description": "Macaddress for the IPMI interface.",
+                  "default": "",
+                  "examples": [
+                    "00:24:ec:f0:25:cc"
+                  ]
+                }
+              }
+            },
+            "management": {
+              "$id": "/properties/nodes/items/properties/management",
+              "type": "object",
+              "required": ["macaddress"],
+              "properties": {
+                "macaddress": {
+                  "$id": "/properties/nodes/items/properties/management/properties/macaddress",
+                  "type": "string",
+                  "title": "The Macaddress Schema",
+                  "description": "An explanation about the purpose of this instance.",
+                  "default": "",
+                  "examples": [
+                    "2C:60:0C:BC:26:65"
+                  ]
                 }
               }
             }
@@ -441,7 +383,7 @@
       "environment": {
         "$id": "/properties/environment",
         "type": "object",
-        "required": ["grid", "subdomain", "basedomain", "password", "ssl"],
+        "required": ["grid", "subdomain", "basedomain", "password", "ssl", "type"],
         "properties": {
           "ssl": {
             "$id": "/properties/environment/properties/ssl",
