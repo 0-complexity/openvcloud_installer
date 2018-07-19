@@ -1,0 +1,13 @@
+instance.oauth.client.id       = 'deboeckj.ovcenvs.wolverine'
+instance.oauth.client.logout_url = 
+instance.oauth.client.redirect_url = 'http://192.168.57.22/restmachine/system/oauth/authorize'
+instance.oauth.client.scope    = 'user:name,user:email,user:memberof:deboeckj.ovcenvs.wolverine.admin,user:memberof:deboeckj.ovcenvs.wolverine.level1,user:memberof:deboeckj.ovcenvs.wolverine.level2,user:memberof:deboeckj.ovcenvs.wolverine.level3,user:memberof:deboeckj.ovcenvs.wolverine.ovs_admin,user:memberof:deboeckj.ovcenvs.wolverine.user'
+instance.oauth.client.secret   = 'dXwE24uTeaCM7PYCVkPk9_GFGFB7JXC4bwMFjRhnp6pv5zSMFuOB'
+instance.oauth.client.url      = 'https://itsyou.online/v1/oauth/authorize'
+instance.oauth.client.url2     = 'https://itsyou.online/v1/oauth/access_token'
+instance.oauth.client.user_info_url = 'https://itsyou.online/api/users/{username}/info'
+
+service.domain                 = 'jumpscale'
+service.installed.checksum     = 'dc220945d00331190219ed509345e98f'
+service.instance               = 'itsyouonline_user'
+service.name                   = 'oauth_client'

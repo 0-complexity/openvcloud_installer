@@ -219,23 +219,38 @@ class Portal(object):
         apikey = self.configure_api_key(apikey)
 
         # install oauth_client
-        scopes = ['user:name', 'user:email', 'user:publickey:ssh']
-        for group in groups:
-            scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
+        admin_scopes = ['user:name', 'user:email', 'user:publickey:ssh']
+        user_scopes = ['user:name', 'user:email']
 
-        data = {'instance.oauth.client.id': self.client_id,
-                'instance.oauth.client.logout_url': '',
-                'instance.oauth.client.redirect_url': callbackURL,
-                'instance.oauth.client.scope': ','.join(scopes),
-                'instance.oauth.client.secret': apikey['secret'],
-                'instance.oauth.client.url': os.path.join(self.baseurl, 'v1/oauth/authorize'),
-                'instance.oauth.client.url2': os.path.join(self.baseurl, 'v1/oauth/access_token'),
-                'instance.oauth.client.user_info_url': os.path.join(self.baseurl, 'api/users/{username}/info')
-                }
+        for group in groups:
+            admin_scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
+            user_scopes.append('user:memberof:{}.{}'.format(self.client_id, group))
+
+        data = {
+            'instance.oauth.client.id': self.client_id,
+            'instance.oauth.client.logout_url': '',
+            'instance.oauth.client.redirect_url': callbackURL,
+            'instance.oauth.client.secret': apikey['secret'],
+            'instance.oauth.client.url': os.path.join(self.baseurl, 'v1/oauth/authorize'),
+            'instance.oauth.client.url2': os.path.join(self.baseurl, 'v1/oauth/access_token'),
+            'instance.oauth.client.user_info_url': os.path.join(self.baseurl, 'api/users/{username}/info')
+        }
+
+        admin_data = dict(data)
+        user_data = dict(data)
+
+        admin_data['instance.oauth.client.scope'] =  ','.join(admin_scopes),
+        user_data['instance.oauth.client.scope'] = ','.join(user_scopes)
+
         oauthclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='oauth_client', instance='itsyouonline')
-        for key, val in data.items():
+        for key, val in admin_data.items():
             oauthclienthrd.set(key, val)
         oauthclienthrd.save()
+
+        useroauthclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='oauth_client', instance='itsyouonline_user')
+        for key, val in user_data.items():
+            useroauthclienthrd.set(key, val)
+        useroauthclienthrd.save()
 
         # configure groups on itsyouonline
         for group in groups:
