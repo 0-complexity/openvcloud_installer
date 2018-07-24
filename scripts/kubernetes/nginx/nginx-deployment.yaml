@@ -24,14 +24,11 @@ spec:
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
-        - name:  ovc-installer-volume
-          mountPath: /opt/code/github/openvcloud_installer
-          subPath: openvcloud_installer
         - name:  upgrade-config
           mountPath: /opt/cfg/upgrade
       containers:
       - name: nginx-container
-        image: nginx
+        image: openvcloud/nginx
         ports:
         - containerPort: 80
         - containerPort: 443
@@ -47,12 +44,6 @@ spec:
         - name: g8vdc-volume
           mountPath: /opt/code/github/g8vdc
           subPath: g8vdc
-        - name: jslib-volume
-          mountPath: /opt/code/github/web_python
-          subPath: web_python
-        - name:  ovc-installer-volume
-          mountPath: /opt/code/github/openvcloud_installer
-          subPath: openvcloud_installer
         - name: update-log
           mountPath: /opt/logs
       volumes:
@@ -71,15 +62,6 @@ spec:
           hostPath:
             path: /var/ovc/ssl/
             type: Directory
-        - name: g8vdc-volume
-          gitRepo:
-            repository: "https://github.com/0-complexity/g8vdc.git"
-        - name: jslib-volume
-          gitRepo:
-            repository: "https://docs.greenitglobe.com/binary/web_python.git"
-        - name: ovc-installer-volume
-          gitRepo:
-            repository: "https://github.com/0-complexity/openvcloud_installer"
 
 
 

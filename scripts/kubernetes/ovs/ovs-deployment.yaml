@@ -24,7 +24,7 @@ spec:
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/
         - name: ENV_CONFIG
           value: /opt/cfg/system/system-config.yaml
-        image: openvcloud/js9
+        image: openvcloud/js9inst
         imagePullPolicy: Always
         name: ovs-container
         ports:
@@ -38,9 +38,6 @@ spec:
         volumeMounts:
         - mountPath: /opt/cfg/system
           name: system-config
-        - mountPath: /opt/code/github/0-complexity/openvcloud_installer
-          name: installer-volume
-          subPath: openvcloud_installer
         - mountPath: /root/.ssh
           name: ssh-dir
         - mountPath: /run
@@ -66,6 +63,3 @@ spec:
           path: /sys/fs/cgroup
           type: Directory
         name: cgroup
-      - gitRepo:
-          repository: https://github.com/0-complexity/openvcloud_installer
-        name: installer-volume

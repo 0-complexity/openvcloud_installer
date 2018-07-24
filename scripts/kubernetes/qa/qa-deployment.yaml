@@ -16,10 +16,9 @@ spec:
       containers:
       - name: qa-container
         imagePullPolicy: Always
-        image: openvcloud/cb_master
-        workingDir: /var/run/scripts/system
+        image: openvcloud/qa
         command: ['/bin/bash']
-        args: ['-c', 'jspython configure-system.py --ssh && /sbin/my_init']
+        args: ['-c', '/sbin/my_init']
         securityContext:
           capabilities:
             add:
@@ -30,9 +29,6 @@ spec:
         volumeMounts:
           - name:  system-config
             mountPath: /opt/cfg/system
-          - name: installer-volume
-            mountPath: /opt/code/github/0-complexity/openvcloud_installer
-            subPath: openvcloud_installer
           - name: authorized-keys
             mountPath: /root/.ssh/authorized_keys
             subPath: authorized_keys
@@ -53,9 +49,6 @@ spec:
         hostPath:
           path: /dev/net/
           type: Directory
-      - name: installer-volume
-        gitRepo:
-          repository: "https://github.com/0-complexity/openvcloud_installer"
 
 
 

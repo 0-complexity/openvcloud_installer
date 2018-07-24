@@ -27,9 +27,6 @@ spec:
         volumeMounts:
           - name:  system-config
             mountPath: /opt/cfg/system
-          - name: installer-volume
-            mountPath: /opt/code/github/0-complexity/openvcloud_installer
-            subPath: openvcloud_installer
           - name: ssh-dir
             mountPath: /root/.ssh
         ports:
@@ -42,7 +39,3 @@ spec:
         hostPath:
           path: /var/ovc/.ssh
           type: Directory
-      - name: installer-volume
-        gitRepo:
-          repository: "https://github.com/0-complexity/openvcloud_installer"
-
