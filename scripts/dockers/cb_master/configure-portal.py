@@ -239,7 +239,7 @@ class Portal(object):
         admin_data = dict(data)
         user_data = dict(data)
 
-        admin_data['instance.oauth.client.scope'] =  ','.join(admin_scopes),
+        admin_data['instance.oauth.client.scope'] =  ','.join(admin_scopes)
         user_data['instance.oauth.client.scope'] = ','.join(user_scopes)
 
         oauthclienthrd = j.application.getAppInstanceHRD(domain='jumpscale', name='oauth_client', instance='itsyouonline')
