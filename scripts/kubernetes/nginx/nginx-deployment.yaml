@@ -41,9 +41,6 @@ spec:
           readOnly: true
         - name:  upgrade-config
           mountPath: /opt/cfg/upgrade
-        - name: g8vdc-volume
-          mountPath: /opt/code/github/g8vdc
-          subPath: g8vdc
         - name: update-log
           mountPath: /opt/logs
       volumes:
