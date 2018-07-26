@@ -697,7 +697,7 @@ class Cluster(AbstractConfig):
             os.makedirs(tmpdir)
 
         ssl_items = self.config['environment']['ssl'].items()
-        cert_items = ['crt', 'key', 'csr']
+        cert_items = ['crt', 'key']
         paths = {}
         copiedpaths = {}
         for _, cert_name in ssl_items:
@@ -772,7 +772,7 @@ class Cluster(AbstractConfig):
             cert = self.config['certificates'][cert_name]
             if not cert:
                 raise RuntimeError("Certificate {} not found.".format(cert_name))
-            for extension in ('crt', 'csr', 'key'):
+            for extension in ('crt', 'key'):
                 if not cert.get(extension):
                     raise RuntimeError('ERROR: "{}" is required property in config /certificates/{}/'.format(extension, cert_name))
 

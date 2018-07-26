@@ -3,7 +3,7 @@
     "$schema": "http://json-schema.org/draft-06/schema#",
     "$id": "http://example.com/example.json",
     "type": "object",
-    "required": ["timezone", "support", "ssh", "mailclient", "nodes", "environment", "network", "itsyouonline"],
+    "required": ["timezone", "support", "ssh", "mailclient", "nodes", "environment", "network", "itsyouonline", "certificates"],
     "properties": {
       "timezone": {
         "$id": "/properties/timezone",
@@ -377,6 +377,32 @@
                 }
               }
             }
+          }
+        }
+      },
+      "certificates":{
+        "$id": "/properties/certificates",
+        "type": "object",
+        "patternProperties": { 
+          "^[a-zA-Z0-9]*$": {
+              "type": "object", 
+              "required": ["key", "crt"],
+              "properties":{
+                  "key":{
+                      "type" : "string",
+                      "default": "",
+                      "examples": [
+                        "-----BEGIN RSA PRIVATE KEY-----\\nMIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG\\n...\\nTZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==\\n-----END RSA PRIVATE KEY-----\\n"
+                      ]                
+                  },
+                  "crt":{
+                      "type" : "string",
+                      "default": "",
+                      "examples": [
+                        "-----BEGIN CERTIFICATE-----\\nMIIEpAIBAAKCAQEAvwuJCeHCTrBGvc86KbZdDLywc2HuQmlkYPrh2bk/UU3tkjSG\\n...\\nTZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==\\n-----END CERTIFICATE-----\\n"
+                      ]                       
+                  } 
+              }
           }
         }
       },
