@@ -1,9 +1,3 @@
-instance.navigationlinks.ays   =
-    name:'At Your Service',
-    scope:'admin',
-    theme:'light',
-    url:'/AYS',
-
 instance.navigationlinks.cbgrid =
     name:'Cloud Broker',
     scope:'admin',
