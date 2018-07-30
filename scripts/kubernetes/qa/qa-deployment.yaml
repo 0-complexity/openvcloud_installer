@@ -18,7 +18,7 @@ spec:
         imagePullPolicy: Always
         image: openvcloud/qa
         command: ['/bin/bash']
-        args: ['-c', '/sbin/my_init']
+        args: ['-c', 'jspython /var/run/scripts/system/configure-system.py && /sbin/my_init']
         securityContext:
           capabilities:
             add:
