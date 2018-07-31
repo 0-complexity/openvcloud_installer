@@ -61,7 +61,7 @@ class Builder:
         name = os.path.basename(self.builddir)
         version = 'latest' if self.version == 'master' else self.version
         imagename = 'openvcloud/{}:{}'.format(name, version)
-        subprocess.check_call(['docker', 'build', '-t', imagename, '.'], cwd=self.builddir)
+        subprocess.check_call(['docker', 'build', '-t', imagename, '--no-cache', '--force-rm', '.'], cwd=self.builddir)
         subprocess.check_call(['docker', 'push', imagename])
 
 if __name__ == '__main__':
