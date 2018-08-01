@@ -33,6 +33,10 @@ spec:
         volumeMounts:
         - name: syncthing-persistant
           mountPath: /var/ovc
+        - name: sync-config
+          mountPath: /var/syncthing/config
+        command: ['/bin/syncthing']
+        args: ["-home", "/var/syncthing/config", "-gui-address", "0.0.0.0:8384"]
       - name: syncthing-sidecar
         image: openvcloud/syncthing_sidecar
         env:
@@ -44,6 +48,8 @@ spec:
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
+        - name: sync-config
+          mountPath: /var/syncthing/config
       volumes:
       - name:  syncthing-persistant
         hostPath:
@@ -52,4 +58,6 @@ spec:
       - name: system-config
         configMap:
           name: system-config
+      - name: sync-config
+        emptyDir: {}
 

@@ -17,4 +17,7 @@ class KuberneteSidecar:
 
         return response.stdout.decode('utf-8').strip()
 
+    def delete(self, resource, name):
+        args = ["kubectl", "delete", resource, name]
+        subprocess.run(args, stdout=subprocess.PIPE)
 

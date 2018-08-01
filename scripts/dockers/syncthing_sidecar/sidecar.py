@@ -8,30 +8,42 @@ import yaml
 
 print("[+] initializing")
 kube = KuberneteSidecar()
+host_pod = os.environ['HOST_POD_NAME']
 master = "syncthing-0"
 nextcycle = 5
+target = "syncthing"
 
 while True:
-    if os.environ['HOST_POD_NAME'] != master:
+    print("[+] trying to read apikey")
+    # checking if the key is generated  
+    if not os.path.exists('/var/syncthing/config/cert.pem'):
+        time.sleep(5)
+        continue
+    root = et.parse('/var/syncthing/config/config.xml')
+    apikey = root.findall(".//apikey")[0].text
+    kube.delete('configmap', host_pod)
+    out = kube.kubectl(['create', 'configmap', host_pod, '--from-literal=apikey=%s' % apikey])
+    if out:
+        break
+
+while True:
+    if host_pod != master:
         print("[+] i'm not the master, nothing to do")
         time.sleep(180)
         continue
 
     print("[+] retreiving pods")
-    pods = kube.kubectl(['get', 'pods'])
-
-    target = "syncthing"
+    pods = kube.kubectl(['get', 'pods', '-l', 'role=syncthing'])
     available = []
-
     for item in pods['items']:
         if not item['status'].get('containerStatuses'):
             continue
 
-        for container in item['status']['containerStatuses']:
-            if container['name'] == target and container['ready']:
+        for cont in item['status']['containerStatuses']:
+            if cont['name'] == target and cont['ready']:
                 available.append({
                     'address': item['status']['podIP'],
-                    'hostname': item['spec']['hostname'],
+                    'hostname': item['spec']['hostname']
                 })
 
     print("[+] instance availables:")
@@ -41,17 +53,12 @@ while True:
     for container in available:
         print("[+] analyzing container: %s" % container['hostname'])
 
-        # checking if the key is generated
-        ready = kube.execute(container['hostname'], target, ['ls', '/var/syncthing/config/cert.pem'])
-        if not ready:
-            continue
-
-        # reading apikey
-        config = kube.execute(container['hostname'], target, ['cat', '/var/syncthing/config/config.xml'])
-        root = et.fromstring(config)
-        apikey = root.findall(".//apikey")[0].text
-
         # contacting client
+        try:
+            config_map = kube.kubectl(['get', 'configmap', container['hostname']])
+        except:
+            continue
+        apikey = config_map['data']['apikey'] 
         client = SyncthingLight(container['address'], port=8384, apikey=apikey)
         if not client.config:
             print('[+] client not ready')
