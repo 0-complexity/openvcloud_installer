@@ -1010,11 +1010,11 @@ class Cluster(AbstractConfig):
         self.kubectl('delete configmap --all --namespace default')
         self.write_system_config()
         log('Deleting services')
-        self.kubectl("delete service --namespace default -l 'name != nginx'")
+        self.kubectl("delete service --namespace default -l 'name!=nginx,name!=qa'")
         log('Deleting statefulset')
         self.kubectl('delete statefulset --all --namespace default')
         log('Deleting deployments')
-        self.kubectl('delete deploy --all --namespace default')
+        self.kubectl("delete deploy --all --namespace default -l 'app!=qa'")
         self.kubectl('delete deploy --all --namespace development')
 
     def update(self):
@@ -1256,10 +1256,12 @@ def upgrade_cluster(ctx, development):
     cluster.upgrade()
     try:
         pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
-        pnode_action(pnodes, 'stop')
-        cluster.update()
-        pnode_action(pnodes, 'update')
-        pnode_action(pnodes, 'start')
+        try:
+            pnode_action(pnodes, 'stop')
+            cluster.update()
+            pnode_action(pnodes, 'update')
+        finally:
+            pnode_action(pnodes, 'start')
         response = portal_api_call('cloudbroker/grid/runUpgradeScript', ctx.obj['config'])
         if response.status_code != 200:
             raise RuntimeError("%s: \n%s" % (response.content, response.status_code))
