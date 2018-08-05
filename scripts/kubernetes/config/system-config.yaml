@@ -91,26 +91,32 @@ ssh:
     ...
     TZafw3e0jbvBW912NPoCmapEJFfQl7Em66V5MpKlE59NTiyl0TszMg==
     -----END RSA PRIVATE KEY----- # key to be used for authorization on the nodes
-  public-key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC/C4kJ4cJOsEa9zzoptl0MvLBzY...TWtYpczcHR13P3X8DYd root@DESKTOP-PRP34CJ # corresponding public key
 
+certificates:
+  cert01:
+    crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIFaDCCA1CgAwIBAgIJALMPFMTTCLbPMA0GCSqGSIb3DQEBCwUAMEkxCzAJBgNV
+      ...
+      zAVFDemdh4fNuZBJ5I7lWAqgViyBOi1PWuBvGzo9bGwz7AHu/fIHf3sZfis=
+      -----END CERTIFICATE-----
+    key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIJQgIBADANBgkqhkiG9w0BAQEFAASCCSwwggkoAgEAAoICAQDAhPSK90Qeiz8f
+      ...
+      MJQvhc7hqkGm6SrTbCi7aooAgQsQJw==
+      -----END PRIVATE KEY-----
+        
 environment:
   grid:
     id: 109 # grid id
   subdomain: be-g8-4 # environement location
   basedomain: demo.greenitglobe.com
-  ssl: # certificate locations depending on the case can all be the same although all four sections needs to be defined
-    root:
-      name: demo.greenitglobe.com
-      path: /certpath # location of certificate
-    novnc:
-      name: demo.greenitglobe.com
-      path: /certpath
-    ovs:
-      name: demo.greenitglobe.com
-      path: /certpath
-    defense:
-      name: demo.greenitglobe.com
-      path: /certpath
+  ssl: # certificate references depending on the case can all be the same although all four sections needs to be defined
+      root: cert01
+      novnc: cert01
+      ovs: cert01
+      defense: cert01
   password: 'tester'
   type: small
   ovs_repo_url: http://ovsurl.com
@@ -125,7 +131,6 @@ limits:
     cpu: 0-4 # cpu set starting from 0
 
 nodes: # Environment nodes info
-
   - name: cpu-01
     roles:
       - cpu
@@ -135,11 +140,12 @@ nodes: # Environment nodes info
     fallback:
       ipaddress: 10.101.109.1/16
       gateway: 10.101.0.1
-    management:
-      macaddress: 0C:C4:7A:AC:11:36
     ipmi:
+      macaddress: 0C:C4:7A:AC:11:36
       username: ADMIN
       password: ADMIN
+    management:
+      macaddress: 0A:C4:7A:AC:11:36
   - name: cpu-02
     roles:
       - cpu
@@ -149,11 +155,12 @@ nodes: # Environment nodes info
     fallback:
       ipaddress: 10.101.109.1/16
       gateway: 10.101.0.1
-    management:
-      macaddress: 0C:C4:7A:AC:11:36
     ipmi:
+      macaddress: 0C:C4:7A:AC:11:36
       username: ADMIN
       password: ADMIN
+    management:
+      macaddress: 0B:C4:7A:AC:11:36
   - name: cpu-03
     roles:
       - storage
@@ -163,12 +170,12 @@ nodes: # Environment nodes info
     fallback:
       ipaddress: 10.101.109.1/16
       gateway: 10.101.0.1
-    management:
-      macaddress: 2C:60:0C:BC:26:65
     ipmi:
+      macaddress: 2C:60:0C:BC:26:65
       username: admin
       password: admin
-
+    management:
+      macaddress: 0C:C4:7A:AC:11:36
   - name: cpu-04
     roles:
       - storage
@@ -178,11 +185,12 @@ nodes: # Environment nodes info
     fallback:
       ipaddress: 10.101.109.1/16
       gateway: 10.101.0.1
-    management:
-      macaddress: 2C:60:0C:BC:26:65
     ipmi:
+      macaddress: 2C:60:0C:BC:26:65
       username: admin
       password: admin
+    management:
+      macaddress: 0D:C4:7A:AC:11:36
 
 alerta:
   api_key: 6541a651rv351aw512s
