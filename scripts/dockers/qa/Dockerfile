@@ -6,6 +6,7 @@ RUN apt update && apt-get install -y python-dev build-essential libssl-dev \
 libxml2-dev libxslt1-dev zlib1g-dev python-pip \
 python3-pip iputils-ping tmux wget unzip xvfb chromium-chromedriver s3cmd
 
+COPY upgrade.py /
 COPY gitlab-runner.sh /
 RUN chmod +x gitlab-runner.sh
 
