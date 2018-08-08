@@ -58,3 +58,8 @@ build slightcar:
   image: openvcloud/imagebuilder
   script: "python3 scripts/buildlib/builder.py scripts/dockers/slightcar"
   when: manual
+build syncthing_sidecar:
+  stage: build
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/syncthing_sidecar"
+  when: manual
