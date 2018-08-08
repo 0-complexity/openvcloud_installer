@@ -1,7 +1,6 @@
 from kubernetes import KuberneteSidecar
 from syncthinglight import SyncthingLight
 import os
-import json
 import time
 import xml.etree.ElementTree as et
 import yaml
@@ -11,7 +10,7 @@ kube = KuberneteSidecar()
 host_pod = os.environ['HOST_POD_NAME']
 master = "syncthing-0"
 nextcycle = 5
-target = "syncthing"
+containername = "syncthing"
 
 while True:
     print("[+] trying to read apikey")
@@ -40,7 +39,7 @@ while True:
             continue
 
         for cont in item['status']['containerStatuses']:
-            if cont['name'] == target and cont['ready']:
+            if cont['name'] == containername and cont['ready']:
                 available.append({
                     'address': item['status']['podIP'],
                     'hostname': item['spec']['hostname']
