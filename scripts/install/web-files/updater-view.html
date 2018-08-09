@@ -20,12 +20,18 @@
             var elem = document.getElementById('logs');
             function isdone(resp) {
                 var isproduction = resp.getResponseHeader('X-Production') != 'false';
+                var isupdated = false;
                 if (isproduction) {
-                    return hitupgrade;
-                } else {
-                    hitupgrade = true;
+                    $.ajax({
+                        url: '/restmachine/cloudbroker/grid/status',
+                        async: false,
+                        dataType: 'json',
+                        success: function (data) {
+                            isupdated = data === true;
+                        }
+                    });
                 }
-                return false;
+                return isupdated;
             }
             function send(){
                 $.ajax({

@@ -290,16 +290,13 @@ class Portal(object):
         version = self.scl.version.new()
         version_dict = self.scl.version.searchOne({'name': data_obj['version']})
         self.scl.version.updateSearch({'status': 'CURRENT'}, {'$set': {'status': 'PREVIOUS'}})
-        version.load(version_dict)
-        if not version_dict:
-            version.creationTime = j.base.time.getTimeEpoch()
-        else:
+        if version_dict:
             version.updateTime = j.base.time.getTimeEpoch()
-        version.name = data_obj['version']
-        version.url = data_obj['url']
-        version.manifest = data_str
-        version.status = 'CURRENT'
-        self.scl.version.set(version)
+            version.name = data_obj['version']
+            version.url = data_obj['url']
+            version.manifest = data_str
+            version.status = 'CURRENT'
+            self.scl.version.set(version)
 
 if __name__ == '__main__':
     portal = Portal()
