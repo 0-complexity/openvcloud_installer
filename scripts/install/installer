@@ -1267,11 +1267,12 @@ def upgrade_cluster(ctx, development):
         response = portal_api_call('cloudbroker/grid/runUpgradeScript', ctx.obj['config'])
         if response.status_code != 200:
             raise RuntimeError("%s: \n%s" % (response.content, response.status_code))
-        log('Updating env done.')
+        log('Updating environment done.')
     except:
         cluster.revert()
+        portal_api_call('cloudbroker/grid/upgradeFailed', ctx.obj['config'])
         logging.error('Error:', exc_info=True)
-        log('Failed to update env.')
+        log('Failed to update environment.')
 
 @cluster.command('updatedomain', help='Update the environment certificates and domain')
 @click.pass_context
