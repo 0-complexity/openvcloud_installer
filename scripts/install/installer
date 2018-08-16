@@ -24,7 +24,7 @@ Version = namedtuple("Version", ("version", "type"))
 REPO_URL = "https://github.com/0-complexity/openvcloud_installer"
 DEV_REPOS = [
     "https://github.com/0-complexity/openvcloud",
-    "https://github.com/0-complexity/selfhealing"
+    "https://github.com/0-complexity/selfhealing",
     "https://github.com/jumpscale7/jumpscale_core7",
     "https://github.com/jumpscale7/jumpscale_portal",
 ]
@@ -1097,7 +1097,7 @@ class Cluster(AbstractConfig):
 
         stat_template = self.scripts_dir + "/stats-collector/stats-deployment.yaml"
         data = self.load(stat_template)
-        data["spec"]["template"]["spec"]["containers"][0]["args"][4] = self.config[
+        data["spec"]["template"]["spec"]["containers"][0]["args"][3] = self.config[
             "network"
         ]["management"]["network"]
         self.dump(stat_template, data)
@@ -1243,7 +1243,7 @@ class Cluster(AbstractConfig):
     def update(self):
         log("Restarting cluster...")
         if self.development:
-            self.kubectl("delete deploy {}".format(" ".join(DEV_TMPLS)), die=False)
+            self.kubectl("delete deploy {}".format(" ".join(DEV_TMPLS)), check=False)
         else:
             self.delete()
         self.kube_deploy()
