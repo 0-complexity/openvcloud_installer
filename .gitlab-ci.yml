@@ -23,6 +23,11 @@ build management:
   image: openvcloud/imagebuilder
   script: "python3 scripts/buildlib/builder.py scripts/dockers/management"
   when: manual
+build grafana-init:
+  stage: build
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/grafana-init"
+  when: manual
 build nginx:
   stage: build
   image: openvcloud/imagebuilder
