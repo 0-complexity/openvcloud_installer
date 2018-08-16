@@ -139,16 +139,17 @@ reporting-disabled = false
 
 
 class Actions(ActionsBase):
-
     def prepare(self, serviceObj):
         """
         this gets executed before the files are downloaded & installed on approprate spots
         """
 
-        j.system.fs.createDir('/opt/influxdb/')
+        j.system.fs.createDir("/opt/influxdb/")
         if j.do.TYPE.lower().startswith("ubuntu64"):
             j.system.platform.ubuntu.downloadInstallDebPkg(
-                "https://s3.amazonaws.com/influxdb/influxdb_0.9.5_amd64.deb", minspeed=50)
+                "https://s3.amazonaws.com/influxdb/influxdb_0.9.5_amd64.deb",
+                minspeed=50,
+            )
 
         return True
 

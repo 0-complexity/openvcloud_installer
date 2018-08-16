@@ -16,6 +16,7 @@ import base64
 
 MENEJA_URL = "https://meneja.gig.tech"
 
+
 class App(npyscreen.NPSApp):
     def __init__(self, configpath, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -41,17 +42,25 @@ class App(npyscreen.NPSApp):
     def authorize(self):
         # Authorize
         form = npyscreen.ActionForm(name="GIG.tech controller installer - authenticate")
-        form.add(npyscreen.Pager, values=[
-            "To use this program you need to have the Meneja",
-            "authentication key on the system.",
-            "Select the Meneja authorization key file",
-            "alternatively you can enter the keycode",
-            "and enter your password you set when you downloaded",
-            "your authentication keyfile from https://meneja.gig.tech"
-        ], max_height=6)
-        keyfile = form.add(npyscreen.TitleFilenameCombo, name="Select Meneja auth key file:")
+        form.add(
+            npyscreen.Pager,
+            values=[
+                "To use this program you need to have the Meneja",
+                "authentication key on the system.",
+                "Select the Meneja authorization key file",
+                "alternatively you can enter the keycode",
+                "and enter your password you set when you downloaded",
+                "your authentication keyfile from https://meneja.gig.tech",
+            ],
+            max_height=6,
+        )
+        keyfile = form.add(
+            npyscreen.TitleFilenameCombo, name="Select Meneja auth key file:"
+        )
         b85code = form.add(npyscreen.TitleText, name="Enter keycode:")
-        password = form.add(npyscreen.TitlePassword, name="Enter auth key file password:")
+        password = form.add(
+            npyscreen.TitlePassword, name="Enter auth key file password:"
+        )
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
         def cancel():
@@ -70,12 +79,14 @@ class App(npyscreen.NPSApp):
                 return
             # Parse input
             if keyfile.value:
-                with open(keyfile.value, 'rb') as f:
+                with open(keyfile.value, "rb") as f:
                     payload = f.read()
             else:
                 payload = base64.b85decode(b85code.value)
 
-            def pad(s): return s.ljust(len(s) + 16 - len(s) % 16)
+            def pad(s):
+                return s.ljust(len(s) + 16 - len(s) % 16)
+
             pwd = pad(password.value.encode("utf8"))
             # Validate password
             signature = payload[:16]
@@ -87,54 +98,74 @@ class App(npyscreen.NPSApp):
                 return
             # Decrypt jwt
             cipher = AES.new(pwd, AES.MODE_ECB)
-            jwt = cipher.decrypt(encrypted_jwt).strip().decode('utf8')
+            jwt = cipher.decrypt(encrypted_jwt).strip().decode("utf8")
             # Refresh jwt
-            response = requests.get("https://itsyou.online/v1/oauth/jwt/refresh",
-                                    headers={"Authorization": "bearer %s" % jwt})
+            response = requests.get(
+                "https://itsyou.online/v1/oauth/jwt/refresh",
+                headers={"Authorization": "bearer %s" % jwt},
+            )
             response.raise_for_status()
             self.jwt = response.text
             # Downloading environments
-            response = requests.get("%s/environments" % MENEJA_URL,
-                                    headers={"Authorization": "bearer %s" % self.jwt})
+            response = requests.get(
+                "%s/environments" % MENEJA_URL,
+                headers={"Authorization": "bearer %s" % self.jwt},
+            )
             response.raise_for_status()
             environments = response.json()
             self.select_environment(environments)
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
     def select_environment(self, environments):
-        treedata = npyscreen.NPSTreeData(content='Root', selectable=False, ignoreRoot=True)
+        treedata = npyscreen.NPSTreeData(
+            content="Root", selectable=False, ignoreRoot=True
+        )
         for org, envs in environments.items():
             org_node = treedata.newChild(content=org, selectable=False, selected=False)
             for env in envs:
                 org_node.newChild(content=env, selectable=True, selected=False)
-        form = npyscreen.ActionForm(name="GIG.tech controller installer - select environment node")
-        envtree = form.add(npyscreen.MLTree, name="Select the environment you whish to install in :", values=treedata,
-                           max_height=10)
+        form = npyscreen.ActionForm(
+            name="GIG.tech controller installer - select environment node"
+        )
+        envtree = form.add(
+            npyscreen.MLTree,
+            name="Select the environment you whish to install in :",
+            values=treedata,
+            max_height=10,
+        )
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
         def cancel():
             return
 
         def ok():
-            if not envtree.value or envtree.values[envtree.value].getParent().getParent() is None:
-                errormessage.value = "Please select the G8 environment you are installing in:"
+            if (
+                not envtree.value
+                or envtree.values[envtree.value].getParent().getParent() is None
+            ):
+                errormessage.value = (
+                    "Please select the G8 environment you are installing in:"
+                )
                 form.edit()
                 return
             errormessage.value = ""
             self.org = envtree.values[envtree.value].getParent().content
             self.env = envtree.values[envtree.value].content
-            response = requests.get("%s/environment/%s/%s/config" % (MENEJA_URL, self.org, self.env),
-                                    headers={"Authorization": "bearer %s" % self.jwt},
-                                    stream=True)
+            response = requests.get(
+                "%s/environment/%s/%s/config" % (MENEJA_URL, self.org, self.env),
+                headers={"Authorization": "bearer %s" % self.jwt},
+                stream=True,
+            )
             response.raise_for_status()
             config = response.json()
             self.config = config
             if not os.path.exists("/root/etc"):
                 os.mkdir("/root/etc")
-            self.configpath = '/root/etc/system-config.yaml'
-            with open(self.configpath, 'w+') as system_fd:
+            self.configpath = "/root/etc/system-config.yaml"
+            with open(self.configpath, "w+") as system_fd:
                 yaml.dump(config, system_fd)
             self.select_installation()
 
@@ -144,12 +175,15 @@ class App(npyscreen.NPSApp):
 
     def select_installation(self):
         form = npyscreen.ActionForm(name="Select Installation Type")
-        form.add(npyscreen.Pager, values=[
-            "Select an installation type"
-        ], max_height=5)
-        installation_type = form.add(npyscreen.TitleSelectOne, name="Select the type of installation to preform",
-                                     values=['node', 'cluster', 'image', 'controller'],
-                                     selectable=True, scroll_exit=True, max_height=5)
+        form.add(npyscreen.Pager, values=["Select an installation type"], max_height=5)
+        installation_type = form.add(
+            npyscreen.TitleSelectOne,
+            name="Select the type of installation to preform",
+            values=["node", "cluster", "image", "controller"],
+            selectable=True,
+            scroll_exit=True,
+            max_height=5,
+        )
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
         def cancel():
@@ -164,26 +198,30 @@ class App(npyscreen.NPSApp):
             errormessage.value = ""
             # invoke install
             self.action = marked_installation_type[0]
-            if self.action == 'cluster':
+            if self.action == "cluster":
                 self.cluster_selection()
-            if self.action == 'controller':
+            if self.action == "controller":
                 self.controller_selection()
-            if self.action == 'node':
+            if self.action == "node":
                 self.node_selection()
-            if self.action == 'image':
+            if self.action == "image":
                 self.image_selection()
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
     def cluster_selection(self):
         form = npyscreen.ActionForm(name="Select Cluster Command")
-        form.add(npyscreen.Pager, values=[
-            "Select a cluster command"
-        ], max_height=5)
-        clustercommand = form.add(npyscreen.TitleSelectOne, name="Select cluster command",
-                                     values=['deploy', 'update', 'upgrade'],
-                                     selectable=True, scroll_exit=True, max_height=5)
+        form.add(npyscreen.Pager, values=["Select a cluster command"], max_height=5)
+        clustercommand = form.add(
+            npyscreen.TitleSelectOne,
+            name="Select cluster command",
+            values=["deploy", "update", "upgrade"],
+            selectable=True,
+            scroll_exit=True,
+            max_height=5,
+        )
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
         def cancel():
@@ -199,36 +237,51 @@ class App(npyscreen.NPSApp):
             # invoke install
             self.clustercommand = markedcommand[0]
             self.confirm_cluster_command()
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
     def confirm_cluster_command(self):
         form = npyscreen.ActionPopup(name="GIG.tech cluster command - confirm")
-        form.add(npyscreen.Pager, values=[
-            "Please confirm cluster command:",
-            "  partner: %s" % self.org,
-            "  environment: %s" % self.env,
-            "  command: cluster %s" % self.clustercommand,
-        ], max_height=5)
+        form.add(
+            npyscreen.Pager,
+            values=[
+                "Please confirm cluster command:",
+                "  partner: %s" % self.org,
+                "  environment: %s" % self.env,
+                "  command: cluster %s" % self.clustercommand,
+            ],
+            max_height=5,
+        )
 
         def cancel():
             self.cluster_selection()
 
         def ok():
             return
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
-
     def controller_selection(self):
-        form = npyscreen.ActionForm(name="GIG.tech controller installer - Controller installation.")
-        form.add(npyscreen.Pager, values=[
-            "Select the controller node you whish to install."
-        ], max_height=3)
-        node = form.add(npyscreen.TitleSelectOne, max_height=5, value=[], name="Select controller",
-                        values=["controller 1", "controller 2", "controller 3"], scroll_exit=True)
+        form = npyscreen.ActionForm(
+            name="GIG.tech controller installer - Controller installation."
+        )
+        form.add(
+            npyscreen.Pager,
+            values=["Select the controller node you whish to install."],
+            max_height=3,
+        )
+        node = form.add(
+            npyscreen.TitleSelectOne,
+            max_height=5,
+            value=[],
+            name="Select controller",
+            values=["controller 1", "controller 2", "controller 3"],
+            scroll_exit=True,
+        )
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
         def cancel():
@@ -242,28 +295,38 @@ class App(npyscreen.NPSApp):
             errormessage.value = ""
             controller = node.value[0] + 1
             self.confirm_controller_popup(controller)
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
     def confirm_controller_popup(self, controller):
-        form = npyscreen.ActionPopup(name="GIG.tech controller installer - confirm installation")
-        form.add(npyscreen.Pager, values=[
-            "Please confirm installation settings:",
-            "  partner: %s" % self.org,
-            "  environment: %s" % self.env,
-            "  controller node: %s" % controller,
-        ], max_height=5)
+        form = npyscreen.ActionPopup(
+            name="GIG.tech controller installer - confirm installation"
+        )
+        form.add(
+            npyscreen.Pager,
+            values=[
+                "Please confirm installation settings:",
+                "  partner: %s" % self.org,
+                "  environment: %s" % self.env,
+                "  controller node: %s" % controller,
+            ],
+            max_height=5,
+        )
 
         def cancel():
             self.controller_selection()
 
         def ok():
-            response = requests.get("%s/download/controller/config/%s/%s" % (MENEJA_URL, self.org, self.env),
-                                    headers={"Authorization": "bearer %s" % self.jwt},
-                                    stream=True)
+            response = requests.get(
+                "%s/download/controller/config/%s/%s"
+                % (MENEJA_URL, self.org, self.env),
+                headers={"Authorization": "bearer %s" % self.jwt},
+                stream=True,
+            )
             response.raise_for_status()
-            with open("/tmp/config.tar", 'wb') as f:
+            with open("/tmp/config.tar", "wb") as f:
                 for chunk in response.iter_content(chunk_size=1024):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
@@ -274,12 +337,15 @@ class App(npyscreen.NPSApp):
             # invoke install
             self.controller = controller
             os.system("/root/tools/CtrlInstall %s" % self.controller)
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
     def image_selection(self):
-        form = npyscreen.ActionForm(name="GIG.tech controller installer - Image installation")
+        form = npyscreen.ActionForm(
+            name="GIG.tech controller installer - Image installation"
+        )
         image = form.add(npyscreen.TitleText, name="Enter Image template name:")
         errormessage = form.add(npyscreen.FixedText, color="DANGER")
 
@@ -295,64 +361,112 @@ class App(npyscreen.NPSApp):
             # invoke install
             self.image = image.get_value()
             self.confirm_image_popup()
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
     def confirm_image_popup(self):
-        form = npyscreen.ActionPopup(name="GIG.tech controller installer - confirm installation")
-        form.add(npyscreen.Pager, values=[
-            "Please confirm installation settings:",
-            "  partner: %s" % self.org,
-            "  environment: %s" % self.env,
-            "  installing image: %s" % self.image
-        ], max_height=5)
+        form = npyscreen.ActionPopup(
+            name="GIG.tech controller installer - confirm installation"
+        )
+        form.add(
+            npyscreen.Pager,
+            values=[
+                "Please confirm installation settings:",
+                "  partner: %s" % self.org,
+                "  environment: %s" % self.env,
+                "  installing image: %s" % self.image,
+            ],
+            max_height=5,
+        )
 
         def cancel():
             self.image_selection()
 
         def ok():
             pass
+
         form.on_cancel = cancel
         form.on_ok = ok
         form.edit()
 
-@click.command('Ncursers installer')
-@click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
+
+@click.command("Ncursers installer")
+@click.option("--config", help="Config file to deploy the cluster", envvar="ENV_CONFIG")
 def cli(config):
     app = App(config)
     try:
         app.run()
         processes = []
-        logs = '/var/log/'
+        logs = "/var/log/"
         os.makedirs(logs, exist_ok=True)
         if app.action == "cluster":
-            processes.append((subprocess.Popen(['python3',
-                                               '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
-                                               '--config={}'.format(app.configpath),
-                                               'cluster',
-                                               app.clustercommand]), "cluster {}".format(app.clustercommand), None))
+            processes.append(
+                (
+                    subprocess.Popen(
+                        [
+                            "python3",
+                            "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
+                            "--config={}".format(app.configpath),
+                            "cluster",
+                            app.clustercommand,
+                        ]
+                    ),
+                    "cluster {}".format(app.clustercommand),
+                    None,
+                )
+            )
         if app.action == "controller":
-            fd = open("/var/log/nodes/controller_%s.log" % app.controller, 'w+')
-            processes.append((subprocess.Popen(["/root/tools/CtrlInstall", app.controller],
-                                              stdout=fd, stderr=fd), app.controller, fd))
-            fd = open("/var/log/nodes/controller_%s.log" % app.controller, 'w+')
-            processes.append((subprocess.Popen(["/root/tools/CtrlInstall", app.controller],
-                                              stdout=fd, stderr=fd), app.controller, fd))
+            fd = open("/var/log/nodes/controller_%s.log" % app.controller, "w+")
+            processes.append(
+                (
+                    subprocess.Popen(
+                        ["/root/tools/CtrlInstall", app.controller],
+                        stdout=fd,
+                        stderr=fd,
+                    ),
+                    app.controller,
+                    fd,
+                )
+            )
+            fd = open("/var/log/nodes/controller_%s.log" % app.controller, "w+")
+            processes.append(
+                (
+                    subprocess.Popen(
+                        ["/root/tools/CtrlInstall", app.controller],
+                        stdout=fd,
+                        stderr=fd,
+                    ),
+                    app.controller,
+                    fd,
+                )
+            )
         if app.action == "image":
-            fd = open("%s/image_%s.log" % (logs, app.image), 'w+')
-            processes.append((subprocess.Popen(['python3',
-                                               '/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer',
-                                               '--config={}'.format(app.configpath),
-                                               'image',
-                                               'deploy',
-                                               '—name=%s'% app.image],
-                                              stdout=fd, stderr=fd), app.image, fd))
+            fd = open("%s/image_%s.log" % (logs, app.image), "w+")
+            processes.append(
+                (
+                    subprocess.Popen(
+                        [
+                            "python3",
+                            "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
+                            "--config={}".format(app.configpath),
+                            "image",
+                            "deploy",
+                            "—name=%s" % app.image,
+                        ],
+                        stdout=fd,
+                        stderr=fd,
+                    ),
+                    app.image,
+                    fd,
+                )
+            )
         for process in processes:
             print("[+] Installing %s" % process[1])
             if process[0].wait() != 0:
                 if process[2]:
-                    print("Error: an error occured check under /var/log/%s/" % app.env )
+                    print("Error: an error occured check under /var/log/%s/" % app.env)
             if process[2]:
                 process[2].close()
 
@@ -362,4 +476,3 @@ def cli(config):
 
 if __name__ == "__main__":
     cli()
-

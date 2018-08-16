@@ -1,11 +1,10 @@
 from JumpScale import j
 
-ActionsBase=j.atyourservice.getActionsBaseClass()
+ActionsBase = j.atyourservice.getActionsBaseClass()
+
 
 class Actions(ActionsBase):
-
-
-    def prepare(self,serviceObj):
+    def prepare(self, serviceObj):
         """
         this gets executed before the files are downloaded & installed on approprate spots
         """

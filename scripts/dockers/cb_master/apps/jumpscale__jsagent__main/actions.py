@@ -21,13 +21,16 @@ class Actions(ActionsBase):
     """
 
     def prepare(self, serviceObj):
-        hpath = j.system.fs.joinPaths(j.dirs.hrdDir, 'system', 'grid.hrd')
+        hpath = j.system.fs.joinPaths(j.dirs.hrdDir, "system", "grid.hrd")
         if not j.system.fs.exists(path=hpath):
             hrd = j.core.hrd.get(hpath)
-            hrd.set('id', serviceObj.hrd.get('instance.grid.id'))
-            hrd.set('node.id', '0')
-            hrd.set('node.machineguid', j.application.getUniqueMachineId())
-            hrd.set('node.roles', serviceObj.hrd.getStr('instance.grid.node.roles').split(','))
+            hrd.set("id", serviceObj.hrd.get("instance.grid.id"))
+            hrd.set("node.id", "0")
+            hrd.set("node.machineguid", j.application.getUniqueMachineId())
+            hrd.set(
+                "node.roles",
+                serviceObj.hrd.getStr("instance.grid.node.roles").split(","),
+            )
             hrd.save()
 
         # reload system config / whoAmI

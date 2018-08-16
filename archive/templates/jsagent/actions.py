@@ -8,6 +8,7 @@ def input(job):
     - Test connection to agent controller.
     """
 
+
 def install(job):
     """
     - Create JSagent deployment with connection to agent controller and osis.

@@ -7,6 +7,7 @@ def input(job):
     - Test connection to influxdb
     """
 
+
 def install(job):
     """
     - Create deployment for grafana.

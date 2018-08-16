@@ -7,6 +7,7 @@ def input(job):
     - Validate network configuration.
     """
 
+
 def join_clsuter(job):
     """
     - Prepare storage

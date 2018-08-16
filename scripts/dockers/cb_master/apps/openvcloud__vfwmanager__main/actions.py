@@ -1,6 +1,7 @@
 from JumpScale import j
 
-ActionsBase=j.atyourservice.getActionsBaseClass()
+ActionsBase = j.atyourservice.getActionsBaseClass()
+
 
 class Actions(ActionsBase):
     """
@@ -23,12 +24,13 @@ class Actions(ActionsBase):
         """
         this gets executed before the files are downloaded & installed on appropriate spots
         """
-        dest="/opt/jumpscale7/apps/portals/main"
+        dest = "/opt/jumpscale7/apps/portals/main"
         if not j.system.fs.exists(dest):
-            j.events.inputerror_critical("Could not find portal instance with name: main, please install")
+            j.events.inputerror_critical(
+                "Could not find portal instance with name: main, please install"
+            )
         return True
 
     def configure(self, serviceObj):
-        service = j.atyourservice.findServices('jumpscale', 'portal','main')[0]
+        service = j.atyourservice.findServices("jumpscale", "portal", "main")[0]
         service.restart()
-

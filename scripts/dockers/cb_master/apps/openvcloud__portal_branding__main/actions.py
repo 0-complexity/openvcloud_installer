@@ -1,6 +1,7 @@
 from JumpScale import j
 
-ActionsBase=j.atyourservice.getActionsBaseClass()
+ActionsBase = j.atyourservice.getActionsBaseClass()
+
 
 class Actions(ActionsBase):
     """
@@ -29,9 +30,9 @@ class Actions(ActionsBase):
             haslogo = False
             hashealth = False
             for linenr, line in enumerate(lines):
-                if 'logo' in line:
+                if "logo" in line:
                     haslogo = True
-                if 'grid.healthmenu' in line:
+                if "grid.healthmenu" in line:
                     hashealth = True
 
             def getline(match):
@@ -41,16 +42,36 @@ class Actions(ActionsBase):
                 return 0
 
             if not haslogo:
-                lines.insert(getline('ApplyFlatTheme'), '{{logo:/cbgrid/.files/green.png}}')
+                lines.insert(
+                    getline("ApplyFlatTheme"), "{{logo:/cbgrid/.files/green.png}}"
+                )
             if not hashealth:
-                lines.insert(getline('menuadmin'), '{{grid.healthmenu}}')
+                lines.insert(getline("menuadmin"), "{{grid.healthmenu}}")
 
             if not haslogo or not hashealth:
-                j.system.fs.writeFile(path, '\n'.join(lines))
+                j.system.fs.writeFile(path, "\n".join(lines))
 
-        for space in ['home', 'Grid', 'AYS']:
-            path = j.system.fs.joinPaths(j.dirs.baseDir, 'apps', 'portals', serviceObj.instance, 'base', space, '.space', 'default.wiki')
+        for space in ["home", "Grid", "AYS"]:
+            path = j.system.fs.joinPaths(
+                j.dirs.baseDir,
+                "apps",
+                "portals",
+                serviceObj.instance,
+                "base",
+                space,
+                ".space",
+                "default.wiki",
+            )
             patchDefaultWiki(path)
 
-        path = j.system.fs.joinPaths(j.dirs.baseDir, 'apps', 'portals', 'portalbase', 'wiki', 'System', '.space', 'default.wiki')
+        path = j.system.fs.joinPaths(
+            j.dirs.baseDir,
+            "apps",
+            "portals",
+            "portalbase",
+            "wiki",
+            "System",
+            ".space",
+            "default.wiki",
+        )
         patchDefaultWiki(path)

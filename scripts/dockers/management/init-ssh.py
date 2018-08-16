@@ -30,23 +30,36 @@ spec:
 
 """
 
+
 def get_config():
-    with open('/opt/cfg/system/system-config.yaml', 'r') as cfg:
+    with open("/opt/cfg/system/system-config.yaml", "r") as cfg:
         return yaml.load(cfg)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--teleport', help='setup teleport with ssh', default=False, action='store_true')
+    parser.add_argument(
+        "--teleport", help="setup teleport with ssh", default=False, action="store_true"
+    )
     args = parser.parse_args()
     config = get_config()
-    subprocess.run(["sed", "-i", "s/\/usr\/sbin\/sshd -D/\/usr\/sbin\/sshd -D -p 2205/g", "/etc/service/sshd/run"])
+    subprocess.run(
+        [
+            "sed",
+            "-i",
+            "s/\/usr\/sbin\/sshd -D/\/usr\/sbin\/sshd -D -p 2205/g",
+            "/etc/service/sshd/run",
+        ]
+    )
     if args.teleport:
-        github_configs = config['support']['github']
-        github_configs['fqdn'] = ".".join([config['environment']['subdomain'], config['environment']['basedomain']])
-        with open('/etc/ssh/sshd_config', 'a') as sshd:
-            sshd.write('TrustedUserCAKeys /etc/ssh/teleport-user-ca.pub')
+        github_configs = config["support"]["github"]
+        github_configs["fqdn"] = ".".join(
+            [config["environment"]["subdomain"], config["environment"]["basedomain"]]
+        )
+        with open("/etc/ssh/sshd_config", "a") as sshd:
+            sshd.write("TrustedUserCAKeys /etc/ssh/teleport-user-ca.pub")
         github_yaml = GITHUB_DATA.format(**github_configs)
-        with open('/root/github.yaml', 'w') as git:
+        with open("/root/github.yaml", "w") as git:
             git.write(github_yaml)
         timer = 20
         while not os.path.exists("/var/lib/teleport/host_uuid"):
@@ -54,4 +67,4 @@ if __name__ == '__main__':
             time.sleep(1)
             if timer == 0:
                 raise RuntimeError("Teleport could not be reached")
-        subprocess.run('tctl', 'create', '/root/github.yaml')
+        subprocess.run("tctl", "create", "/root/github.yaml")

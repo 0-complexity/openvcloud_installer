@@ -1,6 +1,7 @@
 from JumpScale import j
 
-ActionsBase=j.atyourservice.getActionsBaseClass()
+ActionsBase = j.atyourservice.getActionsBaseClass()
+
 
 class Actions(ActionsBase):
     """
@@ -20,6 +21,7 @@ class Actions(ActionsBase):
     """
 
     def configure(self, serviceObj):
-        service = j.atyourservice.findServices('jumpscale', 'agentcontroller', 'main')[0]
+        service = j.atyourservice.findServices("jumpscale", "agentcontroller", "main")[
+            0
+        ]
         service.restart()
-

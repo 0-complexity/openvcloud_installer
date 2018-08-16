@@ -21,5 +21,7 @@ class Actions(ActionsBase):
     """
 
     def configure(self, serviceObj):
-        service = j.atyourservice.findServices('jumpscale', 'agentcontroller', 'main')[0]
+        service = j.atyourservice.findServices("jumpscale", "agentcontroller", "main")[
+            0
+        ]
         service.restart()

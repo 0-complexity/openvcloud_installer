@@ -8,6 +8,7 @@ def input(job):
     - Test connection to osis
     """
 
+
 def install(job):
     """
     - Create deployment for the agent / agent controller /redis each within the same pod on seperate containers

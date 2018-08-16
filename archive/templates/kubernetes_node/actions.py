@@ -8,6 +8,7 @@ def input(job):
     - Validate hardware requirements.
     """
 
+
 def install(job):
     """
     - install kubernetes tools

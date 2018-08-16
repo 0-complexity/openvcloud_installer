@@ -20,15 +20,17 @@ import threading
 from functools import partial
 from io import StringIO
 
-Version = namedtuple('Version', ('version', 'type'))
-REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
-DEV_REPOS = ['https://github.com/0-complexity/openvcloud',
-             'https://github.com/0-complexity/selfhealing'
-             'https://github.com/jumpscale7/jumpscale_core7',
-             'https://github.com/jumpscale7/jumpscale_portal']
-REPO_PATH = '/opt/code/github/0-complexity/openvcloud_installer'
-DEV_TMPLS = ['osis', 'agentcontroller', 'portal']
-AYSCONFIG = '''
+Version = namedtuple("Version", ("version", "type"))
+REPO_URL = "https://github.com/0-complexity/openvcloud_installer"
+DEV_REPOS = [
+    "https://github.com/0-complexity/openvcloud",
+    "https://github.com/0-complexity/selfhealing"
+    "https://github.com/jumpscale7/jumpscale_core7",
+    "https://github.com/jumpscale7/jumpscale_portal",
+]
+REPO_PATH = "/opt/code/github/0-complexity/openvcloud_installer"
+DEV_TMPLS = ["osis", "agentcontroller", "portal"]
+AYSCONFIG = """
 metadata.jumpscale             =
     branch:'{version}',
     url:'git@github.com:jumpscale7/ays_jumpscale7',
@@ -36,32 +38,34 @@ metadata.jumpscale             =
 metadata.openvcloud            =
     branch:'{ovcversion}',
     url:'git@github.com:0-complexity/openvcloud_ays',
-'''
+"""
 REPOREVISIONS = {}
 
-WHOAMI = '''
+WHOAMI = """
 email                          =
 
 fullname                       =
 
 git.login                      = ''
 git.passwd                     = ''
-'''
-ERROR_COLOR = u'\u001b[31m'
-RESET_COLOR = u'\u001b[0m'
-COLORBLUE = u'\u001b[34m'
-COLORGREEN = u'\u001b[32m'
-CURSORUP = u'\u001b[{n}A'
-CLEAREOL = u'\u001b[0K'
+"""
+ERROR_COLOR = u"\u001b[31m"
+RESET_COLOR = u"\u001b[0m"
+COLORBLUE = u"\u001b[34m"
+COLORGREEN = u"\u001b[32m"
+CURSORUP = u"\u001b[{n}A"
+CLEAREOL = u"\u001b[0K"
 ISINTERACTIVE = sys.stdout.isatty()
 
 status = {}
 lock = threading.Lock()
 logging.raiseExceptions = False
 
+
 def log(msg):
-    sys.stdout.write(msg + '\n')
+    sys.stdout.write(msg + "\n")
     sys.stdout.flush()
+
 
 def print_status(clear=False):
     with lock:
@@ -72,85 +76,100 @@ def print_status(clear=False):
         length = len(max(status.keys(), key=lambda x: len(x)))
         for node, line in sorted(status.items()):
             line = "{blue}{node:{length}}{reset}: {msg}{eol}".format(
-                    blue=COLORBLUE,
-                    node=node,
-                    length=length,
-                    reset=RESET_COLOR,
-                    msg=line,
-                    eol=CLEAREOL
+                blue=COLORBLUE,
+                node=node,
+                length=length,
+                reset=RESET_COLOR,
+                msg=line,
+                eol=CLEAREOL,
             )
             log(line)
 
+
 def get_revision(repo):
     version = version_type(repo)
-    match = 'tags/' if version.type == 'tag' else 'heads/'
+    match = "tags/" if version.type == "tag" else "heads/"
     match += version.version
-    output = local_execute(['git' ,'ls-remote', repo['url']])
+    output = local_execute(["git", "ls-remote", repo["url"]])
     for line in output.splitlines():
         if line.endswith(match):
             return line.split()[0]
 
+
 def version_type(repo):
-    for vtype in ('tag', 'branch'):
-        if vtype in repo['target']:
-            return Version(repo['target'][vtype], vtype)
+    for vtype in ("tag", "branch"):
+        if vtype in repo["target"]:
+            return Version(repo["target"][vtype], vtype)
     raise RuntimeError("No tag or branch set on repo")
 
 
 def update_repo_volume(versions, repo):
-    url = repo['repository']
+    url = repo["repository"]
     if url in REPOREVISIONS:
-        repo['revision'] = REPOREVISIONS[url]
+        repo["revision"] = REPOREVISIONS[url]
         return
-    for vrepo in versions['repos']:
-        if vrepo['url'] == url:
+    for vrepo in versions["repos"]:
+        if vrepo["url"] == url:
             revision = get_revision(vrepo)
             if revision:
-                repo['revision'] = revision
+                repo["revision"] = revision
                 REPOREVISIONS[url] = revision
             return
+
 
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
 
+
 def get_pnodes(config, versions=None, roles=None):
     pnodes = []
     roles = set(roles or [])
-    for pnode in config['nodes']:
-        if roles.intersection(set(pnode['roles'])):
-            pnodes.append(PNode(config, pnode['name'], versions))
+    for pnode in config["nodes"]:
+        if roles.intersection(set(pnode["roles"])):
+            pnodes.append(PNode(config, pnode["name"], versions))
     return pnodes
 
+
 def local_execute(*args, **kwargs):
-    kwargs['check'] = kwargs.get('check', True)
-    kwargs['stdout'] = kwargs.get('stdout', subprocess.PIPE)
-    result = subprocess.run(*args, **kwargs).stdout.decode('utf-8')
+    kwargs["check"] = kwargs.get("check", True)
+    kwargs["stdout"] = kwargs.get("stdout", subprocess.PIPE)
+    result = subprocess.run(*args, **kwargs).stdout.decode("utf-8")
     return result
 
+
 def set_cgroup(node, cgroup, cpu_set, memory):
-    mem_path = '/sys/fs/cgroup/memory/{}'.format(cgroup)
-    cpu_path = '/sys/fs/cgroup/cpuset/{}'.format(cgroup)
+    mem_path = "/sys/fs/cgroup/memory/{}".format(cgroup)
+    cpu_path = "/sys/fs/cgroup/cpuset/{}".format(cgroup)
     command = """
     set -e
     mkdir -p {mem}
     mkdir -p {cpu}
-    """.format(mem=mem_path, cpu=cpu_path)
+    """.format(
+        mem=mem_path, cpu=cpu_path
+    )
     node.run(command)
-    node.write_file('{}/cpuset.cpus'.format(cpu_path), str(cpu_set))
-    node.write_file('{}/memory.limit_in_bytes'.format(mem_path), str(memory))
+    node.write_file("{}/cpuset.cpus".format(cpu_path), str(cpu_set))
+    node.write_file("{}/memory.limit_in_bytes".format(mem_path), str(memory))
+
 
 def portal_api_call(endpoint, config):
-    url = 'http://portal:82/restmachine/%s' % endpoint
-    response = requests.post(url, headers={'Authorization': 'authkey {0}'.format(config['environment']['password'])})
+    url = "http://portal:82/restmachine/%s" % endpoint
+    response = requests.post(
+        url,
+        headers={
+            "Authorization": "authkey {0}".format(config["environment"]["password"])
+        },
+    )
     return response
+
 
 def pnode_action(pnodes, action):
     futures = {}
     running_futures = {}
-    results = ''
+    results = ""
     with concurrent.futures.thread.ThreadPoolExecutor(len(pnodes)) as proc:
         for pnode in pnodes:
-            status[pnode.name] = 'Started {}'.format(action)
+            status[pnode.name] = "Started {}".format(action)
 
         print("Waiting for {action} node to be done...".format(action=action))
         print_status()
@@ -161,17 +180,25 @@ def pnode_action(pnodes, action):
             running_futures[pnode.name] = fut
 
         def update_status():
-            messages = ''
+            messages = ""
             future_error = None
             for name, future in list(running_futures.items()):
                 if future.done():
                     if future.exception():
-                        messages += '{color}Error when performing node {action} {name}: {reset}{exc} \n'.format(color=ERROR_COLOR, action=action, name=name, reset=RESET_COLOR, exc=str(future.exception()))
+                        messages += "{color}Error when performing node {action} {name}: {reset}{exc} \n".format(
+                            color=ERROR_COLOR,
+                            action=action,
+                            name=name,
+                            reset=RESET_COLOR,
+                            exc=str(future.exception()),
+                        )
                         future_error = future.exception()
-                        status[name] = '{}ERROR: details will follow{}'.format(ERROR_COLOR, RESET_COLOR)
+                        status[name] = "{}ERROR: details will follow{}".format(
+                            ERROR_COLOR, RESET_COLOR
+                        )
                         print_status(True)
                     else:
-                        status[name] = '{}Finished{}'.format(COLORGREEN, RESET_COLOR)
+                        status[name] = "{}Finished{}".format(COLORGREEN, RESET_COLOR)
                         print_status(True)
                     running_futures.pop(name)
             return future_error, messages
@@ -189,106 +216,90 @@ def pnode_action(pnodes, action):
 
 
 def is_conv_env(config):
-    nodes = config['nodes']
-    roles = {'controller', 'storage', 'cpu'}
+    nodes = config["nodes"]
+    roles = {"controller", "storage", "cpu"}
     for node in nodes:
-        roles_intersection = roles.intersection(set(node['roles']))
-        if len(roles_intersection) > 1 and 'controller' in node['roles']:
+        roles_intersection = roles.intersection(set(node["roles"]))
+        if len(roles_intersection) > 1 and "controller" in node["roles"]:
             return True
     return False
+
 
 def prepare_config(config_path):
     def _helper(nodes):
         for node in nodes:
-            net = netaddr.IPNetwork(value['network'])
-            ip = net.ip + node['ip-lsb']
+            net = netaddr.IPNetwork(value["network"])
+            ip = net.ip + node["ip-lsb"]
             if key not in node:
                 node[key] = {}
-            node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
+            node[key]["ipaddress"] = "{ip}/{sub}".format(ip=ip, sub=net.prefixlen)
 
-    with open(config_path, 'r') as cfg:
+    with open(config_path, "r") as cfg:
         config = yaml.load(cfg)
     # add default directories for syncthing
     default_dirs = [
-        {
-            "path": "/var/ovc/billing",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/influxdb",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/mongodb",
-            "sync": False
-        },
-        {
-            "path": "/var/ovc/pxeboot",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/grafana",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/0-access",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/ssl",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/.ssh",
-            "sync": True
-        },
-        {
-            "path": "/var/ovc/updatelogs",
-            "sync": True
-        }
+        {"path": "/var/ovc/billing", "sync": True},
+        {"path": "/var/ovc/influxdb", "sync": True},
+        {"path": "/var/ovc/mongodb", "sync": False},
+        {"path": "/var/ovc/pxeboot", "sync": True},
+        {"path": "/var/ovc/grafana", "sync": True},
+        {"path": "/var/ovc/0-access", "sync": True},
+        {"path": "/var/ovc/ssl", "sync": True},
+        {"path": "/var/ovc/.ssh", "sync": True},
+        {"path": "/var/ovc/updatelogs", "sync": True},
     ]
-    for dir in config.get('directories', []):
-        if dir['path'] not in default_dirs:
+    for dir in config.get("directories", []):
+        if dir["path"] not in default_dirs:
             default_dirs.append(dir)
-    config['directories'] = default_dirs
-    with open('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH), 'r') as vld:
+    config["directories"] = default_dirs
+    with open(
+        "{}/scripts/kubernetes/config/config-validator.json".format(REPO_PATH), "r"
+    ) as vld:
         validator = json.load(vld)
 
-    if not config['nodes'][0].get('management', {}).get('ipaddress'):
+    if not config["nodes"][0].get("management", {}).get("ipaddress"):
         try:
             jsonschema.validate(config, validator)
         except Exception as error:
             message = getattr(error, "message", str(type(error)))
-            tree = ''
+            tree = ""
             for seq in getattr(error, "path", list()):
                 if isinstance(seq, int):
-                    tree += '/<sequence {}>'.format(seq)
+                    tree += "/<sequence {}>".format(seq)
                 else:
                     tree += "/{}".format(seq)
 
             validator = getattr(error, "validator")
-            if  validator == 'type':
-                message = '{msg} at {tree}'.format(msg=message, tree=tree)
-            elif validator == 'required':
-                message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
+            if validator == "type":
+                message = "{msg} at {tree}".format(msg=message, tree=tree)
+            elif validator == "required":
+                message = "{msg} in config at {tree}. Please check example config for reference.".format(
+                    msg=message, tree=tree
+                )
             raise RuntimeError(message)
-
 
     is_conv = is_conv_env(config)
     if not is_conv:
-        for node in config['nodes']:
-            if 'ipmi' not in node:
-                raise RuntimeError('IPMI section required for node {}'.format(node['name']))
-            elif 'management' not in node and 'controller' not in node['roles']:
-                raise RuntimeError('Management section required for node {}'.format(node['name']))
+        for node in config["nodes"]:
+            if "ipmi" not in node:
+                raise RuntimeError(
+                    "IPMI section required for node {}".format(node["name"])
+                )
+            elif "management" not in node and "controller" not in node["roles"]:
+                raise RuntimeError(
+                    "Management section required for node {}".format(node["name"])
+                )
 
-    for key, value in config['network'].items():
-        if 'network' in value:
-            _helper(config['nodes'])
-    key = config['ssh']['private-key']
-    public_key = local_execute(['ssh-keygen', '-y', '-f', '/dev/stdin'], input=key.encode('utf-8'))
-    config['ssh']['public-key'] = public_key
+    for key, value in config["network"].items():
+        if "network" in value:
+            _helper(config["nodes"])
+    key = config["ssh"]["private-key"]
+    public_key = local_execute(
+        ["ssh-keygen", "-y", "-f", "/dev/stdin"], input=key.encode("utf-8")
+    )
+    config["ssh"]["public-key"] = public_key
     return config
+
 
 def get_versions(config, version=None, url=None):
     """
@@ -296,58 +307,71 @@ def get_versions(config, version=None, url=None):
     param version ,, str version number to get from default 0-complexity/home/manifests location
     param url ,, raw url to version-manifests yaml file
     """
+
     def download_load_yaml(url):
         response = requests.get(url)
         response.raise_for_status()
         versions = yaml.load(response.content)
-        versions['url'] = url
-        versions['version'] = version
+        versions["url"] = url
+        versions["version"] = version
         return versions
 
     if not version:
         if not url:
-            first_node = get_pnodes(config, roles=['controller'])[0].remote
-            res = first_node.run('kubectl get configmap versions-manifest -o json', check=False)
+            first_node = get_pnodes(config, roles=["controller"])[0].remote
+            res = first_node.run(
+                "kubectl get configmap versions-manifest -o json", check=False
+            )
             if res.exit_status != 0:
-                if 'NotFound' in res.stderr:
-                    raise RuntimeError('configmap manifest does not exist , version needs to be passed during deploy cluster to be registered.')
+                if "NotFound" in res.stderr:
+                    raise RuntimeError(
+                        "configmap manifest does not exist , version needs to be passed during deploy cluster to be registered."
+                    )
                 raise RuntimeError(res.stderr)
-            versions = yaml.load(json.loads(res.stdout)['data']['versions-manifest.yaml'])
+            versions = yaml.load(
+                json.loads(res.stdout)["data"]["versions-manifest.yaml"]
+            )
         else:
             versions = download_load_yaml(url)
     else:
-        url = 'https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yml'.format(version)
+        url = "https://raw.githubusercontent.com/0-complexity/home/master/manifests/{0}.yml".format(
+            version
+        )
         versions = download_load_yaml(url)
 
     if 404 in versions:
         raise RuntimeError("Could not find manifest @ {}".format(url))
-    for repo in versions['repos']:
-        if repo['url'] in "https://github.com/jumpscale7/ays_jumpscale7":
-            versions['jsversion'] = version_type(repo)
-        if repo['url'] in "https://github.com/0-complexity/openvcloud_ays":
-            versions['ovcversion'] = version_type(repo)
+    for repo in versions["repos"]:
+        if repo["url"] in "https://github.com/jumpscale7/ays_jumpscale7":
+            versions["jsversion"] = version_type(repo)
+        if repo["url"] in "https://github.com/0-complexity/openvcloud_ays":
+            versions["ovcversion"] = version_type(repo)
     return versions
 
-def get_controller_ips(config, iptype='management'):
-    for node in config['nodes']:
-        if 'controller' in node['roles']:
-            yield get_ipaddress(node[iptype]['ipaddress'])
+
+def get_controller_ips(config, iptype="management"):
+    for node in config["nodes"]:
+        if "controller" in node["roles"]:
+            yield get_ipaddress(node[iptype]["ipaddress"])
+
 
 class AbstractConfig:
     def __init__(self, config, versions=None):
         self.config = config
         self._nodes = None
         self.versions = versions
-        self.backplaneips = list(get_controller_ips(config, 'backplane'))
-        self.managementips = list(get_controller_ips(config, 'management'))
+        self.backplaneips = list(get_controller_ips(config, "backplane"))
+        self.managementips = list(get_controller_ips(config, "management"))
         self.is_conv_env = is_conv_env(config)
 
     @property
     def nodes(self):
         if self._nodes is None:
             nodes = []
-            for address in get_controller_ips(self.config, 'backplane'):
-                client = remote.Remote(address, username='root', pkey=self.config['ssh']['private-key'])
+            for address in get_controller_ips(self.config, "backplane"):
+                client = remote.Remote(
+                    address, username="root", pkey=self.config["ssh"]["private-key"]
+                )
                 nodes.append(client)
             self._nodes = nodes
         return self._nodes
@@ -364,13 +388,13 @@ class AbstractConfig:
     def get_node_from_appname(self, appname):
         output = self.kubectl("get pods -o json -l app=={}".format(appname))
         data = json.loads(output.stdout)
-        for pod in data['items']:
-            hostip = pod['status']['hostIP']
+        for pod in data["items"]:
+            hostip = pod["status"]["hostIP"]
             for node in self.nodes:
-                net = node.run('ip a').stdout
+                net = node.run("ip a").stdout
                 netinfo = network.parse_net_info(net)
                 for nic in netinfo:
-                    for ip in nic['ip']:
+                    for ip in nic["ip"]:
                         if ip == hostip:
                             return node
 
@@ -381,51 +405,55 @@ class AbstractConfig:
         """
         Remove unwanted public keys from authorized keys under /root/.ssh/authorized_keys.
         """
-        auth_keys = node.read_file('/root/.ssh/authorized_keys')
+        auth_keys = node.read_file("/root/.ssh/authorized_keys")
         data = []
         for key in auth_keys.splitlines():
             if key.startswith(public_key.strip()):
                 continue
             data.append(key)
-        data.append('') # end with empty line
-        node.write_file('/root/.ssh/authorized_keys', '\n'.join(data))
+        data.append("")  # end with empty line
+        node.write_file("/root/.ssh/authorized_keys", "\n".join(data))
 
     def add_env_keys(self, node, pub_key, priv_key):
         """
         adds pub and priv key to relative envs
         """
         # create dir
-        ovcdir = '/var/ovc/'
-        node.run('mkdir -p {0}/.ssh && chmod 600 {0}/.ssh'.format(ovcdir))
-        node.run('mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh'.format(ovcdir))
+        ovcdir = "/var/ovc/"
+        node.run("mkdir -p {0}/.ssh && chmod 600 {0}/.ssh".format(ovcdir))
+        node.run("mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh".format(ovcdir))
         # add keys
-        node.authorize_key('root', pub_key)
-        node.write_file('{}/.ssh/id_rsa'.format(ovcdir), priv_key)
-        node.write_file('{}/.ssh/id_rsa.pub'.format(ovcdir), pub_key)
-        node.write_file('{}/.ssh/authorized_keys'.format(ovcdir), pub_key)
-        node.run('mkdir -p {0} && chmod 777 {0}'.format('/var/ovc/pxeboot/images/'))
-        node.write_file('/var/ovc/pxeboot/images/pubkey', pub_key)
+        node.authorize_key("root", pub_key)
+        node.write_file("{}/.ssh/id_rsa".format(ovcdir), priv_key)
+        node.write_file("{}/.ssh/id_rsa.pub".format(ovcdir), pub_key)
+        node.write_file("{}/.ssh/authorized_keys".format(ovcdir), pub_key)
+        node.run("mkdir -p {0} && chmod 777 {0}".format("/var/ovc/pxeboot/images/"))
+        node.write_file("/var/ovc/pxeboot/images/pubkey", pub_key)
         chmod_command = """
         chmod 600 {}/.ssh/id_rsa.pub
         chmod 777 /var/ovc/pxeboot/images/pubkey
-        """.format(ovcdir)
+        """.format(
+            ovcdir
+        )
         node.run(chmod_command)
 
     def get_new_keys(self):
-        privatekey = self.first_node.read_file('/var/ovc/.ssh/id_rsa')
-        pubkey = self.first_node.read_file('/var/ovc/.ssh/id_rsa.pub')
+        privatekey = self.first_node.read_file("/var/ovc/.ssh/id_rsa")
+        pubkey = self.first_node.read_file("/var/ovc/.ssh/id_rsa.pub")
         return privatekey, pubkey
 
     def configure_keys(self):
-        log('Configuring new keys')
+        log("Configuring new keys")
         if not len(self.nodes):
-            raise RuntimeError('cluster needs to be depployed before configuring keys')
+            raise RuntimeError("cluster needs to be depployed before configuring keys")
 
         # generate keys
-        private_key_path = '/root/.ssh/id_rsa'
-        public_key_path = '{}.pub'.format(private_key_path)
+        private_key_path = "/root/.ssh/id_rsa"
+        public_key_path = "{}.pub".format(private_key_path)
         if not self.first_node.exists(private_key_path):
-            self.first_node.run("ssh-keygen -q -t rsa -f {} -N ''".format(private_key_path))
+            self.first_node.run(
+                "ssh-keygen -q -t rsa -f {} -N ''".format(private_key_path)
+            )
         key_perms = """
         chmod 600 {0}
         chown root:root {0}
@@ -447,13 +475,15 @@ class Node(AbstractConfig):
         super().__init__(config, versions)
         self.name = name
         self._node = None
-        self.managementip = get_ipaddress(self.node['management']['ipaddress'])
+        self.managementip = get_ipaddress(self.node["management"]["ipaddress"])
         self._remote = None
         self.config = config
-        self.password = config['environment']['password']
-        self.gid = config['environment']['grid']['id']
-        self.fqdn = '{}.{}'.format(config['environment']['subdomain'], config['environment']['basedomain'])
-        self.iyourl = 'https://itsyou.online/'
+        self.password = config["environment"]["password"]
+        self.gid = config["environment"]["grid"]["id"]
+        self.fqdn = "{}.{}".format(
+            config["environment"]["subdomain"], config["environment"]["basedomain"]
+        )
+        self.iyourl = "https://itsyou.online/"
 
     def log(self, msg):
         if ISINTERACTIVE and self.name in status:
@@ -466,197 +496,249 @@ class Node(AbstractConfig):
     @property
     def remote(self):
         if self._remote is None:
-            self._remote = remote.Remote(self.managementip, username='root', pkey=self.config['ssh']['private-key'])
+            self._remote = remote.Remote(
+                self.managementip,
+                username="root",
+                pkey=self.config["ssh"]["private-key"],
+            )
         return self._remote
 
     @property
     def node(self):
         if self._node is None:
-            for node in self.config['nodes']:
-                if node['name'] == self.name:
+            for node in self.config["nodes"]:
+                if node["name"] == self.name:
                     self._node = node
                     break
             else:
-                raise LookupError('Faild to find a node with name {}'.format(self.name))
+                raise LookupError("Faild to find a node with name {}".format(self.name))
         return self._node
 
 
 class JumpScale7(Node):
     def install_core(self):
-        jsversion = self.versions['jsversion']
-        ovcversion = self.versions['ovcversion']
-        self.remote.add_ssh_host('root', 'git.gig.tech')
-        self.remote.add_ssh_host('root', 'github.com')
-        self.remote.add_ssh_host('root', 'docs.greenitglobe.com', 10022)
+        jsversion = self.versions["jsversion"]
+        ovcversion = self.versions["ovcversion"]
+        self.remote.add_ssh_host("root", "git.gig.tech")
+        self.remote.add_ssh_host("root", "github.com")
+        self.remote.add_ssh_host("root", "docs.greenitglobe.com", 10022)
 
-        if self.remote.run('which python', check=False).exit_status != 0 or self.remote.run('which curl', check=False).exit_status != 0:
-            self.remote.run('apt-get upgrade -y && apt-get install -y python curl')
-        if self.remote.run('which js', check=False).exit_status != 0:
+        if (
+            self.remote.run("which python", check=False).exit_status != 0
+            or self.remote.run("which curl", check=False).exit_status != 0
+        ):
+            self.remote.run("apt-get upgrade -y && apt-get install -y python curl")
+        if self.remote.run("which js", check=False).exit_status != 0:
             cmd = """
             set -e
             export AYSBRANCH={0}; export JSBRANCH={0};
             cd /tmp;rm -f install.sh;
             curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{0}/install/install.sh > install.sh;bash install.sh
-            """.format(jsversion.version)
+            """.format(
+                jsversion.version
+            )
             self.remote.run(cmd)
-        self.remote.write_file('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version))
-        self.remote.write_file('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
+        self.remote.write_file(
+            "/opt/jumpscale7/hrd/system/atyourservice.hrd",
+            AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version),
+        )
+        self.remote.write_file("/opt/jumpscale7/hrd/system/whoami.hrd", WHOAMI)
 
     def start(self):
         self.log("Start JumpScale services")
-        self.remote.run('ays start')
+        self.remote.run("ays start")
 
     def stop(self):
         self.log("Stop JumpScale services")
-        self.remote.run('ays stop')
-        self.remote.run('fuser -k 4446/tcp', check=False)
+        self.remote.run("ays stop")
+        self.remote.run("fuser -k 4446/tcp", check=False)
 
     def update_repo(self, account, repo, version):
         cmd = "jscode update -a '{}' -n '{}' -d".format(account, repo)
-        if version.type == 'branch':
+        if version.type == "branch":
             cmd += " -b {} --https".format(version.version)
-        elif version.type == 'tag':
+        elif version.type == "tag":
             cmd += " -t {} --https".format(version.version)
         self.remote.run(cmd)
 
-
     def update(self):
-        js_version = self.versions['jsversion']
-        ovc_version = self.versions['ovcversion']
+        js_version = self.versions["jsversion"]
+        ovc_version = self.versions["ovcversion"]
         self.log("Updating JumpScale repos")
-        self.update_repo('jumpscale7', '*', js_version)
+        self.update_repo("jumpscale7", "*", js_version)
         self.log("Updating OpenvCloud repos")
-        self.update_repo('0-complexity', 'openvcloud', ovc_version)
-        self.update_repo('0-complexity', 'openvcloud_installer', ovc_version)
+        self.update_repo("0-complexity", "openvcloud", ovc_version)
+        self.update_repo("0-complexity", "openvcloud_installer", ovc_version)
 
     def restart(self):
         self.stop()
         self.start()
 
     def install_agent(self, roles=None):
-        roles = roles or ['node']
+        roles = roles or ["node"]
         redisdata = {
-            'instance.param.disk': '0',
-            'instance.param.mem': '100',
-            'instance.param.passwd': '',
-            'instance.param.port': '9999',
-            'instance.param.ip' : '0.0.0.0',
-            'instance.param.unixsocket': '0'
+            "instance.param.disk": "0",
+            "instance.param.mem": "100",
+            "instance.param.passwd": "",
+            "instance.param.port": "9999",
+            "instance.param.ip": "0.0.0.0",
+            "instance.param.unixsocket": "0",
         }
-        self.ays_install('redis', instance='system', data=redisdata)
-        masterips = ','.join(self.backplaneips)
+        self.ays_install("redis", instance="system", data=redisdata)
+        masterips = ",".join(self.backplaneips)
 
         osisclientdata = {
-            'instance.param.osis.client.addr': masterips,
-            'instance.param.osis.client.login': 'root',
-            'instance.param.osis.client.passwd': self.password,
-            'instance.param.osis.client.port': '5544',
+            "instance.param.osis.client.addr": masterips,
+            "instance.param.osis.client.login": "root",
+            "instance.param.osis.client.passwd": self.password,
+            "instance.param.osis.client.port": "5544",
         }
-        self.ays_install('osis_client', instance='main', data=osisclientdata, reinstall=True)
-        self.ays_install('osis_client', instance='jsagent', data=osisclientdata, reinstall=True)
+        self.ays_install(
+            "osis_client", instance="main", data=osisclientdata, reinstall=True
+        )
+        self.ays_install(
+            "osis_client", instance="jsagent", data=osisclientdata, reinstall=True
+        )
 
         agentcontrollerdata = {
-            'instance.agentcontroller.client.addr': masterips,
-            'instance.agentcontroller.client.login': 'node',
-            'instance.agentcontroller.client.passwd': '',
-            'instance.agentcontroller.client.port': '4444'
+            "instance.agentcontroller.client.addr": masterips,
+            "instance.agentcontroller.client.login": "node",
+            "instance.agentcontroller.client.passwd": "",
+            "instance.agentcontroller.client.port": "4444",
         }
-        self.ays_install('agentcontroller_client', instance='main', data=agentcontrollerdata, reinstall=True)
+        self.ays_install(
+            "agentcontroller_client",
+            instance="main",
+            data=agentcontrollerdata,
+            reinstall=True,
+        )
 
         agentdata = {
-                'agentcontroller.connection': 'main',
-                'grid.id': str(self.gid),
-                'grid.node.roles': ','.join(roles),
-                'osis.connection': 'jsagent',
+            "agentcontroller.connection": "main",
+            "grid.id": str(self.gid),
+            "grid.node.roles": ",".join(roles),
+            "osis.connection": "jsagent",
         }
-        self.ays_install('jsagent', instance='main', data=agentdata)
+        self.ays_install("jsagent", instance="main", data=agentdata)
 
-
-    def ays_install(self, package, domain='jumpscale', instance='main', data=None, reinstall=False):
+    def ays_install(
+        self, package, domain="jumpscale", instance="main", data=None, reinstall=False
+    ):
         self.log("Installing JumpScale package {}:{}".format(domain, package))
-        datastr = ''
+        datastr = ""
         data = data or {}
         for key, value in data.items():
             datastr += "{}:{} ".format(key, value)
-        install = ''
+        install = ""
         if reinstall:
-            install = '-r'
-        cmd = 'ays install -d {} -n {} -i {} {} --data "{}"'.format(domain, package, instance, install, datastr)
+            install = "-r"
+        cmd = 'ays install -d {} -n {} -i {} {} --data "{}"'.format(
+            domain, package, instance, install, datastr
+        )
         self.remote.run(cmd)
 
     def install(self):
         self.install_core()
-        roles = ['node']
-        if 'controller' in self.node['roles']:
-            roles.append('controllernode')
+        roles = ["node"]
+        if "controller" in self.node["roles"]:
+            roles.append("controllernode")
         self.install_agent(roles)
-        if 'cpu' in self.node['roles']:
+        if "cpu" in self.node["roles"]:
             self.install_compute_node()
-        if 'storage' in self.node['roles']:
+        if "storage" in self.node["roles"]:
             self.install_storage_node()
 
     def install_compute_node(self):
         netinfo = {
-            'vxbackend_vlan': self.config['network']['vxbackend']['vlan'],
-            'vxbackend_ip': self.node['vxbackend']['ipaddress'],
-            'gwmgmt_vlan': self.config['network']['gateway-management']['vlan'],
-            'gwmgmt_ip': self.node['gateway-management']['ipaddress'],
-
+            "vxbackend_vlan": self.config["network"]["vxbackend"]["vlan"],
+            "vxbackend_ip": self.node["vxbackend"]["ipaddress"],
+            "gwmgmt_vlan": self.config["network"]["gateway-management"]["vlan"],
+            "gwmgmt_ip": self.node["gateway-management"]["ipaddress"],
         }
         data_net = {
-            'netconfig.public_backplane.interfacename': 'backplane1',
-            'netconfig.gw_mgmt_backplane.interfacename': 'backplane1',
-            'netconfig.vxbackend.interfacename': 'backplane1',
-            'netconfig.gw_mgmt.vlanid': netinfo['gwmgmt_vlan'],
-            'netconfig.vxbackend.vlanid': netinfo['vxbackend_vlan'],
-            'netconfig.gw_mgmt.ipaddr': netinfo['gwmgmt_ip'],
-            'netconfig.vxbackend.ipaddr': netinfo['vxbackend_ip'],
+            "netconfig.public_backplane.interfacename": "backplane1",
+            "netconfig.gw_mgmt_backplane.interfacename": "backplane1",
+            "netconfig.vxbackend.interfacename": "backplane1",
+            "netconfig.gw_mgmt.vlanid": netinfo["gwmgmt_vlan"],
+            "netconfig.vxbackend.vlanid": netinfo["vxbackend_vlan"],
+            "netconfig.gw_mgmt.ipaddr": netinfo["gwmgmt_ip"],
+            "netconfig.vxbackend.ipaddr": netinfo["vxbackend_ip"],
         }
 
         data_cpu = {
-            'instance.param.rootpasswd': self.password,
-            'instance.param.master.addr': '',
-            'instance.param.network.gw_mgmt_ip': netinfo['gwmgmt_ip'],
-            'instance.param.grid.id': self.gid,
+            "instance.param.rootpasswd": self.password,
+            "instance.param.master.addr": "",
+            "instance.param.network.gw_mgmt_ip": netinfo["gwmgmt_ip"],
+            "instance.param.grid.id": self.gid,
         }
 
         self.install_portal_client()
-        self.ays_install('scaleout_networkconfig', domain='openvcloud', instance='main', data=data_net)
-        self.ays_install('cb_cpunode_aio', domain='openvcloud', instance='main', data=data_cpu)
-
+        self.ays_install(
+            "scaleout_networkconfig",
+            domain="openvcloud",
+            instance="main",
+            data=data_net,
+        )
+        self.ays_install(
+            "cb_cpunode_aio", domain="openvcloud", instance="main", data=data_cpu
+        )
 
     def install_portal_client(self):
         portal_client = {
-            'instance.param.addr' : self.fqdn,
-            'instance.param.port': '443',
-            'instance.param.secret': self.password,
+            "instance.param.addr": self.fqdn,
+            "instance.param.port": "443",
+            "instance.param.secret": self.password,
         }
 
-        self.ays_install('portal_client', domain='jumpscale', instance='main', data=portal_client, reinstall=True)
+        self.ays_install(
+            "portal_client",
+            domain="jumpscale",
+            instance="main",
+            data=portal_client,
+            reinstall=True,
+        )
 
     def configure_iyo_api_key(self, apikey):
         # TODO: check if we can do this in js9
-        label = apikey['label']
-        clientid = self.config['itsyouonline']['clientId']
-        secret = self.config['itsyouonline']['clientSecret']
-        accesstokenparams = {'grant_type': 'client_credentials', 'client_id': clientid, 'client_secret': secret}
-        accesstoken = requests.post(os.path.join(self.iyourl, 'v1', 'oauth', 'access_token'), params=accesstokenparams)
-        token = accesstoken.json()['access_token']
-        authheaders = {'Authorization': 'token %s' % token}
-        result = requests.get(os.path.join(self.iyourl, 'api', 'organizations', clientid,
-                                           'apikeys', label), headers=authheaders)
+        label = apikey["label"]
+        clientid = self.config["itsyouonline"]["clientId"]
+        secret = self.config["itsyouonline"]["clientSecret"]
+        accesstokenparams = {
+            "grant_type": "client_credentials",
+            "client_id": clientid,
+            "client_secret": secret,
+        }
+        accesstoken = requests.post(
+            os.path.join(self.iyourl, "v1", "oauth", "access_token"),
+            params=accesstokenparams,
+        )
+        token = accesstoken.json()["access_token"]
+        authheaders = {"Authorization": "token %s" % token}
+        result = requests.get(
+            os.path.join(
+                self.iyourl, "api", "organizations", clientid, "apikeys", label
+            ),
+            headers=authheaders,
+        )
         if result.status_code == 200:
             stored_apikey = result.json()
-            if apikey['callbackURL'] != stored_apikey['callbackURL']:
-                requests.delete(os.path.join(self.iyourl, 'api', 'organizations', clientid,
-                                             'apikeys', label), headers=authheaders)
+            if apikey["callbackURL"] != stored_apikey["callbackURL"]:
+                requests.delete(
+                    os.path.join(
+                        self.iyourl, "api", "organizations", clientid, "apikeys", label
+                    ),
+                    headers=authheaders,
+                )
                 apikey = {}
             else:
                 apikey = stored_apikey
 
-        if 'secret' not in apikey:
-            result = requests.post(os.path.join(self.iyourl, 'api', 'organizations',
-                                                clientid, 'apikeys'), json=apikey, headers=authheaders)
+        if "secret" not in apikey:
+            result = requests.post(
+                os.path.join(self.iyourl, "api", "organizations", clientid, "apikeys"),
+                json=apikey,
+                headers=authheaders,
+            )
             apikey = result.json()
         return apikey
 
@@ -664,187 +746,239 @@ class JumpScale7(Node):
         self.install_portal_client()
 
         data_storage = {
-            'param.rootpasswd': self.password,
-            'param.master.addr': '',
-            'param.grid.id': self.gid,
+            "param.rootpasswd": self.password,
+            "param.master.addr": "",
+            "param.grid.id": self.gid,
         }
 
-        self.ays_install('cb_storagenode_aio', domain='openvcloud', instance='main', data=data_storage)
-        self.ays_install('cb_storagedriver_aio', domain='openvcloud', instance='main', data=data_storage)
+        self.ays_install(
+            "cb_storagenode_aio",
+            domain="openvcloud",
+            instance="main",
+            data=data_storage,
+        )
+        self.ays_install(
+            "cb_storagedriver_aio",
+            domain="openvcloud",
+            instance="main",
+            data=data_storage,
+        )
         self.patch_ovs()
 
     def patch_ovs(self):
-        status, output, _ = self.remote.run('ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"')
-        if 'MASTER' in output:
-            self.remote.run("python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py")
-            ovscallbackurl = 'https://ovs-{}/api/oauth2/redirect/'.format(self.fqdn)
+        status, output, _ = self.remote.run(
+            'ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"'
+        )
+        if "MASTER" in output:
+            self.remote.run(
+                "python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py"
+            )
+            ovscallbackurl = "https://ovs-{}/api/oauth2/redirect/".format(self.fqdn)
             apikey = {
-                'label': 'ovs-{}'.format(self.config['environment']['subdomain']),
-                'clientCredentialsGrantType': False,
-                'callbackURL' : ovscallbackurl
+                "label": "ovs-{}".format(self.config["environment"]["subdomain"]),
+                "clientCredentialsGrantType": False,
+                "callbackURL": ovscallbackurl,
             }
             apikey = self.configure_iyo_api_key(apikey)
 
-            oauth_token_uri = os.path.join(self.iyourl, 'v1/oauth/access_token')
-            oauth_authorize_uri = os.path.join(self.iyourl, 'v1/oauth/authorize')
+            oauth_token_uri = os.path.join(self.iyourl, "v1/oauth/access_token")
+            oauth_authorize_uri = os.path.join(self.iyourl, "v1/oauth/authorize")
 
-            data_oauth = {'instance.oauth.id': self.config['itsyouonline']['clientId'],
-                        'instance.oauth.secret': apikey['secret'],
-                        'instance.oauth.authorize_uri': oauth_authorize_uri,
-                        'instance.oauth.token_uri': oauth_token_uri}
-            self.ays_install('openvstorage_oauth', 'openvcloud', instance='main', data=data_oauth, reinstall=True)
+            data_oauth = {
+                "instance.oauth.id": self.config["itsyouonline"]["clientId"],
+                "instance.oauth.secret": apikey["secret"],
+                "instance.oauth.authorize_uri": oauth_authorize_uri,
+                "instance.oauth.token_uri": oauth_token_uri,
+            }
+            self.ays_install(
+                "openvstorage_oauth",
+                "openvcloud",
+                instance="main",
+                data=data_oauth,
+                reinstall=True,
+            )
 
 
 class Cluster(AbstractConfig):
     """
     Cluster abstraction layer to allow for easier manipulation.
     """
+
     def __init__(self, config_path, versions, development=False):
         super().__init__(config_path, versions)
-        self.k8s_config = '/root/.kube/{}.conf'.format(self.config['environment']['subdomain'])
-        self.join_line = ''
-        self.scripts_dir = '{}/kuberesources/'.format(REPO_PATH)
+        self.k8s_config = "/root/.kube/{}.conf".format(
+            self.config["environment"]["subdomain"]
+        )
+        self.join_line = ""
+        self.scripts_dir = "{}/kuberesources/".format(REPO_PATH)
         self.development = development
 
     def write_certificates(self):
-        log('Writing certificates')
-        ssldir = '/var/ovc/ssl/'
+        log("Writing certificates")
+        ssldir = "/var/ovc/ssl/"
 
-        cert_items = ['crt', 'key']
-        for cert_name in self.config['environment']['ssl'].values():
+        cert_items = ["crt", "key"]
+        for cert_name in self.config["environment"]["ssl"].values():
             # get certificates from config
             for item in cert_items:
-                value = self.config['certificates'][cert_name][item]
+                value = self.config["certificates"][cert_name][item]
                 for node in self.nodes:
-                    file = '{}{}.{}'.format(ssldir, cert_name, item)
+                    file = "{}{}.{}".format(ssldir, cert_name, item)
                     node.write_file(file, value)
 
     def reset(self):
-        if self.first_node.exists('/etc/kubernetes/admin.conf'):
-            self.kubectl('delete deployment pxeboot', check=False)
+        if self.first_node.exists("/etc/kubernetes/admin.conf"):
+            self.kubectl("delete deployment pxeboot", check=False)
         for node in self.nodes:
-            node.run('kubeadm reset')
-            node.run('service etcd stop')
+            node.run("kubeadm reset")
+            node.run("service etcd stop")
 
     def install_kubernetes_cluster(self, kube_client):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
         """
-        log('Installing k8 cluster')
+        log("Installing k8 cluster")
         for node in self.nodes:
             node.run("sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
         etcdcluster.install_cluster(self.nodes)
         # patch install_master to not use rlannel
-        k8s_config_data, self.join_line = kube_client.install_kube_masters(self.nodes,
-        unsafe=True, external_ips=self.managementips, flannel=False, kube_cidr='10.244.0.0/16')
+        k8s_config_data, self.join_line = kube_client.install_kube_masters(
+            self.nodes,
+            unsafe=True,
+            external_ips=self.managementips,
+            flannel=False,
+            kube_cidr="10.244.0.0/16",
+        )
 
         # configure cgroups
-        if self.config.get('limits'):
-            if self.config['limits'].get('pods'):
-                cpu_set = self.config['limits']['pods']['cpu']
-                memory = self.config['limits']['pods']['memory']
+        if self.config.get("limits"):
+            if self.config["limits"].get("pods"):
+                cpu_set = self.config["limits"]["pods"]["cpu"]
+                memory = self.config["limits"]["pods"]["memory"]
                 for node in self.nodes:
-                    set_cgroup(node, 'kubepods', cpu_set, memory)
-
+                    set_cgroup(node, "kubepods", cpu_set, memory)
 
         if self.is_conv_env:
-            pub_key = self.first_node.read_file('/root/.ssh/default.pub').strip()
+            pub_key = self.first_node.read_file("/root/.ssh/default.pub").strip()
             # authorize non controller nodes
-            cpu_nodes = get_pnodes(self.config, roles=['cpu'])
+            cpu_nodes = get_pnodes(self.config, roles=["cpu"])
             for node in cpu_nodes:
-                node.remote.authorize_key('root', pub_key)
-                user = self.first_node.run('whoami').stdout
+                node.remote.authorize_key("root", pub_key)
+                user = self.first_node.run("whoami").stdout
                 self.first_node.add_ssh_host(user, node.remote.address)
-        os.makedirs('/root/.kube', exist_ok=True)
-        with open(self.k8s_config, 'w') as cfg:
+        os.makedirs("/root/.kube", exist_ok=True)
+        with open(self.k8s_config, "w") as cfg:
             cfg.write(k8s_config_data)
-        if not os.path.exists('/root/.kube/config'):
-            with open('/root/.kube/config', 'w') as cfg:
+        if not os.path.exists("/root/.kube/config"):
+            with open("/root/.kube/config", "w") as cfg:
                 cfg.write(k8s_config_data)
 
     def clone_repo(self, url=REPO_URL):
         parse = urllib.parse.urlparse(url)
-        hostname = parse.hostname[:parse.hostname.rfind('.')]
-        dest = '/opt/code/{host}{path}'.format(host=hostname, path=parse.path)
+        hostname = parse.hostname[: parse.hostname.rfind(".")]
+        dest = "/opt/code/{host}{path}".format(host=hostname, path=parse.path)
         for node in self.nodes:
             if not node.exists(dest):
-                node.run('mkdir -p {}'.format(dest))
-                node.run('git clone {url} {dest}'.format(url=url, dest=dest))
+                node.run("mkdir -p {}".format(dest))
+                node.run("git clone {url} {dest}".format(url=url, dest=dest))
 
     def _install_kubectl(self, kube_client, node=None):
-        loc = '/usr/local/bin/kubectl'
+        loc = "/usr/local/bin/kubectl"
         if node:
             exists = node.exists(loc)
         else:
             exists = os.path.exists(loc)
         if not exists:
-            kube_client.install_kube_client(node, '/usr/local/bin/kubectl')
+            kube_client.install_kube_client(node, "/usr/local/bin/kubectl")
 
     def verify_certificates(self):
-        for key, cert_name in self.config['environment']['ssl'].items():
-            cert = self.config['certificates'][cert_name]
+        for key, cert_name in self.config["environment"]["ssl"].items():
+            cert = self.config["certificates"][cert_name]
             if not cert:
                 raise RuntimeError("Certificate {} not found.".format(cert_name))
-            for extension in ('crt', 'key'):
+            for extension in ("crt", "key"):
                 if not cert.get(extension):
-                    raise RuntimeError('ERROR: "{}" is required property in config /certificates/{}/'.format(extension, cert_name))
+                    raise RuntimeError(
+                        'ERROR: "{}" is required property in config /certificates/{}/'.format(
+                            extension, cert_name
+                        )
+                    )
 
     def install_controller(self, kube_client):
         """
         Will use existing yaml or config scripts in this dir as well as jumpscale modules to install the controller setup on the
         cluster. Creating the relevant deployments, services, and mounts
         """
-        log('Install kubectl')
+        log("Install kubectl")
         for node in self.nodes:
             self._install_kubectl(kube_client, node)
         self._install_kubectl(kube_client)
 
-        log('Preparing directories')
-        directories = self.config.get('directories')
+        log("Preparing directories")
+        directories = self.config.get("directories")
         for node in self.nodes:
             for directory in directories:
-                node.run('mkdir -p {0} && chmod 777 {0}'.format(directory['path']))
+                node.run("mkdir -p {0} && chmod 777 {0}".format(directory["path"]))
 
         self.write_certificates()
         self.install_teleport()
         self.configure_keys()
         self.kube_deploy()
         for node in self.nodes:
-            self.remove_env_keys(node, self.config['ssh']['public-key'])
+            self.remove_env_keys(node, self.config["ssh"]["public-key"])
 
     def apply_template(self, template, kind):
-        self.kubectl('apply -f {template}'.format(template=template))
+        self.kubectl("apply -f {template}".format(template=template))
         template_name = os.path.basename(template)
         timeout = time.time() + 240
-        print('Waiting for {} to be ready..'.format(template_name))
+        print("Waiting for {} to be ready..".format(template_name))
         while time.time() < timeout:
-            template_basename = template.split('/')[-1]
-            template_name = os.path.splitext(template_basename)[0] if template_basename.endswith('.yaml') else template_basename
-            out = self.kubectl('get %s %s -o json' % (kind, template_name))
+            template_basename = template.split("/")[-1]
+            template_name = (
+                os.path.splitext(template_basename)[0]
+                if template_basename.endswith(".yaml")
+                else template_basename
+            )
+            out = self.kubectl("get %s %s -o json" % (kind, template_name))
             json_out = json.loads(out.stdout)
             ready = False
-            if kind == 'deployment':
-                for condition in  json_out['status'].get('conditions', []):
-                    if condition['type'] == 'Available' and condition['status'] == 'True':
+            if kind == "deployment":
+                for condition in json_out["status"].get("conditions", []):
+                    if (
+                        condition["type"] == "Available"
+                        and condition["status"] == "True"
+                    ):
                         ready = True
                         break
-            if kind == 'statefulset':
-                if json_out['status']['replicas'] == json_out['status'].get('readyReplicas'):
+            if kind == "statefulset":
+                if json_out["status"]["replicas"] == json_out["status"].get(
+                    "readyReplicas"
+                ):
                     ready = True
                     break
             if ready:
                 break
             time.sleep(2)
         else:
-            raise TimeoutError('Deploying {} took longer than expected. Exiting..'.format(template_name))
+            raise TimeoutError(
+                "Deploying {} took longer than expected. Exiting..".format(
+                    template_name
+                )
+            )
 
-    def dump(self, location, data, dumper='yaml'):
-        if dumper == 'yaml':
-            data = yaml.dump(data, default_flow_style=False, default_style='',indent=4, line_break="\n")
-        elif dumper == 'json':
+    def dump(self, location, data, dumper="yaml"):
+        if dumper == "yaml":
+            data = yaml.dump(
+                data,
+                default_flow_style=False,
+                default_style="",
+                indent=4,
+                line_break="\n",
+            )
+        elif dumper == "json":
             data = json.dumps(data, ensure_ascii=False, sort_keys=False, indent=False)
         else:
-            raise RuntimeError('dumper value either json or yaml')
+            raise RuntimeError("dumper value either json or yaml")
         self.first_node.write_file(location, data)
 
     def load(self, location, loader=yaml.load):
@@ -852,61 +986,88 @@ class Cluster(AbstractConfig):
         return loader(data)
 
     def write_service_template(self, template, externalips):
-        template_loc = '{dir}{name}/{name}-service.yaml'.format(dir=self.scripts_dir, name=template)
+        template_loc = "{dir}{name}/{name}-service.yaml".format(
+            dir=self.scripts_dir, name=template
+        )
         data = self.load(template_loc)
-        if data['spec'].get('type') == 'NodePort':
-            data['spec']['externalIPs'] = externalips
+        if data["spec"].get("type") == "NodePort":
+            data["spec"]["externalIPs"] = externalips
             self.dump(template_loc, data)
         return template_loc
 
     def _reapply_service(self, name):
-        pubips = list(get_controller_ips(self.config, 'fallback'))
+        pubips = list(get_controller_ips(self.config, "fallback"))
         loc = self.write_service_template(name, pubips)
-        self.kubectl('apply -f {}'.format(loc))
+        self.kubectl("apply -f {}".format(loc))
 
     def upgrade(self):
         self.prepare_templates()
-        self._reapply_service('upgrader')
+        self._reapply_service("upgrader")
 
     def revert(self):
         """
         Reconfigure nginx service to working state
         """
-        self._reapply_service('nginx')
+        self._reapply_service("nginx")
 
     def prepare_templates(self):
-        log('Preparing resources')
-        srcdir = '{}/scripts/kubernetes/'.format(REPO_PATH)
+        log("Preparing resources")
+        srcdir = "{}/scripts/kubernetes/".format(REPO_PATH)
 
         def patch_for_development(data):
-            for container in data['spec']['template']['spec']['containers']:
-                volmounts = container.setdefault('volumeMounts', [])
-                volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/0-complexity', 'subPath': 'github/0-complexity'})
-                volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/jumpscale7', 'subPath': 'github/jumpscale7'})
-            volumes = data['spec']['template']['spec'].setdefault('volumes', [])
-            volumes.append({'name': 'code', 'hostPath': {'path': '/opt/code', 'type': 'Directory'}})
-            data['spec']['template']['spec']['nodeSelector'] = {'kubernetes.io/hostname': self.first_node.hostname}
+            for container in data["spec"]["template"]["spec"]["containers"]:
+                volmounts = container.setdefault("volumeMounts", [])
+                volmounts.append(
+                    {
+                        "name": "code",
+                        "mountPath": "/opt/code/github/0-complexity",
+                        "subPath": "github/0-complexity",
+                    }
+                )
+                volmounts.append(
+                    {
+                        "name": "code",
+                        "mountPath": "/opt/code/github/jumpscale7",
+                        "subPath": "github/jumpscale7",
+                    }
+                )
+            volumes = data["spec"]["template"]["spec"].setdefault("volumes", [])
+            volumes.append(
+                {"name": "code", "hostPath": {"path": "/opt/code", "type": "Directory"}}
+            )
+            data["spec"]["template"]["spec"]["nodeSelector"] = {
+                "kubernetes.io/hostname": self.first_node.hostname
+            }
 
         def update_template(template):
-            types = ('Deployment', 'StatefulSet', 'Job')
-            with open(template, 'r') as tmp:
+            types = ("Deployment", "StatefulSet", "Job")
+            with open(template, "r") as tmp:
                 data = yaml.load(tmp)
             changed = False
-            if isinstance(data, dict) and data.get('kind') in types:
-                for conttype  in ('initContainers', 'containers'):
-                    if conttype not in data['spec']['template']['spec']:
+            if isinstance(data, dict) and data.get("kind") in types:
+                for conttype in ("initContainers", "containers"):
+                    if conttype not in data["spec"]["template"]["spec"]:
                         continue
-                    for container in data['spec']['template']['spec'][conttype]:
-                        #get image version from the self.versions dict loaded from 0-complexity/home
-                        if container['image'] in self.versions['images']:
-                            container['image'] = "{}:{}".format(container['image'], self.versions['images'][container['image']])
+                    for container in data["spec"]["template"]["spec"][conttype]:
+                        # get image version from the self.versions dict loaded from 0-complexity/home
+                        if container["image"] in self.versions["images"]:
+                            container["image"] = "{}:{}".format(
+                                container["image"],
+                                self.versions["images"][container["image"]],
+                            )
                             changed = True
-                for volume in data['spec']['template']['spec'].get('volumes', []):
-                    repo = volume.get('gitRepo')
+                for volume in data["spec"]["template"]["spec"].get("volumes", []):
+                    repo = volume.get("gitRepo")
                     if repo:
                         update_repo_volume(self.versions, repo)
                         changed = True
-                if data['spec']['template'].get('metadata', {}).get('labels', {}).get('app') in DEV_TMPLS:
+                if (
+                    data["spec"]["template"]
+                    .get("metadata", {})
+                    .get("labels", {})
+                    .get("app")
+                    in DEV_TMPLS
+                ):
                     if self.development:
                         changed = True
                         patch_for_development(data)
@@ -916,13 +1077,13 @@ class Cluster(AbstractConfig):
 
         self.first_node.copy_dir_tree(srcdir, self.scripts_dir)
         # add external ips to the specified services to expose to the internal network
-        templates = ['agentcontroller', 'osis', 'management']
-        externalips = list(get_controller_ips(self.config, 'backplane'))
+        templates = ["agentcontroller", "osis", "management"]
+        externalips = list(get_controller_ips(self.config, "backplane"))
         for template in templates:
             self.write_service_template(template, externalips)
         # add external ips to the specified services to expose to the internet
-        pubtemplates = ['nginx', 'zero-access']
-        pubips = list(get_controller_ips(self.config, 'fallback'))
+        pubtemplates = ["nginx", "zero-access"]
+        pubips = list(get_controller_ips(self.config, "fallback"))
         for template in pubtemplates:
             self.write_service_template(template, pubips)
         # add code to mount specified repos for in developmnent mode
@@ -932,94 +1093,128 @@ class Cluster(AbstractConfig):
         for path, _, filenames in os.walk(srcdir):
             for file in filenames:
                 if file.endswith(".yaml"):
-                    update_template('{}/{}'.format(path, file))
+                    update_template("{}/{}".format(path, file))
 
-        stat_template = self.scripts_dir + '/stats-collector/stats-deployment.yaml'
+        stat_template = self.scripts_dir + "/stats-collector/stats-deployment.yaml"
         data = self.load(stat_template)
-        data['spec']['template']['spec']['containers'][0]['args'][4] = self.config['network']['management']['network']
+        data["spec"]["template"]["spec"]["containers"][0]["args"][4] = self.config[
+            "network"
+        ]["management"]["network"]
         self.dump(stat_template, data)
 
     def write_config_map(self, name, content):
         if isinstance(content, (dict, list)):
-            content = yaml.dump(content, default_style='|')
-        self.first_node.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content))
+            content = yaml.dump(content, default_style="|")
+        self.first_node.run(
+            "cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(
+                name, content
+            )
+        )
 
     def write_system_config(self):
-        log('Write system config')
-        self.write_config_map('system-config', self.config)
+        log("Write system config")
+        self.write_config_map("system-config", self.config)
         versions = copy.deepcopy(self.versions)
-        versions.pop('jsversion', None)
-        versions.pop('ovcversion', None)
-        self.write_config_map('versions-manifest', versions)
+        versions.pop("jsversion", None)
+        versions.pop("ovcversion", None)
+        self.write_config_map("versions-manifest", versions)
 
     def install_teleport(self):
         for node in self.nodes:
-            log('Installing teleport {}'.format(node.hostname))
-            ssl_name = self.config['environment']['ssl']['root']
+            log("Installing teleport {}".format(node.hostname))
+            ssl_name = self.config["environment"]["ssl"]["root"]
             teleport_client = teleport.Teleport(node)
-            if not node.exists('/usr/local/bin/teleport') or not node.exists('/usr/local/bin/tctl') or not node.exists('/usr/local/bin/tsh'):
+            if (
+                not node.exists("/usr/local/bin/teleport")
+                or not node.exists("/usr/local/bin/tctl")
+                or not node.exists("/usr/local/bin/tsh")
+            ):
                 teleport_client.install()
-            teleport_client.write_config(name=node.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
-                                         cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
+            teleport_client.write_config(
+                name=node.hostname,
+                key_path="/var/ovc/ssl/%s.key" % ssl_name,
+                cert_path="/var/ovc/ssl/%s.crt" % ssl_name,
+            )
             teleport_client.restart()
             time.sleep(3)
-            github = self.config['support']['github']
-            teams = ['/'.join([team['org_name'], team['team_name']]) for team in github['teams']]
-            resources= node.run('tctl get github/%s' % node.hostname).stdout
+            github = self.config["support"]["github"]
+            teams = [
+                "/".join([team["org_name"], team["team_name"]])
+                for team in github["teams"]
+            ]
+            resources = node.run("tctl get github/%s" % node.hostname).stdout
             if node.hostname in resources:
                 continue
             teleport_client.apply_permissions(
                 name=node.hostname,
-                client_id=github['client_id'],
-                client_secret=github['client_secret'],
+                client_id=github["client_id"],
+                client_secret=github["client_secret"],
                 teams=teams,
-                exposed_ip='{}.{}'.format(self.config['environment']['subdomain'], self.config['environment']['basedomain'])
+                exposed_ip="{}.{}".format(
+                    self.config["environment"]["subdomain"],
+                    self.config["environment"]["basedomain"],
+                ),
             )
 
     def kube_deploy(self):
         self.prepare_templates()
         self.write_system_config()
 
-        self.kubectl('apply -f {path}/rbac.yaml'.format(path=self.scripts_dir))
-        self.kubectl('apply -f {path}/flannel/flannel.yml'.format(path=self.scripts_dir))
-        deployments = ['influxdb', 'osis', 'agentcontroller', 'stats-collector',
-                       'portal', 'pxeboot', 'zero-access', 'management', 'ovs', 'controller-jsagent', 'nginx']
-        statefulSets = ['mongo', 'syncthing']
+        self.kubectl("apply -f {path}/rbac.yaml".format(path=self.scripts_dir))
+        self.kubectl(
+            "apply -f {path}/flannel/flannel.yml".format(path=self.scripts_dir)
+        )
+        deployments = [
+            "influxdb",
+            "osis",
+            "agentcontroller",
+            "stats-collector",
+            "portal",
+            "pxeboot",
+            "zero-access",
+            "management",
+            "ovs",
+            "controller-jsagent",
+            "nginx",
+        ]
+        statefulSets = ["mongo", "syncthing"]
         if self.development:
             deployments = DEV_TMPLS
             statefulSets = []
         elif self.is_conv_env:
-            deployments.remove('pxeboot')
+            deployments.remove("pxeboot")
         for statefulSet in statefulSets:
             template_file = self.scripts_dir + statefulSet
-            self.apply_template(template_file, kind='statefulset')
+            self.apply_template(template_file, kind="statefulset")
         for deployment in deployments:
             template_file = self.scripts_dir + deployment
-            self.apply_template(template_file, kind='deployment')
+            self.apply_template(template_file, kind="deployment")
         if not self.development:
-            self.grafana_apply('{}/grafana'.format(self.scripts_dir))
+            self.grafana_apply("{}/grafana".format(self.scripts_dir))
 
     def grafana_apply(self, grafana_dir):
-        log('Installing grafana')
-        datasourcepath = '{}/provisioning/datasources/influx.yaml'.format(grafana_dir)
-        dashboardpath = '{}/sources/templates'.format(grafana_dir)
+        log("Installing grafana")
+        datasourcepath = "{}/provisioning/datasources/influx.yaml".format(grafana_dir)
+        dashboardpath = "{}/sources/templates".format(grafana_dir)
         datasource = self.load(datasourcepath)
-        datasourcename = 'controller_{}'.format(self.config['environment']['subdomain'])
-        datasource['datasources'][0]['name'] = datasourcename
+        datasourcename = "controller_{}".format(self.config["environment"]["subdomain"])
+        datasource["datasources"][0]["name"] = datasourcename
         self.dump(datasourcepath, datasource)
-        for loc, _, dashboardfiles in self.first_node.walk(dashboardpath, pattern='*.json'):
+        for loc, _, dashboardfiles in self.first_node.walk(
+            dashboardpath, pattern="*.json"
+        ):
             for dashboardfile in dashboardfiles:
-                dashboardfile = os.path.join(loc, dashboardfile) 
+                dashboardfile = os.path.join(loc, dashboardfile)
                 db = self.load(dashboardfile, json.loads)
-                db['id'] = None
-                db['title'] += " ({})".format(self.config['environment']['subdomain'])
-                for row in db['rows']:
-                    for panel in row['panels']:
-                        panel['datasource'] = datasourcename
-                if 'templating' in db:
-                    for item in db['templating']['list']:
-                        item['datasource'] = datasourcename
-                self.dump(dashboardfile, db, 'json')
+                db["id"] = None
+                db["title"] += " ({})".format(self.config["environment"]["subdomain"])
+                for row in db["rows"]:
+                    for panel in row["panels"]:
+                        panel["datasource"] = datasourcename
+                if "templating" in db:
+                    for item in db["templating"]["list"]:
+                        item["datasource"] = datasourcename
+                self.dump(dashboardfile, db, "json")
         cmd = """
         set -e
         cd {dir}
@@ -1028,39 +1223,44 @@ class Cluster(AbstractConfig):
         kubectl create configmap grafana-dashboards --from-file=sources/templates
         kubectl apply -f grafana-service.yaml
         kubectl apply -f grafana-deployment.yaml
-        """.format(config=self.k8s_config, dir=grafana_dir)
+        """.format(
+            config=self.k8s_config, dir=grafana_dir
+        )
         self.first_node.run(cmd)
 
     def delete(self):
-        log('Deleting configmaps')
-        self.kubectl('delete configmap --all --namespace default')
+        log("Deleting configmaps")
+        self.kubectl("delete configmap --all --namespace default")
         self.write_system_config()
-        log('Deleting services')
+        log("Deleting services")
         self.kubectl("delete service --namespace default -l 'name!=nginx,name!=qa'")
-        log('Deleting statefulset')
-        self.kubectl('delete statefulset --all --namespace default')
-        log('Deleting deployments')
+        log("Deleting statefulset")
+        self.kubectl("delete statefulset --all --namespace default")
+        log("Deleting deployments")
         self.kubectl("delete deploy --namespace default -l 'app!=qa'")
-        self.kubectl('delete deploy --all --namespace development')
+        self.kubectl("delete deploy --all --namespace development")
 
     def update(self):
-        log('Restarting cluster...')
+        log("Restarting cluster...")
         if self.development:
-            self.kubectl('delete deploy {}'.format(' '.join(DEV_TMPLS)), die=False)
+            self.kubectl("delete deploy {}".format(" ".join(DEV_TMPLS)), die=False)
         else:
             self.delete()
         self.kube_deploy()
 
+
 class PNode(JumpScale7):
     def ipmi(self, *args):
-        ipmiip = get_ipaddress(self.node['ipmi']['ipaddress'])
-        cmd = "ipmitool -I lanplus -H {} -U {} -P {} ".format(ipmiip, self.node['ipmi']['username'], self.node['ipmi']['password'])
+        ipmiip = get_ipaddress(self.node["ipmi"]["ipaddress"])
+        cmd = "ipmitool -I lanplus -H {} -U {} -P {} ".format(
+            ipmiip, self.node["ipmi"]["username"], self.node["ipmi"]["password"]
+        )
         cmd += " ".join(args)
         self.first_node.run(cmd)
 
     def reboot(self):
-        self.log('Rebooting')
-        self.ipmi('chassis power cycle')
+        self.log("Rebooting")
+        self.ipmi("chassis power cycle")
 
     def is_up(self):
         return network.tcp_test(self.managementip, 22)
@@ -1068,23 +1268,23 @@ class PNode(JumpScale7):
     def wait_up(self, timeout=600):
         network.wait_for_connection(self.managementip, 22, timeout)
         if not self.is_up():
-            raise RuntimeError('Node did not come up in {}seconds'.format(timeout))
+            raise RuntimeError("Node did not come up in {}seconds".format(timeout))
 
     def enable_pxe(self):
-        self.log('Enable PXE')
-        node = self.get_node_from_appname('pxeboot')
-        self.ipmi('chassis bootdev pxe')
-        macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
-        dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
-        src = '../../conf/tftp-911boot'
+        self.log("Enable PXE")
+        node = self.get_node_from_appname("pxeboot")
+        self.ipmi("chassis bootdev pxe")
+        macaddress = str(netaddr.EUI(self.node["management"]["macaddress"])).lower()
+        dst = "/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}".format(macaddress)
+        src = "../../conf/tftp-911boot"
         if not node.exists(dst):
             node.sftp.symlink(src, dst)
 
     def disable_pxe(self):
-        self.log('Disable PXE')
-        node = self.get_node_from_appname('pxeboot')
-        macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
-        dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
+        self.log("Disable PXE")
+        node = self.get_node_from_appname("pxeboot")
+        macaddress = str(netaddr.EUI(self.node["management"]["macaddress"])).lower()
+        dst = "/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}".format(macaddress)
         if node.exists(dst):
             node.sftp.unlink(dst)
 
@@ -1092,165 +1292,220 @@ class PNode(JumpScale7):
         self.enable_pxe()
         self.reboot()
         time.sleep(20)
-        self.log('Waiting for 911 boot')
+        self.log("Waiting for 911 boot")
         self.wait_up()
-        self.log('Installing OS')
-        status = self.remote.run('cd /root/tools/; ./Install').exit_status
+        self.log("Installing OS")
+        status = self.remote.run("cd /root/tools/; ./Install").exit_status
         if status != 0:
-            raise RuntimeError('Failed to install OS')
+            raise RuntimeError("Failed to install OS")
         self.disable_pxe()
         self.reboot()
         time.sleep(20)
-        self.log('Waiting for OS boot')
+        self.log("Waiting for OS boot")
         self.wait_up()
+
 
 ###                    ###
 # Command line interface #
 ###                    ###
 
+
 @click.group()
-@click.option('--config', help='Config file to deploy the cluster', envvar='ENV_CONFIG')
-@click.option('--version', help='version number to install or update to', envvar='OVC_VERSION', default=None)
-@click.option('--url', help='version url to install from', envvar='OVC_VERSION_URL', default=None)
-@click.option('--loglevel', default=50, help='Set loglevel', type=int)
+@click.option("--config", help="Config file to deploy the cluster", envvar="ENV_CONFIG")
+@click.option(
+    "--version",
+    help="version number to install or update to",
+    envvar="OVC_VERSION",
+    default=None,
+)
+@click.option(
+    "--url", help="version url to install from", envvar="OVC_VERSION_URL", default=None
+)
+@click.option("--loglevel", default=50, help="Set loglevel", type=int)
 @click.pass_context
 def cli(ctx, config, version, url, loglevel):
     ctx.obj = {}
     if not config:
-        raise LookupError('Please specify a config file')
+        raise LookupError("Please specify a config file")
     config = prepare_config(config)
-    ctx.obj['config'] = config
-    ctx.obj['versions'] = get_versions(config, version, url)
+    ctx.obj["config"] = config
+    ctx.obj["versions"] = get_versions(config, version, url)
+
 
 @cli.group()
 def cluster():
     pass
 
-@cluster.group(help='Manipulation of kubernetes resources')
+
+@cluster.group(help="Manipulation of kubernetes resources")
 def resources():
     pass
 
-@cli.group()
-def node(help='Node actions'):
-    pass
 
 @cli.group()
-def storage(help='Storage actions'):
-    pass
-
-@cli.group()
-def image(help='Image actions'):
+def node(help="Node actions"):
     pass
 
 
-@image.command('deploy', help='Deploy an VM Image')
-@click.option('--name', help='Image name')
+@cli.group()
+def storage(help="Storage actions"):
+    pass
+
+
+@cli.group()
+def image(help="Image actions"):
+    pass
+
+
+@image.command("deploy", help="Deploy an VM Image")
+@click.option("--name", help="Image name")
 @click.pass_context
 def image_deploy(ctx, name):
-    storage = random.choice(get_pnodes(ctx.obj['config'], roles=['storage']))
-    storage.ays_install(name, 'openvcloud')
+    storage = random.choice(get_pnodes(ctx.obj["config"], roles=["storage"]))
+    storage.ays_install(name, "openvcloud")
 
 
-@node.command('action', help='Will apply the action on storage and cpu nodes')
-@click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
-@click.argument('action', type=click.Choice(['reboot', 'is_up', 'wait_up', 'enable_pxe', 'disable_pxe', 'install_os']))
+@node.command("action", help="Will apply the action on storage and cpu nodes")
+@click.option(
+    "--name", help="Node name pass all to apply on all comma seperate list for multiple"
+)
+@click.argument(
+    "action",
+    type=click.Choice(
+        ["reboot", "is_up", "wait_up", "enable_pxe", "disable_pxe", "install_os"]
+    ),
+)
 @click.pass_context
 def node_action(ctx, name, action):
     """
     Execute command for node
     """
-    if name != 'all' and ',' not in name:
-        cluster = PNode(ctx.obj['config'], name, ctx.obj['versions'])
+    if name != "all" and "," not in name:
+        cluster = PNode(ctx.obj["config"], name, ctx.obj["versions"])
         getattr(cluster, action)()
     else:
-        if name == 'all':
-            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], roles=['cpu', 'storage'])
+        if name == "all":
+            pnodes = get_pnodes(
+                ctx.obj["config"], ctx.obj["versions"], roles=["cpu", "storage"]
+            )
         else:
-            pnodes = [PNode(ctx.obj['config'], pname, ctx.obj['versions']) for pname in name.split(',')]
+            pnodes = [
+                PNode(ctx.obj["config"], pname, ctx.obj["versions"])
+                for pname in name.split(",")
+            ]
         pnode_action(pnodes, action)
 
-@node.command('jsaction', help='Will apply the action on all nodes (cpu, storage, controller)')
-@click.option('--name', help='Node name pass all to apply on all comma seperate list for multiple')
-@click.argument('action', type=click.Choice(['start', 'stop', 'update', 'restart', 'install']))
+
+@node.command(
+    "jsaction", help="Will apply the action on all nodes (cpu, storage, controller)"
+)
+@click.option(
+    "--name", help="Node name pass all to apply on all comma seperate list for multiple"
+)
+@click.argument(
+    "action", type=click.Choice(["start", "stop", "update", "restart", "install"])
+)
 @click.pass_context
 def node_jsaction(ctx, name, action):
     """
     Execute command for node
     """
-    if name != 'all' and ',' not in name:
-        cluster = PNode(ctx.obj['config'], name, ctx.obj['versions'])
+    if name != "all" and "," not in name:
+        cluster = PNode(ctx.obj["config"], name, ctx.obj["versions"])
         getattr(cluster, action)()
     else:
-        if name == 'all':
-            pnodes = get_pnodes(ctx.obj['config'], ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
+        if name == "all":
+            pnodes = get_pnodes(
+                ctx.obj["config"],
+                ctx.obj["versions"],
+                roles=["cpu", "storage", "controller"],
+            )
         else:
-            pnodes = [PNode(ctx.obj['config'], pname, ctx.obj['versions']) for pname in name.split(',')]
+            pnodes = [
+                PNode(ctx.obj["config"], pname, ctx.obj["versions"])
+                for pname in name.split(",")
+            ]
         pnode_action(pnodes, action)
 
-@node.command('update', help='Update code and restart required services on node')
+
+@node.command("update", help="Update code and restart required services on node")
 @click.pass_context
 def node_update(ctx):
     return _node_update(ctx)
+
 
 def _node_update(ctx):
     """
     Update all pnodes
     """
-    config = ctx.obj['config']
-    pnodes = get_pnodes(config, ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
-    pnode_action(pnodes, 'update')
-    pnode_action(pnodes, 'restart')
+    config = ctx.obj["config"]
+    pnodes = get_pnodes(
+        config, ctx.obj["versions"], roles=["cpu", "storage", "controller"]
+    )
+    pnode_action(pnodes, "update")
+    pnode_action(pnodes, "restart")
 
-@resources.command('writeconfig', help='Write system-config to kubernetes')
+
+@resources.command("writeconfig", help="Write system-config to kubernetes")
 @click.pass_context
 def write_system_config(ctx):
     """
     Write or update system-config in kubernetes configmap based on yaml file
     """
-    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
+    cluster = Cluster(ctx.obj["config"], ctx.obj["versions"])
     cluster.write_system_config()
 
 
-@resources.command('write', help='Rewrite all templates')
-@click.option('--development', default=False, is_flag=True)
+@resources.command("write", help="Rewrite all templates")
+@click.option("--development", default=False, is_flag=True)
 @click.pass_context
 def write_kube_resources(ctx, development):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'], development)
+    cluster = Cluster(ctx.obj["config"], ctx.obj["versions"], development)
     cluster.prepare_templates()
 
 
-@resources.command('applyall', help='Apply all kubernetes resources')
+@resources.command("applyall", help="Apply all kubernetes resources")
 @click.pass_context
 def kube_apply_all(ctx):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj['config'], ctx.obj['vesions'])
+    cluster = Cluster(ctx.obj["config"], ctx.obj["vesions"])
     cluster.kube_deploy()
 
 
-@resources.command('apply', help='Apply a specifified kubernetes resource')
-@click.option('--path', help='path to template')
+@resources.command("apply", help="Apply a specifified kubernetes resource")
+@click.option("--path", help="path to template")
 @click.pass_context
 def kube_apply(ctx, path):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
-    cluster.apply_template(path, kind='deployment')
+    cluster = Cluster(ctx.obj["config"], ctx.obj["versions"])
+    cluster.apply_template(path, kind="deployment")
 
-@cluster.command('deploy', help='Deploy kubernetes cluster on controller nodes')
-@click.option('--configure-cluster/--no-configure-cluster', help='Configure kubernetes cluster', default=True)
-@click.option('--force', help='Reset installed environment for redployment',  default=False, is_flag=True)
+
+@cluster.command("deploy", help="Deploy kubernetes cluster on controller nodes")
+@click.option(
+    "--configure-cluster/--no-configure-cluster",
+    help="Configure kubernetes cluster",
+    default=True,
+)
+@click.option(
+    "--force",
+    help="Reset installed environment for redployment",
+    default=False,
+    is_flag=True,
+)
 @click.pass_context
 def deploy_cluster(ctx, configure_cluster, force):
     """
     Deploy will create the cluster machines and deploy kubernetes cluster on top of them.
     """
-    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
+    cluster = Cluster(ctx.obj["config"], ctx.obj["versions"])
     cluster.verify_certificates()
     kube_client = kubernetes.Kubernetes()
     if force:
@@ -1259,74 +1514,85 @@ def deploy_cluster(ctx, configure_cluster, force):
         cluster.install_kubernetes_cluster(kube_client)
     cluster.install_controller(kube_client)
 
-@cluster.command('update', help='Update cluster, delete existing resources and reapply')
-@click.option('--development', default=False, is_flag=True)
+
+@cluster.command("update", help="Update cluster, delete existing resources and reapply")
+@click.option("--development", default=False, is_flag=True)
 @click.pass_context
 def update_cluster(ctx, development):
     return _update_cluster(ctx, development)
+
 
 def _update_cluster(ctx, development):
     """
     Will update the cluster.
     """
-    cluster = Cluster(ctx.obj['config'], ctx.obj['versions'], development)
+    cluster = Cluster(ctx.obj["config"], ctx.obj["versions"], development)
     cluster.update()
 
-@cluster.command('upgrade', help='Upgrade cluster, update all nodes and cluster and update kubernetes resources')
-@click.option('--development', default=False, is_flag=True)
+
+@cluster.command(
+    "upgrade",
+    help="Upgrade cluster, update all nodes and cluster and update kubernetes resources",
+)
+@click.option("--development", default=False, is_flag=True)
 @click.pass_context
 def upgrade_cluster(ctx, development):
     """
     Will upgrade the env.
     """
-    config = ctx.obj['config']
-    cluster = Cluster(config, ctx.obj['versions'], development)
+    config = ctx.obj["config"]
+    cluster = Cluster(config, ctx.obj["versions"], development)
     cluster.upgrade()
     try:
-        pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['cpu', 'storage', 'controller'])
+        pnodes = get_pnodes(
+            config, versions=ctx.obj["versions"], roles=["cpu", "storage", "controller"]
+        )
         try:
-            pnode_action(pnodes, 'stop')
+            pnode_action(pnodes, "stop")
             cluster.update()
-            pnode_action(pnodes, 'update')
+            pnode_action(pnodes, "update")
         finally:
-            pnode_action(pnodes, 'start')
+            pnode_action(pnodes, "start")
 
-        log('Starting migration script ...')
-        response = portal_api_call('cloudbroker/grid/runUpgradeScript', ctx.obj['config'])
+        log("Starting migration script ...")
+        response = portal_api_call(
+            "cloudbroker/grid/runUpgradeScript", ctx.obj["config"]
+        )
         if response.status_code != 200:
             raise RuntimeError("%s: \n%s" % (response.content, response.status_code))
-        log('Updating environment done.')
+        log("Updating environment done.")
     except:
         cluster.revert()
-        portal_api_call('cloudbroker/grid/upgradeFailed', ctx.obj['config'])
-        logging.error('Error:', exc_info=True)
-        log('Failed to update environment.')
+        portal_api_call("cloudbroker/grid/upgradeFailed", ctx.obj["config"])
+        logging.error("Error:", exc_info=True)
+        log("Failed to update environment.")
 
-@cluster.command('updatedomain', help='Update the environment certificates and domain')
+
+@cluster.command("updatedomain", help="Update the environment certificates and domain")
 @click.pass_context
 def cluster_updatedomain(ctx):
-    config = ctx.obj['config']
-    cluster = Cluster(config, ctx.obj['versions'])
+    config = ctx.obj["config"]
+    cluster = Cluster(config, ctx.obj["versions"])
     cluster.verify_certificates()
     cluster.write_certificates()
     cluster.write_system_config()
-    cluster.kubectl('delete deploy nginx || true')
-    cluster.kubectl('delete deploy portal || true')
-    template_path = cluster.scripts_dir + '{}'
-    cluster.apply_template(template_path.format('nginx'), 'deployment')
-    cluster.apply_template(template_path.format('portal'), 'deployment')
+    cluster.kubectl("delete deploy nginx || true")
+    cluster.kubectl("delete deploy portal || true")
+    template_path = cluster.scripts_dir + "{}"
+    cluster.apply_template(template_path.format("nginx"), "deployment")
+    cluster.apply_template(template_path.format("portal"), "deployment")
     cluster.install_teleport()
-    pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['storage'])
-    pnode_action(pnodes, 'patch_ovs')
+    pnodes = get_pnodes(config, versions=ctx.obj["versions"], roles=["storage"])
+    pnode_action(pnodes, "patch_ovs")
+
 
 @storage.command("applyconfig", help="Apply storage config")
 @click.pass_context
 def storage_apply_config(ctx):
-    config = ctx.obj['config']
-    pnodes = get_pnodes(config, versions=ctx.obj['versions'], roles=['storage'])
-    pnode_action(pnodes, 'patch_ovs')
+    config = ctx.obj["config"]
+    pnodes = get_pnodes(config, versions=ctx.obj["versions"], roles=["storage"])
+    pnode_action(pnodes, "patch_ovs")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
-
