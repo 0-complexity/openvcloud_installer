@@ -2,7 +2,7 @@ FROM phusion/baseimage
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo libmhash2
+    apt-get install -y sudo libmhash2 nmap
 
 
 RUN rm -f /etc/service/sshd/down

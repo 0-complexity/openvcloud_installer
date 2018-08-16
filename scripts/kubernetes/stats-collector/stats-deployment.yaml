@@ -16,7 +16,7 @@ spec:
       containers:
       - name: stats-container
         imagePullPolicy: Always
-        command: [/usr/bin/python3]
-        args: ['influxdumper.py',  '--influx-host',  influxdb, '--scan-cidr', agentcontroller/32]
-        image: openvcloud/js9
-        workingDir: /opt/code/github/jumpscale/lib9/JumpScale9Lib/tools/aggregator/
+        command: [influxdumper]
+        args: ['--influx-host',  influxdb, '--scan-cidr', agentcontroller/32]
+        image: openvcloud/js7
+        workingDir: /opt/code/github/jumpscale7/jumpscale_core7/shellcmds/

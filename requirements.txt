@@ -1,0 +1,7 @@
+pyyaml
+ipython
+netaddr>=0.7.19
+click>=6.7
+requests>=2.18.1
+jsonschema>=2.6.0
+-e git+http://git.gig.tech/openvcloud/baldur#egg=baldur

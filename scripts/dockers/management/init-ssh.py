@@ -1,8 +1,9 @@
 #! /bin/python3
-from js9 import j
 import argparse
 import time
-
+import yaml
+import subprocess
+import os
 
 GITHUB_DATA = """
 kind: github
@@ -30,25 +31,27 @@ spec:
 """
 
 def get_config():
-    return j.data.serializer.yaml.load('/opt/cfg/system/system-config.yaml')
+    with open('/opt/cfg/system/system-config.yaml', 'r') as cfg:
+        return yaml.load(cfg)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--teleport', help='setup teleport with ssh', default=False, action='store_true')
     args = parser.parse_args()
-    prefab = j.tools.prefab.local
     config = get_config()
-    prefab.core.run("sed -i 's/\/usr\/sbin\/sshd -D/\/usr\/sbin\/sshd -D -p 2205/g' /etc/service/sshd/run")
+    subprocess.run(["sed", "-i", "s/\/usr\/sbin\/sshd -D/\/usr\/sbin\/sshd -D -p 2205/g", "/etc/service/sshd/run"])
     if args.teleport:
         github_configs = config['support']['github']
         github_configs['fqdn'] = ".".join([config['environment']['subdomain'], config['environment']['basedomain']])
-        prefab.core.file_append("/etc/ssh/sshd_config", "TrustedUserCAKeys /etc/ssh/teleport-user-ca.pub")
+        with open('/etc/ssh/sshd_config', 'a') as sshd:
+            sshd.write('TrustedUserCAKeys /etc/ssh/teleport-user-ca.pub')
         github_yaml = GITHUB_DATA.format(**github_configs)
-        prefab.core.file_write('/root/github.yaml', github_yaml)
+        with open('/root/github.yaml', 'w') as git:
+            git.write(github_yaml)
         timer = 20
-        while not prefab.core.file_exists("/var/lib/teleport/host_uuid"):
+        while not os.path.exists("/var/lib/teleport/host_uuid"):
             timer -= 1
             time.sleep(1)
             if timer == 0:
-                raise RuntimeError("teleport could not be reached")
-        prefab.core.run('tctl create /root/github.yaml')
+                raise RuntimeError("Teleport could not be reached")
+        subprocess.run('tctl', 'create', '/root/github.yaml')

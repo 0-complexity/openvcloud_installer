@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-from js9 import j
 from collections import namedtuple
 import netaddr
 import copy
 import sys
 import click
 import os
+import urllib
 import requests
 import random
 import yaml
+import json
 import time
 import jsonschema
 import concurrent.futures.thread
 import logging
+import subprocess
+from baldur import remote, network, teleport, kubernetes, etcdcluster
 import threading
 from functools import partial
+from io import StringIO
 
 Version = namedtuple('Version', ('version', 'type'))
 REPO_URL = 'https://github.com/0-complexity/openvcloud_installer'
@@ -44,7 +48,7 @@ git.login                      = ''
 git.passwd                     = ''
 '''
 ERROR_COLOR = u'\u001b[31m'
-RESET_COLOR  = u'\u001b[0m'
+RESET_COLOR = u'\u001b[0m'
 COLORBLUE = u'\u001b[34m'
 COLORGREEN = u'\u001b[32m'
 CURSORUP = u'\u001b[{n}A'
@@ -81,7 +85,7 @@ def get_revision(repo):
     version = version_type(repo)
     match = 'tags/' if version.type == 'tag' else 'heads/'
     match += version.version
-    _, output, _ = j.sal.process.execute('git ls-remote {}'.format(repo['url']), showout=False)
+    output = local_execute(['git' ,'ls-remote', repo['url']])
     for line in output.splitlines():
         if line.endswith(match):
             return line.split()[0]
@@ -117,11 +121,23 @@ def get_pnodes(config, versions=None, roles=None):
             pnodes.append(PNode(config, pnode['name'], versions))
     return pnodes
 
+def local_execute(*args, **kwargs):
+    kwargs['check'] = kwargs.get('check', True)
+    kwargs['stdout'] = kwargs.get('stdout', subprocess.PIPE)
+    result = subprocess.run(*args, **kwargs).stdout.decode('utf-8')
+    return result
+
 def set_cgroup(node, cgroup, cpu_set, memory):
-    node.core.dir_ensure('/sys/fs/cgroup/memory/%s' % cgroup)
-    node.core.dir_ensure('/sys/fs/cgroup/cpuset/%s' % cgroup)
-    node.core.run('echo %s > /sys/fs/cgroup/cpuset/%s/cpuset.cpus' % (cpu_set, cgroup))
-    node.core.run('echo %sG > /sys/fs/cgroup/memory/%s/memory.limit_in_bytes' % (memory, cgroup))
+    mem_path = '/sys/fs/cgroup/memory/{}'.format(cgroup)
+    cpu_path = '/sys/fs/cgroup/cpuset/{}'.format(cgroup)
+    command = """
+    set -e
+    mkdir -p {mem}
+    mkdir -p {cpu}
+    """.format(mem=mem_path, cpu=cpu_path)
+    node.run(command)
+    node.write_file('{}/cpuset.cpus'.format(cpu_path), str(cpu_set))
+    node.write_file('{}/memory.limit_in_bytes'.format(mem_path), str(memory))
 
 def portal_api_call(endpoint, config):
     url = 'http://portal:82/restmachine/%s' % endpoint
@@ -190,7 +206,8 @@ def prepare_config(config_path):
                 node[key] = {}
             node[key]['ipaddress'] = '{ip}/{sub}'.format(ip=ip, sub=net.prefixlen)
 
-    config = j.data.serializer.yaml.load(config_path)
+    with open(config_path, 'r') as cfg:
+        config = yaml.load(cfg)
     # add default directories for syncthing
     default_dirs = [
         {
@@ -230,8 +247,13 @@ def prepare_config(config_path):
             "sync": True
         }
     ]
-    config['directories'] = config.get('directories', []) + default_dirs
-    validator = j.data.serializer.json.load('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH))
+    for dir in config.get('directories', []):
+        if dir['path'] not in default_dirs:
+            default_dirs.append(dir)
+    config['directories'] = default_dirs
+    with open('{}/scripts/kubernetes/config/config-validator.json'.format(REPO_PATH), 'r') as vld:
+        validator = json.load(vld)
+
     if not config['nodes'][0].get('management', {}).get('ipaddress'):
         try:
             jsonschema.validate(config, validator)
@@ -249,28 +271,23 @@ def prepare_config(config_path):
                 message = '{msg} at {tree}'.format(msg=message, tree=tree)
             elif validator == 'required':
                 message = "{msg} in config at {tree}. Please check example config for reference.".format(msg=message, tree=tree)
-            raise j.exceptions.RuntimeError(message)
+            raise RuntimeError(message)
 
 
     is_conv = is_conv_env(config)
     if not is_conv:
         for node in config['nodes']:
             if 'ipmi' not in node:
-                raise j.exceptions.RuntimeError('IPMI section required for node {}'.format(node['name']))
+                raise RuntimeError('IPMI section required for node {}'.format(node['name']))
             elif 'management' not in node and 'controller' not in node['roles']:
-                raise j.exceptions.RuntimeError('Management section required for node {}'.format(node['name']))
+                raise RuntimeError('Management section required for node {}'.format(node['name']))
 
     for key, value in config['network'].items():
         if 'network' in value:
             _helper(config['nodes'])
-    cmd = 'echo \'{}\' | ssh-keygen -y -f /dev/stdin'.format(config['ssh']['private-key'])
-    _, public_key, _ = j.sal.process.execute(cmd, showout=False)
-    config['ssh']['public-key'] = public_key
-    j.clients.ssh.start_ssh_agent()
-    if j.sal.fs.exists('~/.ssh/id_rsa'):
-        j.clients.ssh.load_ssh_key('~/.ssh/id_rsa')
     key = config['ssh']['private-key']
-    j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
+    public_key = local_execute(['ssh-keygen', '-y', '-f', '/dev/stdin'], input=key.encode('utf-8'))
+    config['ssh']['public-key'] = public_key
     return config
 
 def get_versions(config, version=None, url=None):
@@ -280,27 +297,22 @@ def get_versions(config, version=None, url=None):
     param url ,, raw url to version-manifests yaml file
     """
     def download_load_yaml(url):
-        tmpdir = j.tools.prefab.local.core.file_get_tmp_path()
-        j.tools.prefab.local.core.dir_ensure(tmpdir)
-        version_path = '{}/versions-manifest.yaml'.format(tmpdir)
-        try:
-            j.tools.prefab.local.core.file_download(url, version_path, minsizekb=0)
-            versions = j.data.serializer.yaml.load(version_path)
-            versions['url'] = url
-            versions['version'] = version
-            return versions
-        finally:
-            j.tools.prefab.local.core.dir_remove(tmpdir)
+        response = requests.get(url)
+        response.raise_for_status()
+        versions = yaml.load(response.content)
+        versions['url'] = url
+        versions['version'] = version
+        return versions
 
     if not version:
         if not url:
-            first_node = get_pnodes(config, roles=['controller'])[0].prefab
-            error_code, versions, err = first_node.core.run('kubectl get configmap versions-manifest -o json', die=False, showout=False)
-            if error_code != 0:
-                if 'NotFound' in err:
+            first_node = get_pnodes(config, roles=['controller'])[0].remote
+            res = first_node.run('kubectl get configmap versions-manifest -o json', check=False)
+            if res.exit_status != 0:
+                if 'NotFound' in res.stderr:
                     raise RuntimeError('configmap manifest does not exist , version needs to be passed during deploy cluster to be registered.')
-                raise RuntimeError(err)
-            versions = j.data.serializer.yaml.loads(j.data.serializer.json.loads(versions)['data']['versions-manifest.yaml'])
+                raise RuntimeError(res.stderr)
+            versions = yaml.load(json.loads(res.stdout)['data']['versions-manifest.yaml'])
         else:
             versions = download_load_yaml(url)
     else:
@@ -324,7 +336,6 @@ def get_controller_ips(config, iptype='management'):
 class AbstractConfig:
     def __init__(self, config, versions=None):
         self.config = config
-        self._prefab = None
         self._nodes = None
         self.versions = versions
         self.backplaneips = list(get_controller_ips(config, 'backplane'))
@@ -332,18 +343,12 @@ class AbstractConfig:
         self.is_conv_env = is_conv_env(config)
 
     @property
-    def prefab(self):
-        if self._prefab is None:
-            self._prefab = j.tools.prefab.local
-        return self._prefab
-
-    @property
     def nodes(self):
         if self._nodes is None:
             nodes = []
             for address in get_controller_ips(self.config, 'backplane'):
-                executor = j.tools.executor.getSSHBased(address, usecache=False)
-                nodes.append(j.tools.prefab.get(executor))
+                client = remote.Remote(address, username='root', pkey=self.config['ssh']['private-key'])
+                nodes.append(client)
             self._nodes = nodes
         return self._nodes
 
@@ -354,17 +359,16 @@ class AbstractConfig:
     def kubectl(self, *args, **kwargs):
         cmd = "kubectl "
         cmd += " ".join(args)
-        return self.first_node.core.run(cmd, showout=False, **kwargs)
+        return self.first_node.run(cmd, **kwargs)
 
     def get_node_from_appname(self, appname):
-        status, output, _ = self.kubectl("get pods -o json")
-        data = j.data.serializer.json.loads(output)
+        output = self.kubectl("get pods -o json -l app=={}".format(appname))
+        data = json.loads(output.stdout)
         for pod in data['items']:
-            if pod['metadata']['labels'].get('app') != appname:
-                continue
             hostip = pod['status']['hostIP']
             for node in self.nodes:
-                netinfo = node.system.net.getInfo()
+                net = node.run('ip a').stdout
+                netinfo = network.parse_net_info(net)
                 for nic in netinfo:
                     for ip in nic['ip']:
                         if ip == hostip:
@@ -377,14 +381,14 @@ class AbstractConfig:
         """
         Remove unwanted public keys from authorized keys under /root/.ssh/authorized_keys.
         """
-        auth_keys = node.core.file_read('/root/.ssh/authorized_keys')
+        auth_keys = node.read_file('/root/.ssh/authorized_keys')
         data = []
         for key in auth_keys.splitlines():
             if key.startswith(public_key.strip()):
                 continue
             data.append(key)
         data.append('') # end with empty line
-        node.core.file_write('/root/.ssh/authorized_keys', '\n'.join(data))
+        node.write_file('/root/.ssh/authorized_keys', '\n'.join(data))
 
     def add_env_keys(self, node, pub_key, priv_key):
         """
@@ -392,19 +396,24 @@ class AbstractConfig:
         """
         # create dir
         ovcdir = '/var/ovc/'
-        node.core.dir_ensure('{}/.ssh'.format(ovcdir), mode='600')
-        node.core.dir_ensure('{}/root/.ssh'.format(ovcdir), mode='600')
+        node.run('mkdir -p {0}/.ssh && chmod 600 {0}/.ssh'.format(ovcdir))
+        node.run('mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh'.format(ovcdir))
         # add keys
-        node.executor.sshclient.ssh_authorize('root', pub_key)
-        node.core.file_write('{}/.ssh/id_rsa'.format(ovcdir), priv_key, mode='600')
-        node.core.file_write('{}/.ssh/id_rsa.pub'.format(ovcdir), pub_key)
-        node.core.file_write('{}/.ssh/authorized_keys'.format(ovcdir), pub_key)
-        node.core.dir_ensure('/var/ovc/pxeboot/images/', mode='777')
-        node.core.file_write('/var/ovc/pxeboot/images/pubkey', pub_key, mode='777')
+        node.authorize_key('root', pub_key)
+        node.write_file('{}/.ssh/id_rsa'.format(ovcdir), priv_key)
+        node.write_file('{}/.ssh/id_rsa.pub'.format(ovcdir), pub_key)
+        node.write_file('{}/.ssh/authorized_keys'.format(ovcdir), pub_key)
+        node.run('mkdir -p {0} && chmod 777 {0}'.format('/var/ovc/pxeboot/images/'))
+        node.write_file('/var/ovc/pxeboot/images/pubkey', pub_key)
+        chmod_command = """
+        chmod 600 {}/.ssh/id_rsa.pub
+        chmod 777 /var/ovc/pxeboot/images/pubkey
+        """.format(ovcdir)
+        node.run(chmod_command)
 
     def get_new_keys(self):
-        privatekey = self.first_node.core.file_read('/var/ovc/.ssh/id_rsa')
-        pubkey = self.first_node.core.file_read('/var/ovc/.ssh/id_rsa.pub')
+        privatekey = self.first_node.read_file('/var/ovc/.ssh/id_rsa')
+        pubkey = self.first_node.read_file('/var/ovc/.ssh/id_rsa.pub')
         return privatekey, pubkey
 
     def configure_keys(self):
@@ -412,20 +421,25 @@ class AbstractConfig:
         if not len(self.nodes):
             raise RuntimeError('cluster needs to be depployed before configuring keys')
 
-        #get old keys
-        old_pub_key = self.config['ssh']['public-key']
         # generate keys
-        public_key_path = self.first_node.system.ssh.keygen(name='id_rsa').strip()
-        private_key_path = public_key_path[:-4]
+        private_key_path = '/root/.ssh/id_rsa'
+        public_key_path = '{}.pub'.format(private_key_path)
+        if not self.first_node.exists(private_key_path):
+            self.first_node.run("ssh-keygen -q -t rsa -f {} -N ''".format(private_key_path))
+        key_perms = """
+        chmod 600 {0}
+        chown root:root {0}
+        """
+        self.first_node.run(key_perms.format(public_key_path))
+        self.first_node.run(key_perms.format(private_key_path))
 
         # add keys to kuberntes
-        public_key = self.first_node.core.file_read(public_key_path)
-        private_key = self.first_node.core.file_read(private_key_path)
+        public_key = self.first_node.read_file(public_key_path)
+        private_key = self.first_node.read_file(private_key_path)
 
         # add keys to controller nodes
         for node in self.nodes:
             self.add_env_keys(node, public_key, private_key)
-            self.remove_env_keys(node, old_pub_key)
 
 
 class Node(AbstractConfig):
@@ -434,7 +448,7 @@ class Node(AbstractConfig):
         self.name = name
         self._node = None
         self.managementip = get_ipaddress(self.node['management']['ipaddress'])
-        self._prefab = None
+        self._remote = None
         self.config = config
         self.password = config['environment']['password']
         self.gid = config['environment']['grid']['id']
@@ -450,10 +464,10 @@ class Node(AbstractConfig):
             log(msg)
 
     @property
-    def prefab(self):
-        if self._prefab is None:
-            self._prefab = j.tools.prefab.getFromSSH(self.managementip)
-        return self._prefab
+    def remote(self):
+        if self._remote is None:
+            self._remote = remote.Remote(self.managementip, username='root', pkey=self.config['ssh']['private-key'])
+        return self._remote
 
     @property
     def node(self):
@@ -471,28 +485,31 @@ class JumpScale7(Node):
     def install_core(self):
         jsversion = self.versions['jsversion']
         ovcversion = self.versions['ovcversion']
-        env = {'AYSBRANCH': jsversion.version, 'JSBRANCH': jsversion.version}
-        cmd = 'cd /tmp;rm -f install.sh;curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{}/install/install.sh > install.sh;bash install.sh'.format(jsversion.version)
-        self.prefab.system.ssh.define_host('git.aydo.com')
-        self.prefab.system.ssh.define_host('github.com')
-        self.prefab.system.ssh.define_host('docs.greenitglobe.com', port=10022)
+        self.remote.add_ssh_host('root', 'git.gig.tech')
+        self.remote.add_ssh_host('root', 'github.com')
+        self.remote.add_ssh_host('root', 'docs.greenitglobe.com', 10022)
 
-        if self.prefab.bash.cmdGetPath('python', False) is False or self.prefab.bash.cmdGetPath('curl', False) is False:
-            self.prefab.system.package.mdupdate()
-            self.prefab.system.package.install('python,curl')
-        if self.prefab.bash.cmdGetPath('js', False) is False:
-            self.prefab.core.run(cmd, env=env)
-        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version))
-        self.prefab.core.file_write('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
+        if self.remote.run('which python', check=False).exit_status != 0 or self.remote.run('which curl', check=False).exit_status != 0:
+            self.remote.run('apt-get upgrade -y && apt-get install -y python curl')
+        if self.remote.run('which js', check=False).exit_status != 0:
+            cmd = """
+            set -e
+            export AYSBRANCH={0}; export JSBRANCH={0};
+            cd /tmp;rm -f install.sh;
+            curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{0}/install/install.sh > install.sh;bash install.sh
+            """.format(jsversion.version)
+            self.remote.run(cmd)
+        self.remote.write_file('/opt/jumpscale7/hrd/system/atyourservice.hrd', AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version))
+        self.remote.write_file('/opt/jumpscale7/hrd/system/whoami.hrd', WHOAMI)
 
     def start(self):
         self.log("Start JumpScale services")
-        self.prefab.core.run('ays start')
+        self.remote.run('ays start')
 
     def stop(self):
         self.log("Stop JumpScale services")
-        self.prefab.core.run('ays stop')
-        self.prefab.core.run('fuser -k 4446/tcp || true')
+        self.remote.run('ays stop')
+        self.remote.run('fuser -k 4446/tcp', check=False)
 
     def update_repo(self, account, repo, version):
         cmd = "jscode update -a '{}' -n '{}' -d".format(account, repo)
@@ -500,7 +517,7 @@ class JumpScale7(Node):
             cmd += " -b {} --https".format(version.version)
         elif version.type == 'tag':
             cmd += " -t {} --https".format(version.version)
-        self.prefab.core.run(cmd)
+        self.remote.run(cmd)
 
 
     def update(self):
@@ -565,7 +582,7 @@ class JumpScale7(Node):
         if reinstall:
             install = '-r'
         cmd = 'ays install -d {} -n {} -i {} {} --data "{}"'.format(domain, package, instance, install, datastr)
-        self.prefab.core.run(cmd)
+        self.remote.run(cmd)
 
     def install(self):
         self.install_core()
@@ -657,9 +674,9 @@ class JumpScale7(Node):
         self.patch_ovs()
 
     def patch_ovs(self):
-        status, output, _ = self.prefab.core.run('ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"')
+        status, output, _ = self.remote.run('ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"')
         if 'MASTER' in output:
-            self.prefab.core.run("python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py")
+            self.remote.run("python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py")
             ovscallbackurl = 'https://ovs-{}/api/oauth2/redirect/'.format(self.fqdn)
             apikey = {
                 'label': 'ovs-{}'.format(self.config['environment']['subdomain']),
@@ -692,50 +709,34 @@ class Cluster(AbstractConfig):
     def write_certificates(self):
         log('Writing certificates')
         ssldir = '/var/ovc/ssl/'
-        tmpdir = '/tmp/cert'
-        if not os.path.exists(tmpdir):
-            os.makedirs(tmpdir)
 
-        ssl_items = self.config['environment']['ssl'].items()
         cert_items = ['crt', 'key']
-        paths = {}
-        copiedpaths = {}
-        for _, cert_name in ssl_items:
+        for cert_name in self.config['environment']['ssl'].values():
             # get certificates from config
             for item in cert_items:
                 value = self.config['certificates'][cert_name][item]
-                paths[item] = os.path.join(tmpdir, "{}.{}".format(cert_name, item))
-                with open(paths[item], 'w+') as file:
-                    file.write(value)
-            for _, path in paths.items():
-                if path not in copiedpaths:
-                    for node in self.nodes:
-                        node.core.upload(path, ssldir)
-                        copiedpaths[path] = ssldir
+                for node in self.nodes:
+                    file = '{}{}.{}'.format(ssldir, cert_name, item)
+                    node.write_file(file, value)
 
     def reset(self):
-        if self.first_node.core.file_exists('/etc/kubernetes/admin.conf'):
-            rc, out, err = self.kubectl('get deployment pxeboot', die=False)
-            if rc == 0:
-                self.kubectl('delete deployment pxeboot')
+        if self.first_node.exists('/etc/kubernetes/admin.conf'):
+            self.kubectl('delete deployment pxeboot', check=False)
         for node in self.nodes:
-            node.core.run('kubeadm reset')
-            node.core.run('service etcd stop')
+            node.run('kubeadm reset')
+            node.run('service etcd stop')
 
-    def install_kubernetes_cluster(self):
+    def install_kubernetes_cluster(self, kube_client):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
         """
         log('Installing k8 cluster')
         for node in self.nodes:
-            node.core.run("sudo sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
-
+            node.run("sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
+        etcdcluster.install_cluster(self.nodes)
         # patch install_master to not use rlannel
-        self.prefab.virtualization.kubernetes.install_kube_masters = partial(
-            self.prefab.virtualization.kubernetes.install_kube_masters, flannel=False,
-            kube_cidr='10.244.0.0/16')
-        k8s_config_data, self.join_line = self.prefab.virtualization.kubernetes.multihost_install(self.nodes,
-        unsafe=True, reset=True, external_ips=self.managementips)
+        k8s_config_data, self.join_line = kube_client.install_kube_masters(self.nodes,
+        unsafe=True, external_ips=self.managementips, flannel=False, kube_cidr='10.244.0.0/16')
 
         # configure cgroups
         if self.config.get('limits'):
@@ -747,25 +748,37 @@ class Cluster(AbstractConfig):
 
 
         if self.is_conv_env:
-            pub_key = self.first_node.core.file_read('/root/.ssh/default.pub').strip()
+            pub_key = self.first_node.read_file('/root/.ssh/default.pub').strip()
             # authorize non controller nodes
             cpu_nodes = get_pnodes(self.config, roles=['cpu'])
             for node in cpu_nodes:
-                node.prefab.executor.sshclient.ssh_authorize('root', pub_key)
-                _, user, _ = self.first_node.core.run('whoami')
-                self.first_node.system.ssh.define_host(node.prefab.executor.sshclient.addr, user)
-        self.prefab.core.dir_ensure('/root/.kube')
-        self.prefab.core.file_write(self.k8s_config, k8s_config_data)
-        if not self.prefab.core.file_exists('/root/.kube/config'):
-            self.prefab.core.file_write('/root/.kube/config', k8s_config_data)
+                node.remote.authorize_key('root', pub_key)
+                user = self.first_node.run('whoami').stdout
+                self.first_node.add_ssh_host(user, node.remote.address)
+        os.makedirs('/root/.kube', exist_ok=True)
+        with open(self.k8s_config, 'w') as cfg:
+            cfg.write(k8s_config_data)
+        if not os.path.exists('/root/.kube/config'):
+            with open('/root/.kube/config', 'w') as cfg:
+                cfg.write(k8s_config_data)
 
     def clone_repo(self, url=REPO_URL):
+        parse = urllib.parse.urlparse(url)
+        hostname = parse.hostname[:parse.hostname.rfind('.')]
+        dest = '/opt/code/{host}{path}'.format(host=hostname, path=parse.path)
         for node in self.nodes:
-            node.tools.git.pullRepo(url)
+            if not node.exists(dest):
+                node.run('mkdir -p {}'.format(dest))
+                node.run('git clone {url} {dest}'.format(url=url, dest=dest))
 
-    def _install_kubectl(self, prefab):
-        if not prefab.core.file_exists('/usr/local/bin/kubectl'):
-            prefab.virtualization.kubernetes.install_kube_client(location='/usr/local/bin/kubectl')
+    def _install_kubectl(self, kube_client, node=None):
+        loc = '/usr/local/bin/kubectl'
+        if node:
+            exists = node.exists(loc)
+        else:
+            exists = os.path.exists(loc)
+        if not exists:
+            kube_client.install_kube_client(node, '/usr/local/bin/kubectl')
 
     def verify_certificates(self):
         for key, cert_name in self.config['environment']['ssl'].items():
@@ -776,38 +789,39 @@ class Cluster(AbstractConfig):
                 if not cert.get(extension):
                     raise RuntimeError('ERROR: "{}" is required property in config /certificates/{}/'.format(extension, cert_name))
 
-    def install_controller(self):
+    def install_controller(self, kube_client):
         """
         Will use existing yaml or config scripts in this dir as well as jumpscale modules to install the controller setup on the
         cluster. Creating the relevant deployments, services, and mounts
         """
         log('Install kubectl')
         for node in self.nodes:
-            self._install_kubectl(node)
-        self._install_kubectl(self.prefab)
-        self.clone_repo()
+            self._install_kubectl(kube_client, node)
+        self._install_kubectl(kube_client)
 
         log('Preparing directories')
         directories = self.config.get('directories')
         for node in self.nodes:
             for directory in directories:
-                node.core.dir_ensure(directory['path'], mode='777')
+                node.run('mkdir -p {0} && chmod 777 {0}'.format(directory['path']))
 
         self.write_certificates()
         self.install_teleport()
         self.configure_keys()
-        self.kube_client_apply()
+        self.kube_deploy()
+        for node in self.nodes:
+            self.remove_env_keys(node, self.config['ssh']['public-key'])
 
     def apply_template(self, template, kind):
         self.kubectl('apply -f {template}'.format(template=template))
-        template_name = j.sal.fs.getBaseName(template)
+        template_name = os.path.basename(template)
         timeout = time.time() + 240
         print('Waiting for {} to be ready..'.format(template_name))
         while time.time() < timeout:
             template_basename = template.split('/')[-1]
             template_name = os.path.splitext(template_basename)[0] if template_basename.endswith('.yaml') else template_basename
-            _, out, _ = self.kubectl('get %s %s -o json' % (kind, template_name))
-            json_out = j.data.serializer.json.loads(out)
+            out = self.kubectl('get %s %s -o json' % (kind, template_name))
+            json_out = json.loads(out.stdout)
             ready = False
             if kind == 'deployment':
                 for condition in  json_out['status'].get('conditions', []):
@@ -822,14 +836,19 @@ class Cluster(AbstractConfig):
                 break
             time.sleep(2)
         else:
-            raise j.exceptions.Timeout('Deploying {} took longer than expected. Exiting..'.format(template_name))
+            raise TimeoutError('Deploying {} took longer than expected. Exiting..'.format(template_name))
 
-    def dump(self, location, data, dumper=j.data.serializer.yaml.dumps):
-        data = dumper(data)
-        self.first_node.core.file_write(location, data)
+    def dump(self, location, data, dumper='yaml'):
+        if dumper == 'yaml':
+            data = yaml.dump(data, default_flow_style=False, default_style='',indent=4, line_break="\n")
+        elif dumper == 'json':
+            data = json.dumps(data, ensure_ascii=False, sort_keys=False, indent=False)
+        else:
+            raise RuntimeError('dumper value either json or yaml')
+        self.first_node.write_file(location, data)
 
-    def load(self, location, loader=j.data.serializer.yaml.loads):
-        data = self.first_node.core.file_read(location)
+    def load(self, location, loader=yaml.load):
+        data = self.first_node.read_file(location)
         return loader(data)
 
     def write_service_template(self, template, externalips):
@@ -866,11 +885,12 @@ class Cluster(AbstractConfig):
                 volmounts.append({'name': 'code', 'mountPath': '/opt/code/github/jumpscale7', 'subPath': 'github/jumpscale7'})
             volumes = data['spec']['template']['spec'].setdefault('volumes', [])
             volumes.append({'name': 'code', 'hostPath': {'path': '/opt/code', 'type': 'Directory'}})
-            data['spec']['template']['spec']['nodeSelector'] = {'kubernetes.io/hostname': self.first_node.core.hostname}
+            data['spec']['template']['spec']['nodeSelector'] = {'kubernetes.io/hostname': self.first_node.hostname}
 
         def update_template(template):
             types = ('Deployment', 'StatefulSet', 'Job')
-            data = j.data.serializer.yaml.load(template)
+            with open(template, 'r') as tmp:
+                data = yaml.load(tmp)
             changed = False
             if isinstance(data, dict) and data.get('kind') in types:
                 for conttype  in ('initContainers', 'containers'):
@@ -894,7 +914,7 @@ class Cluster(AbstractConfig):
                 if changed:
                     self.dump(template.replace(srcdir, self.scripts_dir), data)
 
-        self.first_node.core.upload(srcdir, self.scripts_dir)
+        self.first_node.copy_dir_tree(srcdir, self.scripts_dir)
         # add external ips to the specified services to expose to the internal network
         templates = ['agentcontroller', 'osis', 'management']
         externalips = list(get_controller_ips(self.config, 'backplane'))
@@ -909,8 +929,10 @@ class Cluster(AbstractConfig):
         if self.development:
             for repo in DEV_REPOS:
                 self.clone_repo(repo)
-        for template in j.tools.prefab.local.core.find(srcdir, pattern='*.yaml'):
-            update_template(template)
+        for path, _, filenames in os.walk(srcdir):
+            for file in filenames:
+                if file.endswith(".yaml"):
+                    update_template('{}/{}'.format(path, file))
 
         stat_template = self.scripts_dir + '/stats-collector/stats-deployment.yaml'
         data = self.load(stat_template)
@@ -920,7 +942,7 @@ class Cluster(AbstractConfig):
     def write_config_map(self, name, content):
         if isinstance(content, (dict, list)):
             content = yaml.dump(content, default_style='|')
-        self.first_node.core.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content), showout=False)
+        self.first_node.run("cat << EOF | kubectl create configmap {0} --dry-run --from-file={0}.yaml=/dev/stdin -o json | kubectl apply -f -\n{1}\nEOF".format(name, content))
 
     def write_system_config(self):
         log('Write system config')
@@ -932,28 +954,29 @@ class Cluster(AbstractConfig):
 
     def install_teleport(self):
         for node in self.nodes:
-            log('Installing teleport {}'.format(node.core.hostname))
+            log('Installing teleport {}'.format(node.hostname))
             ssl_name = self.config['environment']['ssl']['root']
-            if not node.core.file_exists('/usr/local/bin/teleport') or not node.core.file_exists('/usr/local/bin/tctl') or not node.core.file_exists('/usr/local/bin/tsh'):
-                node.apps.teleport.package_install(extra_paths=['/usr/local/bin'])
-            node.apps.teleport.write_config(name=node.core.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
-                                            cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
-            node.apps.teleport.restart()
+            teleport_client = teleport.Teleport(node)
+            if not node.exists('/usr/local/bin/teleport') or not node.exists('/usr/local/bin/tctl') or not node.exists('/usr/local/bin/tsh'):
+                teleport_client.install()
+            teleport_client.write_config(name=node.hostname, key_path='/var/ovc/ssl/%s.key' % ssl_name,
+                                         cert_path='/var/ovc/ssl/%s.crt' % ssl_name)
+            teleport_client.restart()
             time.sleep(3)
             github = self.config['support']['github']
             teams = ['/'.join([team['org_name'], team['team_name']]) for team in github['teams']]
-            _, resources, _ = node.core.run('tctl get github/%s' % node.core.hostname)
-            if node.core.hostname in resources:
+            resources= node.run('tctl get github/%s' % node.hostname).stdout
+            if node.hostname in resources:
                 continue
-            node.apps.teleport.apply_permissions(
-                name=node.core.hostname,
+            teleport_client.apply_permissions(
+                name=node.hostname,
                 client_id=github['client_id'],
                 client_secret=github['client_secret'],
                 teams=teams,
                 exposed_ip='{}.{}'.format(self.config['environment']['subdomain'], self.config['environment']['basedomain'])
             )
 
-    def kube_client_apply(self):
+    def kube_deploy(self):
         self.prepare_templates()
         self.write_system_config()
 
@@ -984,18 +1007,21 @@ class Cluster(AbstractConfig):
         datasourcename = 'controller_{}'.format(self.config['environment']['subdomain'])
         datasource['datasources'][0]['name'] = datasourcename
         self.dump(datasourcepath, datasource)
-        for dashboardfile in self.first_node.core.find(dashboardpath, pattern='*.json'):
-            db = self.load(dashboardfile, j.data.serializer.json.loads)
-            db['id'] = None
-            db['title'] += " ({})".format(self.config['environment']['subdomain'])
-            for row in db['rows']:
-                for panel in row['panels']:
-                    panel['datasource'] = datasourcename
-            if 'templating' in db:
-                for item in db['templating']['list']:
-                    item['datasource'] = datasourcename
-            self.dump(dashboardfile, db, j.data.serializer.json.dumps)
+        for loc, _, dashboardfiles in self.first_node.walk(dashboardpath, pattern='*.json'):
+            for dashboardfile in dashboardfiles:
+                dashboardfile = os.path.join(loc, dashboardfile) 
+                db = self.load(dashboardfile, json.loads)
+                db['id'] = None
+                db['title'] += " ({})".format(self.config['environment']['subdomain'])
+                for row in db['rows']:
+                    for panel in row['panels']:
+                        panel['datasource'] = datasourcename
+                if 'templating' in db:
+                    for item in db['templating']['list']:
+                        item['datasource'] = datasourcename
+                self.dump(dashboardfile, db, 'json')
         cmd = """
+        set -e
         cd {dir}
         kubectl create configmap grafana-provisioning-datasources --from-file=provisioning/datasources
         kubectl create configmap grafana-provisioning-dashboards --from-file=provisioning/dashboards
@@ -1003,7 +1029,7 @@ class Cluster(AbstractConfig):
         kubectl apply -f grafana-service.yaml
         kubectl apply -f grafana-deployment.yaml
         """.format(config=self.k8s_config, dir=grafana_dir)
-        self.first_node.core.execute_bash(cmd)
+        self.first_node.run(cmd)
 
     def delete(self):
         log('Deleting configmaps')
@@ -1023,42 +1049,44 @@ class Cluster(AbstractConfig):
             self.kubectl('delete deploy {}'.format(' '.join(DEV_TMPLS)), die=False)
         else:
             self.delete()
-        self.kube_client_apply()
+        self.kube_deploy()
 
 class PNode(JumpScale7):
     def ipmi(self, *args):
         ipmiip = get_ipaddress(self.node['ipmi']['ipaddress'])
         cmd = "ipmitool -I lanplus -H {} -U {} -P {} ".format(ipmiip, self.node['ipmi']['username'], self.node['ipmi']['password'])
         cmd += " ".join(args)
-        self.first_node.core.run(cmd)
+        self.first_node.run(cmd)
 
     def reboot(self):
         self.log('Rebooting')
         self.ipmi('chassis power cycle')
 
     def is_up(self):
-        return j.sal.nettools.tcpPortConnectionTest(self.managementip, 22)
+        return network.tcp_test(self.managementip, 22)
 
     def wait_up(self, timeout=600):
-        j.sal.nettools.waitConnectionTest(self.managementip, 22, timeout)
+        network.wait_for_connection(self.managementip, 22, timeout)
         if not self.is_up():
             raise RuntimeError('Node did not come up in {}seconds'.format(timeout))
 
     def enable_pxe(self):
         self.log('Enable PXE')
-        prefab = self.get_node_from_appname('pxeboot')
+        node = self.get_node_from_appname('pxeboot')
         self.ipmi('chassis bootdev pxe')
         macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
         dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
         src = '../../conf/tftp-911boot'
-        prefab.core.file_link(src, dst)
+        if not node.exists(dst):
+            node.sftp.symlink(src, dst)
 
     def disable_pxe(self):
         self.log('Disable PXE')
-        prefab = self.get_node_from_appname('pxeboot')
+        node = self.get_node_from_appname('pxeboot')
         macaddress = str(netaddr.EUI(self.node['management']['macaddress'])).lower()
         dst = '/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}'.format(macaddress)
-        prefab.core.file_unlink(dst)
+        if node.exists(dst):
+            node.sftp.unlink(dst)
 
     def install_os(self):
         self.enable_pxe()
@@ -1067,7 +1095,7 @@ class PNode(JumpScale7):
         self.log('Waiting for 911 boot')
         self.wait_up()
         self.log('Installing OS')
-        status, output, err = self.prefab.core.run('cd /root/tools/; ./Install')
+        status = self.remote.run('cd /root/tools/; ./Install').exit_status
         if status != 0:
             raise RuntimeError('Failed to install OS')
         self.disable_pxe()
@@ -1087,10 +1115,9 @@ class PNode(JumpScale7):
 @click.option('--loglevel', default=50, help='Set loglevel', type=int)
 @click.pass_context
 def cli(ctx, config, version, url, loglevel):
-    j.logger.set_level(loglevel)
     ctx.obj = {}
     if not config:
-        raise j.exceptions.Input('Please specify a config file')
+        raise LookupError('Please specify a config file')
     config = prepare_config(config)
     ctx.obj['config'] = config
     ctx.obj['versions'] = get_versions(config, version, url)
@@ -1202,7 +1229,7 @@ def kube_apply_all(ctx):
     Rewrite kube resources from template
     """
     cluster = Cluster(ctx.obj['config'], ctx.obj['vesions'])
-    cluster.kube_client_apply()
+    cluster.kube_deploy()
 
 
 @resources.command('apply', help='Apply a specifified kubernetes resource')
@@ -1225,11 +1252,12 @@ def deploy_cluster(ctx, configure_cluster, force):
     """
     cluster = Cluster(ctx.obj['config'], ctx.obj['versions'])
     cluster.verify_certificates()
+    kube_client = kubernetes.Kubernetes()
     if force:
         cluster.reset()
     if configure_cluster:
-        cluster.install_kubernetes_cluster()
-    cluster.install_controller()
+        cluster.install_kubernetes_cluster(kube_client)
+    cluster.install_controller(kube_client)
 
 @cluster.command('update', help='Update cluster, delete existing resources and reapply')
 @click.option('--development', default=False, is_flag=True)
