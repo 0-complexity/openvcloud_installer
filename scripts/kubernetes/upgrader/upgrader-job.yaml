@@ -27,7 +27,7 @@ spec:
           mountPath: /opt/logs
       containers:
       - name: upgrader-container
-        image: openvcloud/js9inst
+        image: openvcloud/management
         volumeMounts:
         - name: ssh-dir
           mountPath: /root/.ssh

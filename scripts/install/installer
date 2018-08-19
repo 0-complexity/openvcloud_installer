@@ -570,6 +570,13 @@ class JumpScale7(Node):
         self.update_repo("0-complexity", "openvcloud", ovc_version)
         self.update_repo("0-complexity", "openvcloud_installer", ovc_version)
 
+    def upgrade(self):
+        try:
+            self.stop()
+            self.update()
+        finally:
+            self.start()
+
     def restart(self):
         self.stop()
         self.start()
@@ -1403,7 +1410,7 @@ def node_action(ctx, name, action):
     "--name", help="Node name pass all to apply on all comma seperate list for multiple"
 )
 @click.argument(
-    "action", type=click.Choice(["start", "stop", "update", "restart", "install"])
+    "action", type=click.Choice(["start", "stop", "update", "restart", "install", "upgrade"])
 )
 @click.pass_context
 def node_jsaction(ctx, name, action):
