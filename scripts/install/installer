@@ -62,9 +62,11 @@ status = {}
 lock = threading.Lock()
 logging.raiseExceptions = False
 
+
 def log(msg):
     sys.stdout.write(msg + "\n")
     sys.stdout.flush()
+
 
 def print_status(clear=False):
     with lock:
@@ -84,6 +86,7 @@ def print_status(clear=False):
             )
             log(line)
 
+
 def get_revision(repo):
     version = version_type(repo)
     match = "tags/" if version.type == "tag" else "heads/"
@@ -93,11 +96,13 @@ def get_revision(repo):
         if line.endswith(match):
             return line.split()[0]
 
+
 def version_type(repo):
     for vtype in ("tag", "branch"):
         if vtype in repo["target"]:
             return Version(repo["target"][vtype], vtype)
     raise RuntimeError("No tag or branch set on repo")
+
 
 def update_repo_volume(versions, repo):
     url = repo["repository"]
@@ -112,8 +117,10 @@ def update_repo_volume(versions, repo):
                 REPOREVISIONS[url] = revision
             return
 
+
 def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
+
 
 def get_pnodes(config, versions=None, roles=None):
     pnodes = []
@@ -123,11 +130,13 @@ def get_pnodes(config, versions=None, roles=None):
             pnodes.append(PNode(config, pnode["name"], versions))
     return pnodes
 
+
 def local_execute(*args, **kwargs):
     kwargs["check"] = kwargs.get("check", True)
     kwargs["stdout"] = kwargs.get("stdout", subprocess.PIPE)
     result = subprocess.run(*args, **kwargs).stdout.decode("utf-8")
     return result
+
 
 def set_cgroup(node, cgroup, cpu_set, memory):
     mem_path = "/sys/fs/cgroup/memory/{}".format(cgroup)
@@ -143,6 +152,7 @@ def set_cgroup(node, cgroup, cpu_set, memory):
     node.write_file("{}/cpuset.cpus".format(cpu_path), str(cpu_set))
     node.write_file("{}/memory.limit_in_bytes".format(mem_path), str(memory))
 
+
 def portal_api_call(endpoint, config, params=None, data=None):
     url = "http://portal:82/restmachine/%s" % endpoint
     response = requests.post(
@@ -155,6 +165,7 @@ def portal_api_call(endpoint, config, params=None, data=None):
     )
     return response
 
+
 def get_enabled_pnodes(config):
     response = portal_api_call(
         "system/gridmanager/getNodes", config, data={"active": True}
@@ -162,6 +173,7 @@ def get_enabled_pnodes(config):
     response.raise_for_status()
     nodes = [node["name"].split(".")[0] for node in response.json()]
     return nodes
+
 
 def get_upgradable_pnodes(pnodes, config):
     upgradable_pnodes = list()
@@ -172,6 +184,7 @@ def get_upgradable_pnodes(pnodes, config):
                 raise RuntimeError("Can't connect to node {}".format(node.name))
             upgradable_pnodes.append(node)
     return upgradable_pnodes
+
 
 def pnode_action(pnodes, action):
     futures = {}
@@ -188,6 +201,7 @@ def pnode_action(pnodes, action):
             fut = proc.submit(func)
             futures[pnode.name] = fut
             running_futures[pnode.name] = fut
+
         def update_status():
             messages = ""
             future_error = None
@@ -211,6 +225,7 @@ def pnode_action(pnodes, action):
                         print_status(True)
                     running_futures.pop(name)
             return future_error, messages
+
         haserrors = False
         while running_futures:
             time.sleep(5)
@@ -222,6 +237,7 @@ def pnode_action(pnodes, action):
         if haserrors:
             raise RuntimeError("Failed to apply {}".format(action))
 
+
 def is_conv_env(config):
     nodes = config["nodes"]
     roles = {"controller", "storage", "cpu"}
@@ -231,6 +247,7 @@ def is_conv_env(config):
             return True
     return False
 
+
 def prepare_config(config_path):
     def _helper(nodes):
         for node in nodes:
@@ -239,6 +256,7 @@ def prepare_config(config_path):
             if key not in node:
                 node[key] = {}
             node[key]["ipaddress"] = "{ip}/{sub}".format(ip=ip, sub=net.prefixlen)
+
     with open(config_path, "r") as cfg:
         config = yaml.load(cfg)
     # add default directories for syncthing
@@ -305,12 +323,14 @@ def prepare_config(config_path):
     config["ssh"]["public-key"] = public_key
     return config
 
+
 def get_versions(config, version=None, url=None):
     """
     Loads the version manifests either from the existing cluster or downloads it from the provided url
     param version ,, str version number to get from default 0-complexity/home/manifests location
     param url ,, raw url to version-manifests yaml file
     """
+
     def download_load_yaml(url):
         response = requests.get(url)
         response.raise_for_status()
@@ -318,6 +338,7 @@ def get_versions(config, version=None, url=None):
         versions["url"] = url
         versions["version"] = version
         return versions
+
     if not version:
         if not url:
             first_node = get_pnodes(config, roles=["controller"])[0].remote
@@ -350,10 +371,12 @@ def get_versions(config, version=None, url=None):
             versions["ovcversion"] = version_type(repo)
     return versions
 
+
 def get_controller_ips(config, iptype="management"):
     for node in config["nodes"]:
         if "controller" in node["roles"]:
             yield get_ipaddress(node[iptype]["ipaddress"])
+
 
 class AbstractConfig:
     def __init__(self, config, versions=None):
@@ -363,6 +386,7 @@ class AbstractConfig:
         self.backplaneips = list(get_controller_ips(config, "backplane"))
         self.managementips = list(get_controller_ips(config, "management"))
         self.is_conv_env = is_conv_env(config)
+
     @property
     def nodes(self):
         if self._nodes is None:
@@ -374,13 +398,16 @@ class AbstractConfig:
                 nodes.append(client)
             self._nodes = nodes
         return self._nodes
+
     @property
     def first_node(self):
         return self.nodes[0]
+
     def kubectl(self, *args, **kwargs):
         cmd = "kubectl "
         cmd += " ".join(args)
         return self.first_node.run(cmd, **kwargs)
+
     def get_node_from_appname(self, appname):
         output = self.kubectl("get pods -o json -l app=={}".format(appname))
         data = json.loads(output.stdout)
@@ -396,6 +423,7 @@ class AbstractConfig:
 
             raise LookupError("Could not find host with IP {}".format(hostip))
         raise LookupError("Could not find appname {}".format(appname))
+
     def remove_env_keys(self, node, public_key):
         """
         Remove unwanted public keys from authorized keys under /root/.ssh/authorized_keys.
@@ -408,6 +436,7 @@ class AbstractConfig:
             data.append(key)
         data.append("")  # end with empty line
         node.write_file("/root/.ssh/authorized_keys", "\n".join(data))
+
     def add_env_keys(self, node, pub_key, priv_key):
         """
         adds pub and priv key to relative envs
@@ -430,10 +459,12 @@ class AbstractConfig:
             ovcdir
         )
         node.run(chmod_command)
+
     def get_new_keys(self):
         privatekey = self.first_node.read_file("/var/ovc/.ssh/id_rsa")
         pubkey = self.first_node.read_file("/var/ovc/.ssh/id_rsa.pub")
         return privatekey, pubkey
+
     def configure_keys(self):
         log("Configuring new keys")
         if not len(self.nodes):
@@ -461,6 +492,7 @@ class AbstractConfig:
         for node in self.nodes:
             self.add_env_keys(node, public_key, private_key)
 
+
 class Node(AbstractConfig):
     def __init__(self, config, name, versions):
         super().__init__(config, versions)
@@ -476,6 +508,7 @@ class Node(AbstractConfig):
             config["environment"]["subdomain"], config["environment"]["basedomain"]
         )
         self.iyourl = "https://itsyou.online/"
+
     def log(self, msg):
         if ISINTERACTIVE and self.name in status:
             status[self.name] = msg
@@ -483,6 +516,7 @@ class Node(AbstractConfig):
         else:
             msg = "{}: {}".format(self.name, msg)
             log(msg)
+
     @property
     def remote(self):
         if self._remote is None:
@@ -492,6 +526,7 @@ class Node(AbstractConfig):
                 pkey=self.config["ssh"]["private-key"],
             )
         return self._remote
+
     @property
     def node(self):
         if self._node is None:
@@ -502,6 +537,7 @@ class Node(AbstractConfig):
             else:
                 raise LookupError("Faild to find a node with name {}".format(self.name))
         return self._node
+
     @property
     def roles(self):
         if self._roles is None:
@@ -512,6 +548,7 @@ class Node(AbstractConfig):
             else:
                 raise LookupError("Faild to find a node with name {}".format(self.name))
         return self._roles
+
 
 class JumpScale7(Node):
     def install_core(self):
@@ -541,13 +578,16 @@ class JumpScale7(Node):
             AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version),
         )
         self.remote.write_file("/opt/jumpscale7/hrd/system/whoami.hrd", WHOAMI)
+
     def start(self):
         self.log("Start JumpScale services")
         self.remote.run("ays start")
+
     def stop(self):
         self.log("Stop JumpScale services")
         self.remote.run("ays stop")
         self.remote.run("fuser -k 4446/tcp", check=False)
+
     def update_repo(self, account, repo, version):
         cmd = "jscode update -a '{}' -n '{}' -d".format(account, repo)
         if version.type == "branch":
@@ -555,6 +595,7 @@ class JumpScale7(Node):
         elif version.type == "tag":
             cmd += " -t {} --https".format(version.version)
         self.remote.run(cmd)
+
     def update(self):
         js_version = self.versions["jsversion"]
         ovc_version = self.versions["ovcversion"]
@@ -563,15 +604,18 @@ class JumpScale7(Node):
         self.log("Updating OpenvCloud repos")
         self.update_repo("0-complexity", "openvcloud", ovc_version)
         self.update_repo("0-complexity", "openvcloud_installer", ovc_version)
+
     def upgrade(self):
         try:
             self.stop()
             self.update()
         finally:
             self.start()
+
     def restart(self):
         self.stop()
         self.start()
+
     def install_agent(self, roles=None):
         roles = roles or ["node"]
         redisdata = {
@@ -618,6 +662,7 @@ class JumpScale7(Node):
             "osis.connection": "jsagent",
         }
         self.ays_install("jsagent", instance="main", data=agentdata)
+
     def ays_install(
         self, package, domain="jumpscale", instance="main", data=None, reinstall=False
     ):
@@ -633,6 +678,7 @@ class JumpScale7(Node):
             domain, package, instance, install, datastr
         )
         self.remote.run(cmd)
+
     def install(self):
         self.install_core()
         roles = ["node"]
@@ -643,6 +689,7 @@ class JumpScale7(Node):
             self.install_compute_node()
         if "storage" in self.node["roles"]:
             self.install_storage_node()
+
     def install_compute_node(self):
         netinfo = {
             "vxbackend_vlan": self.config["network"]["vxbackend"]["vlan"],
@@ -677,6 +724,7 @@ class JumpScale7(Node):
         self.ays_install(
             "cb_cpunode_aio", domain="openvcloud", instance="main", data=data_cpu
         )
+
     def install_portal_client(self):
         portal_client = {
             "instance.param.addr": self.fqdn,
@@ -691,6 +739,7 @@ class JumpScale7(Node):
             data=portal_client,
             reinstall=True,
         )
+
     def configure_iyo_api_key(self, apikey):
         # TODO: check if we can do this in js9
         label = apikey["label"]
@@ -734,6 +783,7 @@ class JumpScale7(Node):
             )
             apikey = result.json()
         return apikey
+
     def install_storage_node(self):
         self.install_portal_client()
 
@@ -756,6 +806,7 @@ class JumpScale7(Node):
             data=data_storage,
         )
         self.patch_ovs()
+
     def patch_ovs(self):
         status, output, _ = self.remote.run(
             'ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"'
@@ -789,6 +840,7 @@ class JumpScale7(Node):
                 reinstall=True,
             )
 
+
 class Cluster(AbstractConfig):
     """
     Cluster abstraction layer to allow for easier manipulation.
@@ -802,6 +854,7 @@ class Cluster(AbstractConfig):
         self.join_line = ""
         self.scripts_dir = "{}/kuberesources/".format(REPO_PATH)
         self.development = development
+
     def write_certificates(self):
         log("Writing certificates")
         ssldir = "/var/ovc/ssl/"
@@ -814,12 +867,14 @@ class Cluster(AbstractConfig):
                 for node in self.nodes:
                     file = "{}{}.{}".format(ssldir, cert_name, item)
                     node.write_file(file, value)
+
     def reset(self):
         if self.first_node.exists("/etc/kubernetes/admin.conf"):
             self.kubectl("delete deployment pxeboot", check=False)
         for node in self.nodes:
             node.run("kubeadm reset")
             node.run("service etcd stop")
+
     def install_kubernetes_cluster(self, kube_client):
         """
         Will install a kubernetes master and minion nodes on the first and rest of the node list respectively.
@@ -859,6 +914,7 @@ class Cluster(AbstractConfig):
         if not os.path.exists("/root/.kube/config"):
             with open("/root/.kube/config", "w") as cfg:
                 cfg.write(k8s_config_data)
+
     def clone_repo(self, url=REPO_URL):
         parse = urllib.parse.urlparse(url)
         hostname = parse.hostname[: parse.hostname.rfind(".")]
@@ -867,6 +923,7 @@ class Cluster(AbstractConfig):
             if not node.exists(dest):
                 node.run("mkdir -p {}".format(dest))
                 node.run("git clone {url} {dest}".format(url=url, dest=dest))
+
     def _install_kubectl(self, kube_client, node=None):
         loc = "/usr/local/bin/kubectl"
         if node:
@@ -875,6 +932,7 @@ class Cluster(AbstractConfig):
             exists = os.path.exists(loc)
         if not exists:
             kube_client.install_kube_client(node, "/usr/local/bin/kubectl")
+
     def verify_certificates(self):
         for key, cert_name in self.config["environment"]["ssl"].items():
             cert = self.config["certificates"][cert_name]
@@ -887,6 +945,7 @@ class Cluster(AbstractConfig):
                             extension, cert_name
                         )
                     )
+
     def install_controller(self, kube_client):
         """
         Will use existing yaml or config scripts in this dir as well as jumpscale modules to install the controller setup on the
@@ -909,6 +968,7 @@ class Cluster(AbstractConfig):
         self.kube_deploy()
         for node in self.nodes:
             self.remove_env_keys(node, self.config["ssh"]["public-key"])
+
     def apply_template(self, template, kind):
         self.kubectl("apply -f {template}".format(template=template))
         template_name = os.path.basename(template)
@@ -947,6 +1007,7 @@ class Cluster(AbstractConfig):
                     template_name
                 )
             )
+
     def dump(self, location, data, dumper="yaml"):
         if dumper == "yaml":
             data = yaml.dump(
@@ -961,9 +1022,11 @@ class Cluster(AbstractConfig):
         else:
             raise RuntimeError("dumper value either json or yaml")
         self.first_node.write_file(location, data)
+
     def load(self, location, loader=yaml.load):
         data = self.first_node.read_file(location)
         return loader(data)
+
     def write_service_template(self, template, externalips):
         template_loc = "{dir}{name}/{name}-service.yaml".format(
             dir=self.scripts_dir, name=template
@@ -973,21 +1036,26 @@ class Cluster(AbstractConfig):
             data["spec"]["externalIPs"] = externalips
             self.dump(template_loc, data)
         return template_loc
+
     def _reapply_service(self, name):
         pubips = list(get_controller_ips(self.config, "fallback"))
         loc = self.write_service_template(name, pubips)
         self.kubectl("apply -f {}".format(loc))
+
     def upgrade(self):
         self.prepare_templates()
         self._reapply_service("upgrader")
+
     def revert(self):
         """
         Reconfigure nginx service to working state
         """
         self._reapply_service("nginx")
+
     def prepare_templates(self):
         log("Preparing resources")
         srcdir = "{}/scripts/kubernetes/".format(REPO_PATH)
+
         def patch_for_development(data):
             for container in data["spec"]["template"]["spec"]["containers"]:
                 volmounts = container.setdefault("volumeMounts", [])
@@ -1012,6 +1080,7 @@ class Cluster(AbstractConfig):
             data["spec"]["template"]["spec"]["nodeSelector"] = {
                 "kubernetes.io/hostname": self.first_node.hostname
             }
+
         def update_template(template):
             types = ("Deployment", "StatefulSet", "Job")
             with open(template, "r") as tmp:
@@ -1047,6 +1116,7 @@ class Cluster(AbstractConfig):
 
                 if changed:
                     self.dump(template.replace(srcdir, self.scripts_dir), data)
+
         self.first_node.copy_dir_tree(srcdir, self.scripts_dir)
         # add external ips to the specified services to expose to the internal network
         templates = ["agentcontroller", "osis", "management"]
@@ -1073,6 +1143,7 @@ class Cluster(AbstractConfig):
             "network"
         ]["management"]["network"]
         self.dump(stat_template, data)
+
     def write_config_map(self, name, content):
         if isinstance(content, (dict, list)):
             content = yaml.dump(content, default_style="|")
@@ -1081,6 +1152,7 @@ class Cluster(AbstractConfig):
                 name, content
             )
         )
+
     def write_system_config(self):
         log("Write system config")
         self.write_config_map("system-config", self.config)
@@ -1088,6 +1160,7 @@ class Cluster(AbstractConfig):
         versions.pop("jsversion", None)
         versions.pop("ovcversion", None)
         self.write_config_map("versions-manifest", versions)
+
     def install_teleport(self):
         for node in self.nodes:
             log("Installing teleport {}".format(node.hostname))
@@ -1124,6 +1197,7 @@ class Cluster(AbstractConfig):
                     self.config["environment"]["basedomain"],
                 ),
             )
+
     def kube_deploy(self):
         self.prepare_templates()
         self.write_system_config()
@@ -1159,6 +1233,7 @@ class Cluster(AbstractConfig):
             self.apply_template(template_file, kind="deployment")
         if not self.development:
             self.grafana_apply("{}/grafana".format(self.scripts_dir))
+
     def grafana_apply(self, grafana_dir):
         log("Installing grafana")
         datasourcepath = "{}/provisioning/datasources/influx.yaml".format(grafana_dir)
@@ -1194,6 +1269,7 @@ class Cluster(AbstractConfig):
             config=self.k8s_config, dir=grafana_dir
         )
         self.first_node.run(cmd)
+
     def delete(self):
         log("Deleting configmaps")
         self.kubectl("delete configmap --all --namespace default")
@@ -1205,6 +1281,7 @@ class Cluster(AbstractConfig):
         log("Deleting deployments")
         self.kubectl("delete deploy --namespace default -l 'app!=qa'")
         self.kubectl("delete deploy --all --namespace development")
+
     def update(self):
         log("Restarting cluster...")
         if self.development:
@@ -1212,6 +1289,7 @@ class Cluster(AbstractConfig):
         else:
             self.delete()
         self.kube_deploy()
+
 
 class PNode(JumpScale7):
     def ipmi(self, *args):
@@ -1221,15 +1299,31 @@ class PNode(JumpScale7):
         )
         cmd += " ".join(args)
         self.first_node.run(cmd)
+
+    def power_on(self):
+        self.log("Starting")
+        self.ipmi("chassis power on")
+
+    def shutdown(self):
+        self.log("Shutting down")
+        self.ipmi("chassis power soft")
+
+    def force_shutdown(self):
+        self.log("Shutting down")
+        self.ipmi("chassis power off")
+
     def reboot(self):
         self.log("Rebooting")
         self.ipmi("chassis power cycle")
+
     def is_up(self):
         return network.tcp_test(self.managementip, 22)
+
     def wait_up(self, timeout=600):
         network.wait_for_connection(self.managementip, 22, timeout)
         if not self.is_up():
             raise RuntimeError("Node did not come up in {}seconds".format(timeout))
+
     def enable_pxe(self):
         self.log("Enable PXE")
         node = self.get_node_from_appname("pxeboot")
@@ -1239,6 +1333,7 @@ class PNode(JumpScale7):
         src = "../../conf/tftp-911boot"
         if not node.exists(dst):
             node.sftp.symlink(src, dst)
+
     def disable_pxe(self):
         self.log("Disable PXE")
         node = self.get_node_from_appname("pxeboot")
@@ -1246,6 +1341,7 @@ class PNode(JumpScale7):
         dst = "/var/ovc/pxeboot/tftpboot/pxelinux.cfg/01-{}".format(macaddress)
         if node.exists(dst):
             node.sftp.unlink(dst)
+
     def install_os(self):
         self.enable_pxe()
         self.reboot()
@@ -1261,6 +1357,7 @@ class PNode(JumpScale7):
         time.sleep(20)
         self.log("Waiting for OS boot")
         self.wait_up()
+
 
 ###                    ###
 # Command line interface #
@@ -1286,25 +1383,31 @@ def cli(ctx, config, version, url, loglevel):
     ctx.obj["config"] = config
     ctx.obj["versions"] = get_versions(config, version, url)
 
+
 @cli.group()
 def cluster():
     pass
+
 
 @cluster.group(help="Manipulation of kubernetes resources")
 def resources():
     pass
 
+
 @cli.group()
 def node(help="Node actions"):
     pass
+
 
 @cli.group()
 def storage(help="Storage actions"):
     pass
 
+
 @cli.group()
 def image(help="Image actions"):
     pass
+
 
 @image.command("deploy", help="Deploy an VM Image")
 @click.option("--name", help="Image name")
@@ -1313,6 +1416,7 @@ def image_deploy(ctx, name):
     storage = random.choice(get_pnodes(ctx.obj["config"], roles=["storage"]))
     storage.ays_install(name, "openvcloud")
 
+
 @node.command("action", help="Will apply the action on storage and cpu nodes")
 @click.option(
     "--name", help="Node name pass all to apply on all comma seperate list for multiple"
@@ -1320,7 +1424,17 @@ def image_deploy(ctx, name):
 @click.argument(
     "action",
     type=click.Choice(
-        ["reboot", "is_up", "wait_up", "enable_pxe", "disable_pxe", "install_os"]
+        [
+            "reboot",
+            "power_on",
+            "shutdown",
+            "force_shutdown",
+            "is_up",
+            "wait_up",
+            "enable_pxe",
+            "disable_pxe",
+            "install_os",
+        ]
     ),
 )
 @click.pass_context
@@ -1342,6 +1456,7 @@ def node_action(ctx, name, action):
                 for pname in name.split(",")
             ]
         pnode_action(pnodes, action)
+
 
 @node.command(
     "jsaction", help="Will apply the action on all nodes (cpu, storage, controller)"
@@ -1375,10 +1490,12 @@ def node_jsaction(ctx, name, action):
             ]
         pnode_action(pnodes, action)
 
+
 @node.command("update", help="Update code and restart required services on node")
 @click.pass_context
 def node_update(ctx):
     return _node_update(ctx)
+
 
 def _node_update(ctx):
     """
@@ -1391,6 +1508,7 @@ def _node_update(ctx):
     pnode_action(pnodes, "update")
     pnode_action(pnodes, "restart")
 
+
 @resources.command("writeconfig", help="Write system-config to kubernetes")
 @click.pass_context
 def write_system_config(ctx):
@@ -1399,6 +1517,7 @@ def write_system_config(ctx):
     """
     cluster = Cluster(ctx.obj["config"], ctx.obj["versions"])
     cluster.write_system_config()
+
 
 @resources.command("write", help="Rewrite all templates")
 @click.option("--development", default=False, is_flag=True)
@@ -1410,6 +1529,7 @@ def write_kube_resources(ctx, development):
     cluster = Cluster(ctx.obj["config"], ctx.obj["versions"], development)
     cluster.prepare_templates()
 
+
 @resources.command("applyall", help="Apply all kubernetes resources")
 @click.pass_context
 def kube_apply_all(ctx):
@@ -1418,6 +1538,7 @@ def kube_apply_all(ctx):
     """
     cluster = Cluster(ctx.obj["config"], ctx.obj["vesions"])
     cluster.kube_deploy()
+
 
 @resources.command("apply", help="Apply a specifified kubernetes resource")
 @click.option("--path", help="path to template")
@@ -1428,6 +1549,7 @@ def kube_apply(ctx, path):
     """
     cluster = Cluster(ctx.obj["config"], ctx.obj["versions"])
     cluster.apply_template(path, kind="deployment")
+
 
 @cluster.command("deploy", help="Deploy kubernetes cluster on controller nodes")
 @click.option(
@@ -1455,11 +1577,13 @@ def deploy_cluster(ctx, configure_cluster, force):
         cluster.install_kubernetes_cluster(kube_client)
     cluster.install_controller(kube_client)
 
+
 @cluster.command("update", help="Update cluster, delete existing resources and reapply")
 @click.option("--development", default=False, is_flag=True)
 @click.pass_context
 def update_cluster(ctx, development):
     return _update_cluster(ctx, development)
+
 
 def _update_cluster(ctx, development):
     """
@@ -1467,6 +1591,7 @@ def _update_cluster(ctx, development):
     """
     cluster = Cluster(ctx.obj["config"], ctx.obj["versions"], development)
     cluster.update()
+
 
 @cluster.command(
     "upgrade",
@@ -1521,6 +1646,7 @@ def upgrade_cluster(ctx, development):
         logging.error("Error:", exc_info=True)
         log("Failed to update environment.")
 
+
 @cluster.command("updatedomain", help="Update the environment certificates and domain")
 @click.pass_context
 def cluster_updatedomain(ctx):
@@ -1538,12 +1664,14 @@ def cluster_updatedomain(ctx):
     pnodes = get_pnodes(config, versions=ctx.obj["versions"], roles=["storage"])
     pnode_action(pnodes, "patch_ovs")
 
+
 @storage.command("applyconfig", help="Apply storage config")
 @click.pass_context
 def storage_apply_config(ctx):
     config = ctx.obj["config"]
     pnodes = get_pnodes(config, versions=ctx.obj["versions"], roles=["storage"])
     pnode_action(pnodes, "patch_ovs")
+
 
 if __name__ == "__main__":
     cli()
