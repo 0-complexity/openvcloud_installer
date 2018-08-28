@@ -63,3 +63,10 @@ build syncthing_sidecar:
   image: openvcloud/imagebuilder
   script: "python3 scripts/buildlib/builder.py scripts/dockers/syncthing_sidecar"
   when: manual
+auto build:
+  stage: build
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py --all ."
+  only:
+    variables:
+    - $autobuild
