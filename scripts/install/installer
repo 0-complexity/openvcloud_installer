@@ -741,7 +741,6 @@ class JumpScale7(Node):
         )
 
     def configure_iyo_api_key(self, apikey):
-        # TODO: check if we can do this in js9
         label = apikey["label"]
         clientid = self.config["itsyouonline"]["clientId"]
         secret = self.config["itsyouonline"]["clientSecret"]
@@ -808,9 +807,10 @@ class JumpScale7(Node):
         self.patch_ovs()
 
     def patch_ovs(self):
-        status, output, _ = self.remote.run(
+        output = self.remote.run(
             'ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"'
-        )
+        ).stdout
+
         if "MASTER" in output:
             self.remote.run(
                 "python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py"

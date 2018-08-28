@@ -1,12 +1,16 @@
-from js9 import j
+import subprocess
+import yaml
 import click
 import json
 import copy
 import jinja2
 import random
+import os
+from baldur.remote import Remote
 
 REPO_PATH = "/opt/code/github/0-complexity/openvcloud_installer"
-specs = j.data.serializer.yaml.load("specs.yaml")
+with open("specs.yaml", "r") as spcs:
+    specs = yaml.load(spcs)
 nodes_specs = specs["nodes"]
 disks_specs = specs["disks"]
 sizes_specs = specs["sizes"]
@@ -16,22 +20,21 @@ hdd = sizes_specs["hdd"]
 
 
 def prepare_config(config_path):
-    config = j.data.serializer.yaml.load(config_path)
-    cmd = "echo '{}' | ssh-keygen -y -f /dev/stdin".format(config["ssh"]["private-key"])
-    _, public_key, _ = j.sal.process.execute(cmd, showout=False)
-    config["ssh"]["public-key"] = public_key
-    j.clients.ssh.start_ssh_agent()
-    if j.sal.fs.exists("~/.ssh/id_rsa"):
-        j.clients.ssh.load_ssh_key("~/.ssh/id_rsa")
+    with open(config_path, "r") as cfg:
+        config = yaml.load(cfg)
+
+    cmd = ["ssh-keygen", "-y", "-f", "/dev/stdin"]
     key = config["ssh"]["private-key"]
-    j.sal.process.execute('echo "%s" | ssh-add /dev/stdin' % key, showout=False)
+    public_key = subprocess.run(
+        cmd, stdout=subprocess.PIPE, input=key.encode("utf-8")
+    ).stdout.decode("utf-8")
+    config["ssh"]["public-key"] = public_key
     return config
 
 
 def render(context, loader, filename):
     data = jinja2.Environment(loader=loader).get_template(filename).render(context)
-    local = j.tools.prefab.local
-    local.core.dir_ensure("output")
+    os.makedirs("output", exist_ok=True)
     with open("output/{}".format(filename), "w") as f:
         f.write(data)
 
@@ -45,12 +48,12 @@ def is_mounted(disk):
     return False
 
 
-def get_node_disks(nodeip):
-    prefab = j.tools.prefab.getFromSSH(nodeip)
-    rc, out = prefab.core.execute_bash("lsblk -b -J -o name,size,rota,mountpoint")
+def get_node_disks(nodeip, config):
+    remote = Remote(nodeip, username="root", pkey=config["ssh"]["private-key"])
+    res = remote.run("lsblk -b -J -o name,size,rota,mountpoint", check=False)
     disks = []
-    if rc == 0:
-        disks = json.loads(out)["blockdevices"]
+    if res.exit_status == 0:
+        disks = json.loads(res.stdout)["blockdevices"]
         for disk in disks:
             disk["mounted"] = is_mounted(disk)
             disk["size"] = float(disk["size"]) / (1024 ** 3)
@@ -151,7 +154,9 @@ def main(config_path):
     nodes.extend(cpu_nodes)
     for node in nodes:
         # get nodes disks and validate them
-        node_disks = get_node_disks(node["management"]["ipaddress"].split("/")[0])
+        node_disks = get_node_disks(
+            node["management"]["ipaddress"].split("/")[0], config
+        )
         validate_node_disks(node["alias"], disks_specs, node_disks)
         # get nodes ips
         node_ip_key = "{}_ip".format(node["alias"])

@@ -24,7 +24,7 @@ spec:
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/
         - name: ENV_CONFIG
           value: /opt/cfg/system/system-config.yaml
-        image: openvcloud/js9inst
+        image: openvcloud/ninstaller
         imagePullPolicy: Always
         name: ovs-container
         ports:

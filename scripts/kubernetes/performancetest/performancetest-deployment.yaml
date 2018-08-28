@@ -14,9 +14,9 @@ spec:
     spec:
       restartPolicy: Always
       containers:
-      - name: js9-container
+      - name: management-container
         imagePullPolicy: Always
-        image: openvcloud/js9:9.3.0
+        image: openvcloud/management
         command: ['/bin/bash']
         args: ['-c', '/sbin/init']
         workingDir: /opt/code/github/0-complexity/G8_testing/performance_testing/scripts

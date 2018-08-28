@@ -8,20 +8,15 @@ build js7:
   image: openvcloud/imagebuilder
   script: "python3 scripts/buildlib/builder.py scripts/dockers/js7"
   when: manual
-build js9:
-  stage: build
-  image: openvcloud/imagebuilder
-  script: "python3 scripts/buildlib/builder.py scripts/dockers/js9"
-  when: manual
-build js9inst:
-  stage: build
-  image: openvcloud/imagebuilder
-  script: "python3 scripts/buildlib/builder.py scripts/dockers/js9inst"
-  when: manual
 build management:
   stage: build
   image: openvcloud/imagebuilder
   script: "python3 scripts/buildlib/builder.py scripts/dockers/management"
+  when: manual
+build ninstaller:
+  stage: build
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/ninstaller"
   when: manual
 build grafana-init:
   stage: build

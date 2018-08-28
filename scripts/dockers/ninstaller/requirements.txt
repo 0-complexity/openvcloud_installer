@@ -1,0 +1,2 @@
+pycrypto>=2.6.1
+npyscreen>=4.10.5
