@@ -22,7 +22,7 @@ def get_manifestdata():
         resp = requests.get(url)
         resp.raise_for_status()
         MANIFESTDATA.update(yaml.load(resp.content))
-    return MANIFESTDATA or {}
+    return MANIFESTDATA or {'images': {}, 'repos': []}
 
 
 class Image:
@@ -104,7 +104,7 @@ class Builder:
     def get_version(self, url):
         if self.version == "master":
             return "branch", self.version
-        for repo in get_manifestdata():
+        for repo in get_manifestdata()['repos']:
             if url == repo["url"]:
                 return list(repo["target"].items())[0]
 
@@ -141,13 +141,18 @@ class Builder:
                 versiontype, version = self.get_version(repo)
                 self.clone_repo(repo, version)
         name = os.path.basename(self.builddir)
-        version = "latest" if self.version == "master" else self.version
-        imagename = "openvcloud/{}:{}".format(name, version)
+        for imagename, imageversion in get_manifestdata()['images'].items():
+            if imagename == 'openvcloud/{}'.format(name):
+                break
+        else:
+            imagename = 'openvcloud/{}'.format(name)
+            imageversion = 'latest'
+        imagenameversion = "{}:{}".format(imagename, imageversion)
         subprocess.check_call(
-            ["docker", "build", "-t", imagename, "--no-cache", "--force-rm", "."],
+            ["docker", "build", "-t", imagenameversion, "--no-cache", "--force-rm", "."],
             cwd=self.builddir,
         )
-        subprocess.check_call(["docker", "push", imagename])
+        subprocess.check_call(["docker", "push", imagenameversion])
 
 
 if __name__ == "__main__":
