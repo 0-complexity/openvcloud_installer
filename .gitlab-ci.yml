@@ -6,7 +6,10 @@ stages:
 .release_template: &release_definition
   only:
     variables:
-      - $VERSION != "9.9.9"
+      - $VERSION
+  except:
+    variables:
+      - $VERSION == "9.9.9"
 
 .build_template: &build_definition
   stage: build
