@@ -140,20 +140,22 @@ class Builder:
             for repo in repos["repos"]:
                 versiontype, version = self.get_version(repo)
                 self.clone_repo(repo, version)
-        name = os.path.basename(self.builddir)
-        for imagename, imageversion in get_manifestdata()['images'].items():
-            if imagename == 'openvcloud/{}'.format(name):
-                break
+        imagename = os.path.basename(self.builddir)
+        if self.version == "master":
+            imageversion = "latest"
         else:
-            imagename = 'openvcloud/{}'.format(name)
-            imageversion = 'latest'
-        imagenameversion = "{}:{}".format(imagename, imageversion)
+            for name, imageversion in get_manifestdata()['images'].items():
+                if name == 'openvcloud/{}'.format(imagename):
+                    break
+            else:
+                imageversion = 'latest'
+        imagenameversion = "openvcloud/{}:{}".format(imagename, imageversion)
         subprocess.check_call(
             ["docker", "build", "-t", imagenameversion, "--no-cache", "--force-rm", "."],
             cwd=self.builddir,
         )
         if publish:
-            subprocess.check_call(["docker", "push", imagename])
+            subprocess.check_call(["docker", "push", imagenameversion])
 
 
 if __name__ == "__main__":

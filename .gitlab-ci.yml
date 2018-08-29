@@ -55,6 +55,9 @@ build slightcar:
 build syncthing_sidecar:
   <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/syncthing_sidecar"
+build zero-access:
+  <<: *build_definition
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/0-access"
 auto build:
   stage: build
   image: openvcloud/imagebuilder
