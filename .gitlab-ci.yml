@@ -78,3 +78,4 @@ make release images:
 make release logs:
   <<: *release_definition
   stage: release
+  script: "true"
