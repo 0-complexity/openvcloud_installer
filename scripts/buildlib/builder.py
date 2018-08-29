@@ -41,10 +41,10 @@ class Image:
                     image = line.split()[1]
                     return image
 
-    def build(self):
+    def build(self, publish=True):
         print("Building {}".format(self.name))
         builder = Builder(self.path)
-        builder.build()
+        builder.build(publish)
 
     def exists(self):
         response = requests.get(TAGAPI.format(self.name))
@@ -89,10 +89,10 @@ class BuildAll:
 
         self.images.sort(key=sorter)
 
-    def build(self):
+    def build(self, publish):
         for image in self.images:
             if image.version == "latest" or not image.exists():
-                image.build()
+                image.build(publish)
 
 
 class Builder:
@@ -127,7 +127,7 @@ class Builder:
         repodir = os.path.join(self.builddir, "code", domain, orgname, reponame)
         self._clone(repodir, url, version)
 
-    def build(self):
+    def build(self, publish):
         buildyaml = os.path.join(self.builddir, "build.yaml")
         dockerfile = os.path.join(self.builddir, "Dockerfile")
         if not os.path.exists(dockerfile):
@@ -152,16 +152,18 @@ class Builder:
             ["docker", "build", "-t", imagenameversion, "--no-cache", "--force-rm", "."],
             cwd=self.builddir,
         )
-        subprocess.check_call(["docker", "push", imagenameversion])
+        if publish:
+            subprocess.check_call(["docker", "push", imagename])
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("path")
     parser.add_argument("--all", default=False, action="store_true")
+    parser.add_argument("--no-publish", default=False, action="store_true")
     options = parser.parse_args()
     if options.all:
         builder = BuildAll()
     else:
         builder = Builder(options.path)
-    builder.build()
+    builder.build(not options.no_publish)

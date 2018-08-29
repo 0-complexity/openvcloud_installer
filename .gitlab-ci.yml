@@ -1,68 +1,57 @@
+stages:
+  - tag
+  - build
+  - release
+
+.release_template: &release_definition
+  only:
+    variables:
+      - $VERSION != "9.9.9"
+
+.build_template: &build_definition
+  stage: build
+  image: openvcloud/imagebuilder
+  when: manual
+
 build cb_master:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/cb_master"
-  when: manual
 build js7:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/js7"
-  when: manual
 build management:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/management"
-  when: manual
 build ninstaller:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/ninstaller"
-  when: manual
 build grafana-init:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/grafana-init"
-  when: manual
 build nginx:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/nginx"
-  when: manual
 build nginx-init:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/nginx-init"
-  when: manual
 build pxeboot:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/pxeboot"
-  when: manual
 build pxeboot-httpd:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/pxeboot-httpd"
-  when: manual
 build pxeboot-init:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/pxeboot-init"
-  when: manual
 build qa:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/qa"
-  when: manual
 build slightcar:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/slightcar"
-  when: manual
 build syncthing_sidecar:
-  stage: build
-  image: openvcloud/imagebuilder
+  <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/syncthing_sidecar"
-  when: manual
 auto build:
   stage: build
   image: openvcloud/imagebuilder
@@ -70,3 +59,19 @@ auto build:
   only:
     variables:
     - $autobuild
+
+make release tags:
+  <<: *release_definition
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/releaser --no-publish"
+  stage: tag
+
+make release images:
+  <<: *release_definition
+  stage: build
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py --all ."
+
+make release logs:
+  <<: *release_definition
+  stage: release
