@@ -369,18 +369,24 @@ class Portal(object):
         with open("/opt/cfg/version/versions-manifest.yaml") as file_discriptor:
             data_str = file_discriptor.read()
             data_obj = yaml.load(data_str)
-        version = self.scl.version.new()
-        version_dict = self.scl.version.searchOne({"name": data_obj["version"]})
+
         self.scl.version.updateSearch(
             {"status": "CURRENT"}, {"$set": {"status": "PREVIOUS"}}
         )
+
+        version = self.scl.version.new()
+        version_dict = self.scl.version.searchOne({"name": data_obj["version"]})
         if version_dict:
-            version.updateTime = j.base.time.getTimeEpoch()
+            version.dict2obj(version_dict)
+        else:
             version.name = data_obj["version"]
-            version.url = data_obj["url"]
-            version.manifest = data_str
-            version.status = "CURRENT"
-            self.scl.version.set(version)
+            version.creationTime = j.base.time.getTimeEpoch()
+
+        version.url = data_obj["url"]
+        version.manifest = data_str
+        version.updateTime = j.base.time.getTimeEpoch()
+        version.status = "CURRENT"
+        self.scl.version.set(version)
 
 
 if __name__ == "__main__":
