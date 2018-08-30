@@ -35,6 +35,9 @@ spec:
           - name: tun-device
             mountPath: /dev/net/tun
             subPath: tun
+          - mountPath: /dev/shm
+            name: dshm
+            
         ports:
         - containerPort: 2205
       volumes:
@@ -49,6 +52,9 @@ spec:
         hostPath:
           path: /dev/net/
           type: Directory
+      - name: dshm
+        emptyDir:
+          medium: Memory
 
 
 
