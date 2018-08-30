@@ -50,6 +50,9 @@ spec:
           subPath: system-config.yaml
         - name: sync-config
           mountPath: /var/syncthing/config
+        - name: kube-client
+          mountPath: /usr/local/bin/kubectl
+          subPath: kubectl
       volumes:
       - name:  syncthing-persistant
         hostPath:
@@ -60,4 +63,8 @@ spec:
           name: system-config
       - name: sync-config
         emptyDir: {}
+      - name: kube-client
+        hostPath:
+          path: /usr/local/bin
+          type: Directory
 

@@ -1617,7 +1617,7 @@ def upgrade_cluster(ctx, development):
         pnodes = get_upgradable_pnodes(pnodes, config)
         if not [node for node in pnodes if "controller" in node.roles]:
             raise RuntimeError(
-                "Cannot preform upgrade, needs at least one available controller node."
+                "Cannot perform upgrade, needs at least one available controller node."
             )
     except:
         portal_api_call("cloudbroker/grid/upgradeFailed", ctx.obj["config"])
