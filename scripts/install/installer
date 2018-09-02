@@ -175,17 +175,6 @@ def get_enabled_pnodes(config):
     return nodes
 
 
-def get_upgradable_pnodes(pnodes, config):
-    upgradable_pnodes = list()
-    enabled_pnodes = get_enabled_pnodes(config)
-    for node in pnodes:
-        if node.name in enabled_pnodes:
-            if not node.is_up():
-                raise RuntimeError("Can't connect to node {}".format(node.name))
-            upgradable_pnodes.append(node)
-    return upgradable_pnodes
-
-
 def pnode_action(pnodes, action):
     futures = {}
     running_futures = {}
@@ -1593,13 +1582,46 @@ def _update_cluster(ctx, development):
     cluster.update()
 
 
+@cluster.command("pre-flight-check")
+@click.pass_context
+def preFlightCheck(ctx):
+    """
+    Check if the environment is ready for upgrade
+    """
+
+    config = ctx.obj["config"]
+    enabled_pnodes = get_enabled_pnodes(config)
+    pnodes = get_pnodes(
+        config, versions=ctx.obj["versions"], roles=["cpu", "storage", "controller"]
+    )
+
+    offline_nodes = list()
+    for node in pnodes:
+        if node.name in enabled_pnodes:
+            if not node.is_up():
+                offline_nodes.append(node.name)
+
+    if offline_nodes:
+        print(
+            "Can't connect to the following node(s): {}. Please either investigate the issue or put the node(s) in maintenance".format(
+                ", ".join(offline_nodes)
+            )
+        )
+        sys.exit(1)
+
+    if not [node for node in pnodes if "controller" in node.roles]:
+        print("Cannot perform upgrade, needs at least one available controller node")
+        sys.exit(1)
+
+
 @cluster.command(
     "upgrade",
     help="Upgrade cluster, update all nodes and cluster and update kubernetes resources",
 )
 @click.option("--development", default=False, is_flag=True)
+@click.option("--pre-flight-check", default=False, is_flag=True)
 @click.pass_context
-def upgrade_cluster(ctx, development):
+def upgrade_cluster(ctx, development, pre_flight_check):
     """
     Will upgrade the env.
     """
@@ -1608,20 +1630,13 @@ def upgrade_cluster(ctx, development):
     log("Timestamp: {} UTC".format(timestamp))
     log("Upgrading to version: ({}:{}) ...".format(ovcversion.type, ovcversion.version))
 
+    if pre_flight_check:
+        preFlightCheck(ctx)
+
     config = ctx.obj["config"]
     pnodes = get_pnodes(
         config, versions=ctx.obj["versions"], roles=["cpu", "storage", "controller"]
     )
-
-    try:
-        pnodes = get_upgradable_pnodes(pnodes, config)
-        if not [node for node in pnodes if "controller" in node.roles]:
-            raise RuntimeError(
-                "Cannot perform upgrade, needs at least one available controller node."
-            )
-    except:
-        portal_api_call("cloudbroker/grid/upgradeFailed", ctx.obj["config"])
-        raise
 
     cluster = Cluster(config, ctx.obj["versions"], development)
     cluster.upgrade()
