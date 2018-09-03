@@ -22,7 +22,7 @@ def get_manifestdata():
         resp = requests.get(url)
         resp.raise_for_status()
         MANIFESTDATA.update(yaml.load(resp.content))
-    return MANIFESTDATA or {'images': {}, 'repos': []}
+    return MANIFESTDATA or {"images": {}, "repos": []}
 
 
 class Image:
@@ -69,7 +69,7 @@ class BuildAll:
         images = {}
         for imagename, imageversion in get_manifestdata()["images"].items():
             if imagename.startswith("openvcloud"):
-                name = imagename.split("/", 1)[-1].split(':')[0]
+                name = imagename.split("/", 1)[-1].split(":")[0]
                 imagepath = os.path.join(repodir, "scripts", "dockers", name)
                 image = Image(name, imageversion, imagepath)
                 self.images.append(image)
@@ -79,7 +79,7 @@ class BuildAll:
             idx = 0
             parent = img.get_parent()
             while parent and parent.startswith("openvcloud"):
-                name = parent.split("/", 1)[-1].split(':')[0]
+                name = parent.split("/", 1)[-1].split(":")[0]
                 if name in images:
                     idx += 1
                     parent = images[name].get_parent()
@@ -104,9 +104,10 @@ class Builder:
     def get_version(self, url):
         if self.version == "master":
             return "branch", self.version
-        for repo in get_manifestdata()['repos']:
+        for repo in get_manifestdata()["repos"]:
             if url == repo["url"]:
                 return list(repo["target"].items())[0]
+        return "branch", "master"
 
     def _clone(self, repodir, url, version):
         if os.path.exists(repodir):
@@ -144,16 +145,19 @@ class Builder:
         if self.version == "master":
             imageversion = "latest"
         else:
-            for name, imageversion in get_manifestdata()['images'].items():
-                if name == 'openvcloud/{}'.format(imagename):
+            for name, imageversion in get_manifestdata()["images"].items():
+                if name == "openvcloud/{}".format(imagename):
                     break
             else:
-                imageversion = 'latest'
+                imageversion = "latest"
         imagenameversion = "openvcloud/{}:{}".format(imagename, imageversion)
-        subprocess.check_call(
-            ["docker", "build", "-t", imagenameversion, "--no-cache", "--force-rm", "."],
-            cwd=self.builddir,
-        )
+        dockerbuild = ["docker", "build", "--pull"]
+        for env in ["VERSION", "MANIFESTURL", "PRIVATEKEY", "GITTOKEN"]:
+            if env in os.environ:
+                dockerbuild.append("--build-arg")
+                dockerbuild.append("{}={}".format(env, os.environ.get(env)))
+        dockerbuild.extend(["-t", imagenameversion, "--no-cache", "--force-rm", "."])
+        subprocess.check_call(dockerbuild, cwd=self.builddir)
         if publish:
             subprocess.check_call(["docker", "push", imagenameversion])
 

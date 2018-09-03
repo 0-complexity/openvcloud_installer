@@ -6,10 +6,7 @@ stages:
 .release_template: &release_definition
   only:
     variables:
-      - $VERSION
-  except:
-    variables:
-      - $VERSION == "9.9.9"
+      - $RELEASE
 
 .build_template: &build_definition
   stage: build
@@ -69,16 +66,26 @@ auto build:
 make release tags:
   <<: *release_definition
   image: openvcloud/imagebuilder
+  variables:
+      VERSION: "$RELEASE"
+      MANIFESTURL: "https://raw.githubusercontent.com/0-complexity/devmanifests/master/manifests/"
   script: "python3 scripts/buildlib/builder.py scripts/dockers/releaser --no-publish"
   stage: tag
 
 make release images:
   <<: *release_definition
   stage: build
+  variables:
+      VERSION: "$RELEASE"
+      MANIFESTURL: "https://raw.githubusercontent.com/0-complexity/devmanifests/master/manifests/"
   image: openvcloud/imagebuilder
   script: "python3 scripts/buildlib/builder.py --all ."
 
 make release logs:
   <<: *release_definition
   stage: release
-  script: "true"
+  variables:
+      VERSION: "$RELEASE"
+      MANIFESTURL: "https://raw.githubusercontent.com/0-complexity/devmanifests/master/manifests/"
+  image: openvcloud/imagebuilder
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/notesgen --no-publish"
