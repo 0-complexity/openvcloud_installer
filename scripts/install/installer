@@ -443,6 +443,7 @@ class AbstractConfig:
         node.write_file("/var/ovc/pxeboot/images/pubkey", pub_key)
         chmod_command = """
         chmod 600 {}/.ssh/id_rsa.pub
+        chmod 600 {}/.ssh/id_rsa
         chmod 777 /var/ovc/pxeboot/images/pubkey
         """.format(
             ovcdir
