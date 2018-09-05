@@ -442,11 +442,11 @@ class AbstractConfig:
         node.run("mkdir -p {0} && chmod 777 {0}".format("/var/ovc/pxeboot/images/"))
         node.write_file("/var/ovc/pxeboot/images/pubkey", pub_key)
         chmod_command = """
-        chmod 600 {}/.ssh/id_rsa.pub
-        chmod 600 {}/.ssh/id_rsa
+        chmod 600 {ovc}/.ssh/id_rsa.pub
+        chmod 600 {ovc}/.ssh/id_rsa
         chmod 777 /var/ovc/pxeboot/images/pubkey
         """.format(
-            ovcdir
+            ovc=ovcdir
         )
         node.run(chmod_command)
 
@@ -873,8 +873,7 @@ class Cluster(AbstractConfig):
         for node in self.nodes:
             node.run("sed -i.bak '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab")
         etcdcluster.install_cluster(self.nodes)
-        # patch install_master to not use rlannel
-        k8s_config_data, self.join_line = kube_client.install_kube_masters(
+        self.join_line, k8s_config_data = kube_client.install_kube_masters(
             self.nodes,
             unsafe=True,
             external_ips=self.managementips,
