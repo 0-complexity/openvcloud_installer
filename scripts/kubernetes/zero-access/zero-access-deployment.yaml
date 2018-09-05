@@ -16,7 +16,7 @@ spec:
       containers:
       - name: zero-access-container
         imagePullPolicy: Always
-        image: openvcloud/0-access:OVC-2.4.4
+        image: openvcloud/0-access
         volumeMounts:
         - name: ssh-dir
           mountPath: /root/.ssh
@@ -32,6 +32,7 @@ spec:
       - name: recording
         hostPath:
           path: /var/ovc/0-access/
+
           type: Directory
       - name: ssh-dir
         hostPath:
