@@ -61,6 +61,7 @@ ISINTERACTIVE = sys.stdout.isatty()
 status = {}
 lock = threading.Lock()
 logging.raiseExceptions = False
+logging.getLogger("paramiko").setLevel(logging.ERROR)
 
 
 def log(msg):
