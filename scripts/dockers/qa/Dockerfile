@@ -15,6 +15,7 @@ RUN chmod 777 /opt/code/github/0-complexity/openvcloud/tests/ovc_master_hosted/P
 
 RUN cd /opt/code/github/0-complexity/openvcloud/tests && \
 pip install -r requirements.txt && pip3 install -r ovc_master_hosted/Portal/requirements.txt
+RUN pip3 install pyyaml
 
 RUN ln -fs /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
 RUN ln -fs /usr/lib/chromium-browser/chromedriver /usr/local/bin/chromedriver

@@ -38,6 +38,6 @@ ENVNAME=$(jspython -c "${script}")
 # register runners
 for i in $(eval echo {1..$RUNNERS})
 do
-   gitlab-runner register --non-interactive --url "${URL}" --registration-token "${TOKEN}" --executor "shell" --description "${ENVNAME}-runner-${i}" --tag-list "${ENVNAME}"
+   gitlab-runner register --non-interactive --url "${URL}" --registration-token "${TOKEN}" --executor "shell" --description "${ENVNAME}-runner-${i}" --tag-list "${ENVNAME}" --run-untagged
    gitlab-runner start "${ENVNAME}-runner-${i}"
 done
