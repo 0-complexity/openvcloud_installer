@@ -370,22 +370,25 @@ class Portal(object):
             data_str = file_discriptor.read()
             data_obj = yaml.load(data_str)
 
-        self.scl.version.updateSearch(
-            {"status": "CURRENT"}, {"$set": {"status": "PREVIOUS"}}
-        )
-
         version = self.scl.version.new()
-        version_dict = self.scl.version.searchOne({"name": data_obj["version"]})
-        if version_dict:
-            version.dict2obj(version_dict)
-        else:
+
+        installing_version = self.scl.version.searchOne({"status": "INSTALLING"})
+        current_version = self.scl.version.searchOne({"status": "CURRENT"})
+
+        if installing_version and current_version:
+            version.dict2obj(current_version)
+            version.status = "PREVIOUS"
+        elif not current_version:
             version.name = data_obj["version"]
+            version.status = "CURRENT"
             version.creationTime = j.base.time.getTimeEpoch()
+        elif not installing_version:
+            version.dict2obj(current_version)
 
         version.url = data_obj["url"]
         version.manifest = data_str
         version.updateTime = j.base.time.getTimeEpoch()
-        version.status = "CURRENT"
+
         self.scl.version.set(version)
 
 
