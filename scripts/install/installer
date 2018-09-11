@@ -123,10 +123,16 @@ def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
 
 
-def get_pnodes(config, versions=None, roles=None):
+def get_pnodes(config, versions=None, roles=None, enabled_only=False):
     pnodes = []
     roles = set(roles or [])
-    for pnode in config["nodes"]:
+    nodes = config["nodes"]
+
+    if enabled_only:
+        enabled_pnodes = get_enabled_pnodes(config)
+        nodes = [node for node in config["nodes"] if node["name"] in enabled_pnodes]
+
+    for pnode in nodes:
         if roles.intersection(set(pnode["roles"])):
             pnodes.append(PNode(config, pnode["name"], versions))
     return pnodes
@@ -1636,7 +1642,10 @@ def upgrade_cluster(ctx, development, pre_flight_check):
 
     config = ctx.obj["config"]
     pnodes = get_pnodes(
-        config, versions=ctx.obj["versions"], roles=["cpu", "storage", "controller"]
+        config,
+        versions=ctx.obj["versions"],
+        roles=["cpu", "storage", "controller"],
+        enabled_only=True,
     )
 
     cluster = Cluster(config, ctx.obj["versions"], development)
