@@ -432,24 +432,24 @@ class AbstractConfig:
         adds pub and priv key to relative envs
         """
         # create dir
-        ovcdir = "/var/ovc/"
-        node.run("mkdir -p {0}/.ssh && chmod 600 {0}/.ssh".format(ovcdir))
-        node.run("mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh".format(ovcdir))
-        # add keys
+        ssh_dirs = ["/var/ovc", "/root"]
         node.authorize_key("root", pub_key)
-        node.write_file("{}/.ssh/id_rsa".format(ovcdir), priv_key)
-        node.write_file("{}/.ssh/id_rsa.pub".format(ovcdir), pub_key)
-        node.write_file("{}/.ssh/authorized_keys".format(ovcdir), pub_key)
+        for ssh_dir in ssh_dirs:
+            node.run("mkdir -p {0}/.ssh && chmod 600 {0}/.ssh".format(ssh_dir))
+            node.run("mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh".format(ssh_dir))
+            # add keys
+            node.write_file("{}/.ssh/id_rsa".format(ssh_dir), priv_key)
+            node.write_file("{}/.ssh/id_rsa.pub".format(ssh_dir), pub_key)
+            chmod_command = """
+            chmod 600 {0}/.ssh/id_rsa.pub
+            chmod 600 {0}/.ssh/id_rsa
+            """.format(ssh_dir)
+            node.run(chmod_command)
+            if not node.exists("{}/.ssh/authorized_keys".format(ssh_dir)):
+                node.write_file("{}/.ssh/authorized_keys".format(ssh_dir), pub_key)
         node.run("mkdir -p {0} && chmod 777 {0}".format("/var/ovc/pxeboot/images/"))
         node.write_file("/var/ovc/pxeboot/images/pubkey", pub_key)
-        chmod_command = """
-        chmod 600 {ovc}/.ssh/id_rsa.pub
-        chmod 600 {ovc}/.ssh/id_rsa
-        chmod 777 /var/ovc/pxeboot/images/pubkey
-        """.format(
-            ovc=ovcdir
-        )
-        node.run(chmod_command)
+        node.run("chmod 777 /var/ovc/pxeboot/images/pubkey")
 
     def get_new_keys(self):
         privatekey = self.first_node.read_file("/var/ovc/.ssh/id_rsa")
