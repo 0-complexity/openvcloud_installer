@@ -175,10 +175,10 @@ def portal_api_call(endpoint, config, params=None, data=None):
 
 def get_enabled_pnodes(config):
     response = portal_api_call(
-        "system/gridmanager/getNodes", config, data={"active": True}
+        "system/gridmanager/getNodes", config
     )
     response.raise_for_status()
-    nodes = [node["name"].split(".")[0] for node in response.json()]
+    nodes = [node["name"].split(".")[0] for node in response.json() if node["status"] == "ENABLED"]
     return nodes
 
 
