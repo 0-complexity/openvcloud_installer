@@ -602,6 +602,7 @@ class JumpScale7(Node):
         self.update_repo("jumpscale7", "*", js_version)
         self.log("Updating OpenvCloud repos")
         self.update_repo("0-complexity", "openvcloud", ovc_version)
+        self.update_repo("0-complexity", "openvcloud_ays", ovc_version)
         self.update_repo("0-complexity", "openvcloud_installer", ovc_version)
 
     def upgrade(self):
