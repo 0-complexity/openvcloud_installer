@@ -129,7 +129,7 @@ def get_pnodes(config, versions=None, roles=None, enabled_only=False):
     nodes = config["nodes"]
 
     if enabled_only:
-        enabled_pnodes = get_enabled_pnodes(config)
+        enabled_pnodes = [name for name, status in get_nodes_status(config).items() if status == "ENABLED"]
         nodes = [node for node in config["nodes"] if node["name"] in enabled_pnodes]
 
     for pnode in nodes:
@@ -173,13 +173,15 @@ def portal_api_call(endpoint, config, params=None, data=None):
     return response
 
 
-def get_enabled_pnodes(config):
+def get_nodes_status(config):
+    status_dict = dict()
     response = portal_api_call(
         "system/gridmanager/getNodes", config
     )
     response.raise_for_status()
-    nodes = [node["name"].split(".")[0] for node in response.json() if node["status"] == "ENABLED"]
-    return nodes
+    for node in response.json():
+        status_dict[node["name"].split(".")[0]] = node['status']
+    return status_dict
 
 
 def pnode_action(pnodes, action):
@@ -1589,25 +1591,31 @@ def _update_cluster(ctx, development):
     cluster.update()
 
 
-@cluster.command("pre-flight-check")
-@click.pass_context
-def preFlightCheck(ctx):
+def _preFlightCheck(ctx):
     """
     Check if the environment is ready for upgrade
     """
-
     config = ctx.obj["config"]
-    enabled_pnodes = get_enabled_pnodes(config)
+    nodes_status = get_nodes_status(config)
+
     pnodes = get_pnodes(
         config, versions=ctx.obj["versions"], roles=["cpu", "storage", "controller"]
     )
 
     offline_nodes = list()
     for node in pnodes:
-        if node.name in enabled_pnodes:
-            if not node.is_up():
+        if node.name in nodes_status.keys():
+            if nodes_status[node.name] == "ENABLED" and not node.is_up():
                 offline_nodes.append(node.name)
 
+            if "controller" in node.roles and nodes_status[node.name] != "ENABLED":
+                print("Cannot perform upgrade, controller node {} is not enabled".format(node.name))
+                sys.exit(1)
+
+        else:
+            print("Couldn't find node {}".format(node.name))
+            sys.exit(1)
+        
     if offline_nodes:
         print(
             "Can't connect to the following node(s): {}. Please either investigate the issue or put the node(s) in maintenance".format(
@@ -1616,17 +1624,21 @@ def preFlightCheck(ctx):
         )
         sys.exit(1)
 
-    if not [node for node in pnodes if "controller" in node.roles]:
-        print("Cannot perform upgrade, needs at least one available controller node")
-        sys.exit(1)
 
+@cluster.command("pre-flight-check")
+@click.pass_context
+def preFlightCheck(ctx):
+    """
+    Check if the environment is ready for upgrade
+    """
+    return _preFlightCheck(ctx)
 
 @cluster.command(
     "upgrade",
     help="Upgrade cluster, update all nodes and cluster and update kubernetes resources",
 )
 @click.option("--development", default=False, is_flag=True)
-@click.option("--pre-flight-check", default=False, is_flag=True)
+@click.option("--pre-flight-check", default=True, is_flag=True)
 @click.pass_context
 def upgrade_cluster(ctx, development, pre_flight_check):
     """
@@ -1638,7 +1650,7 @@ def upgrade_cluster(ctx, development, pre_flight_check):
     log("Upgrading to version: ({}:{}) ...".format(ovcversion.type, ovcversion.version))
 
     if pre_flight_check:
-        preFlightCheck(ctx)
+        _preFlightCheck(ctx)
 
     config = ctx.obj["config"]
     pnodes = get_pnodes(
