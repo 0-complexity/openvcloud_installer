@@ -6,33 +6,26 @@ MANIFEST_URL = "https://raw.githubusercontent.com/0-complexity/devmanifests/mast
 scl = j.clients.osis.getNamespace("system")
 pcl = j.clients.portal.getByInstance("main")
 
-
-def wait_until_update_done(upgradeTime, retry=180):
+def wait_until_upgrade_done(upgradeTime, retry=180):
     for _ in range(retry):
         try:
-            version = scl.version.searchOne(
-                {"status": "CURRENT", "creationTime": {"$gt": upgradeTime}}
-            )
-            if version:
-                print("Update is done")
+            current_version = scl.version.searchOne({"status": "CURRENT", "creationTime": {"$gt": upgradeTime}})
+            installing_version = scl.version.count({"status": "INSTALLING"})
+            if current_version and not installing_version:
                 break
             else:
                 time.sleep(10)
         except:
             time.sleep(10)
     else:
-        raise RuntimeError("Updating process exceeded time limit")
-
-
-def upgrade():
-    pcl.actors.cloudbroker.grid.upgrade(url=MANIFEST_URL)
-
+        raise RuntimeError("Upgrade process exceeded time limit")
 
 def action():
+    print("[*] Upgrading environment ...")
     upgradeTime = time.time()
-    upgrade()
-    wait_until_update_done(upgradeTime)
-
+    pcl.actors.cloudbroker.grid.upgrade(url=MANIFEST_URL)
+    wait_until_upgrade_done(upgradeTime)
+    print("[*] Upgrade is done.")
 
 if __name__ == "__main__":
     action()

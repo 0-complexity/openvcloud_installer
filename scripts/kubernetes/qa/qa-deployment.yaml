@@ -26,6 +26,23 @@ spec:
         env:
         - name: PATH
           value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/:/opt/code/github/0-complexity/openvcloud_installer/scripts/install/
+        - name: GITLAB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-ci
+              key: token
+        - name: GITLAB_RUNNERS
+          valueFrom:
+            secretKeyRef:
+              name: gitlab-ci
+              key: runners
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/bash", "-c", "sleep 10; /gitlab-runner.sh --token ${GITLAB_TOKEN} --runners ${GITLAB_RUNNERS}"]
+          preStop:
+            exec:
+              command: ['gitlab-runner', 'unregister', '--all-runners']
         volumeMounts:
           - name:  system-config
             mountPath: /opt/cfg/system
@@ -55,6 +72,11 @@ spec:
       - name: dshm
         emptyDir:
           medium: Memory
+      - name: gitlab-ci
+        secret:
+          secretName: gitlab-ci
+
+      
 
 
 
