@@ -38,6 +38,14 @@ spec:
         workingDir: /opt/jumpscale7/apps/jsagent/
         ports:
         - containerPort: 4446
+          name: jsagent-serv
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: jsagent-serv
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
         volumeMounts:
         - name: ssh-dir
           mountPath: /root/.ssh
@@ -54,6 +62,15 @@ spec:
         image: redis:3.2
         ports:
         - containerPort: 9999
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -p 
+            - '9999'
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 10
       volumes:
       - name: system-hrd
         emptyDir: {}

@@ -26,6 +26,14 @@ spec:
             - 0.0.0.0
           ports:
             - containerPort: 27017
+          livenessProbe:
+            exec:
+              command:
+              - mongo
+              - --eval
+              - "'{ping:1}'"
+            initialDelaySeconds: 5
+            periodSeconds: 10
           volumeMounts:
             - name: mongo-persistent-storage
               mountPath: /data/db

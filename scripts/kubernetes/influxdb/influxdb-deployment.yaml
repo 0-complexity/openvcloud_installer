@@ -25,6 +25,13 @@ spec:
         - containerPort: 25826
         - containerPort: 4242
         - containerPort: 8089
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8086
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
         volumeMounts:
           - mountPath: /root/.influxdb/
             name: influxdb-persistent-storage

@@ -45,6 +45,14 @@ spec:
             mountPath: /opt/jumpscale7/hrd/apps/
         ports:
         - containerPort: 5544
+          name: osis-server
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: osis-server
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
       volumes:
       - name: system-hrd
         emptyDir: {}

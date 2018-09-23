@@ -31,7 +31,15 @@ spec:
         image: openvcloud/nginx
         ports:
         - containerPort: 80
+          name: http
         - containerPort: 443
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
         volumeMounts:
         - name: nginx-config
           mountPath: /etc/nginx/nginx.conf

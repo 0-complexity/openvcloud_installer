@@ -28,6 +28,14 @@ spec:
         ports:
         - containerPort: 22
         - containerPort: 5000
+          name: zserver
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: zserver
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
       volumes:
       - name: recording
         hostPath:

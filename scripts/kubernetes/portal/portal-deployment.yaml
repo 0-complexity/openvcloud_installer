@@ -51,6 +51,14 @@ spec:
           mountPath: /opt/jumpscale7/var/resourcetracking
         ports:
         - containerPort: 82
+          name: portal-serv
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: portal-serv
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
       - name: jsagent-container
         imagePullPolicy: Always
         command: [/opt/jumpscale7/bin/jspython]
@@ -64,6 +72,14 @@ spec:
           mountPath: /opt/jumpscale7/hrd/apps/
         ports:
         - containerPort: 4446
+          name: jsagent-serv
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: jsagent-serv
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
       - name: redis-container
         imagePullPolicy: Always
         command: [redis-server]
@@ -71,6 +87,15 @@ spec:
         image: redis
         ports:
         - containerPort: 9999
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -p 
+            - '9999'
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 10
       volumes:
       - name: system-hrd
         emptyDir: {}

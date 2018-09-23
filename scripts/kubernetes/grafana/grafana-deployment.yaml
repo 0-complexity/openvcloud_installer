@@ -34,6 +34,14 @@ spec:
           value: "/etc/grafana/grafana.ini"
         ports:
         - containerPort: 3000
+          name: graf-serv
+        livenessProbe:
+          httpGet:
+            path: /
+            port: graf-serv
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
         volumeMounts:
         - name: grafana-config
           mountPath: /etc/grafana/
