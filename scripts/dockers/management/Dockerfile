@@ -8,7 +8,7 @@ COPY code/github.com/0-complexity/openvcloud/ /opt/code/github/0-complexity/open
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y sudo ipmitool curl python3 vim git sshpass gcc python3-dev
+    apt-get install -y sudo ipmitool curl python3 vim git sshpass gcc python3-dev tmux
 
 RUN curl https://bootstrap.pypa.io/get-pip.py | python3
 RUN pip3 install -r /opt/code/github/0-complexity/openvcloud_installer/requirements.txt

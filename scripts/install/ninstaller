@@ -394,7 +394,10 @@ class App(npyscreen.NPSApp):
 
 @click.command("Ncursers installer")
 @click.option("--config", help="Config file to deploy the cluster", envvar="ENV_CONFIG")
-def cli(config):
+@click.option(
+    "--version", help="Version to install(e.g., 2.4.4)", envvar="ENV_OVC_VERSION"
+)
+def cli(config, version):
     app = App(config)
     try:
         app.run()
@@ -409,6 +412,7 @@ def cli(config):
                             "python3",
                             "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
                             "--config={}".format(app.configpath),
+                            "--version={}".format(version),
                             "cluster",
                             app.clustercommand,
                         ]
@@ -451,9 +455,10 @@ def cli(config):
                             "python3",
                             "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
                             "--config={}".format(app.configpath),
+                            "--version={}".format(version),
                             "image",
                             "deploy",
-                            "—name=%s" % app.image,
+                            "--name=%s" % app.image,
                         ],
                         stdout=fd,
                         stderr=fd,

@@ -123,13 +123,19 @@ def get_ipaddress(net):
     return str(netaddr.IPNetwork(net).ip)
 
 
-def get_pnodes(config, versions=None, roles=None, enabled_only=False, active_only=False):
+def get_pnodes(
+    config, versions=None, roles=None, enabled_only=False, active_only=False
+):
     pnodes = []
     roles = set(roles or [])
     nodes = config["nodes"]
 
     if enabled_only:
-        enabled_pnodes = [name for name, status in get_nodes_status(config).items() if status == "ENABLED"]
+        enabled_pnodes = [
+            name
+            for name, status in get_nodes_status(config).items()
+            if status == "ENABLED"
+        ]
         nodes = [node for node in config["nodes"] if node["name"] in enabled_pnodes]
 
     for pnode in nodes:
@@ -177,12 +183,10 @@ def portal_api_call(endpoint, config, params=None, data=None):
 
 def get_nodes_status(config):
     status_dict = dict()
-    response = portal_api_call(
-        "system/gridmanager/getNodes", config
-    )
+    response = portal_api_call("system/gridmanager/getNodes", config)
     response.raise_for_status()
     for node in response.json():
-        status_dict[node["name"].split(".")[0]] = node['status']
+        status_dict[node["name"].split(".")[0]] = node["status"]
     return status_dict
 
 
@@ -341,7 +345,9 @@ def get_versions(config, version=None, url=None):
 
     if not version:
         if not url:
-            first_node = get_pnodes(config, roles=["controller"], active_only=True)[0].remote
+            first_node = get_pnodes(config, roles=["controller"], active_only=True)[
+                0
+            ].remote
             res = first_node.run(
                 "kubectl get configmap versions-manifest -o json", check=False
             )
@@ -446,14 +452,18 @@ class AbstractConfig:
         node.authorize_key("root", pub_key)
         for ssh_dir in ssh_dirs:
             node.run("mkdir -p {0}/.ssh && chmod 600 {0}/.ssh".format(ssh_dir))
-            node.run("mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh".format(ssh_dir))
+            node.run(
+                "mkdir -p {0}/root/.ssh && chmod 600 {0}/root/.ssh".format(ssh_dir)
+            )
             # add keys
             node.write_file("{}/.ssh/id_rsa".format(ssh_dir), priv_key)
             node.write_file("{}/.ssh/id_rsa.pub".format(ssh_dir), pub_key)
             chmod_command = """
             chmod 600 {0}/.ssh/id_rsa.pub
             chmod 600 {0}/.ssh/id_rsa
-            """.format(ssh_dir)
+            """.format(
+                ssh_dir
+            )
             node.run(chmod_command)
             if not node.exists("{}/.ssh/authorized_keys".format(ssh_dir)):
                 node.write_file("{}/.ssh/authorized_keys".format(ssh_dir), pub_key)
@@ -1303,7 +1313,9 @@ class PNode(JumpScale7):
             ipmiip, self.node["ipmi"]["username"], self.node["ipmi"]["password"]
         )
         cmd += " ".join(args)
-        first_node = get_pnodes(self.config, roles=["controller"], active_only=True)[0].remote
+        first_node = get_pnodes(self.config, roles=["controller"], active_only=True)[
+            0
+        ].remote
         first_node.run(cmd)
 
     def power_on(self):
@@ -1349,6 +1361,17 @@ class PNode(JumpScale7):
             node.sftp.unlink(dst)
 
     def install_os(self):
+        for retry in range(0,3):
+            try:
+                self._install_os()
+            except:
+                if retry != 2:
+                    time.sleep(10)
+                    continue
+                raise
+            break
+
+    def _install_os(self):
         self.enable_pxe()
         self.reboot()
         time.sleep(20)
@@ -1617,13 +1640,17 @@ def _preFlightCheck(ctx):
                 offline_nodes.append(node.name)
 
             if "controller" in node.roles and nodes_status[node.name] != "ENABLED":
-                print("Cannot perform upgrade, controller node {} is not enabled".format(node.name))
+                print(
+                    "Cannot perform upgrade, controller node {} is not enabled".format(
+                        node.name
+                    )
+                )
                 sys.exit(1)
 
         else:
             print("Couldn't find node {}".format(node.name))
             sys.exit(1)
-        
+
     if offline_nodes:
         print(
             "Can't connect to the following node(s): {}. Please either investigate the issue or put the node(s) in maintenance".format(
@@ -1640,6 +1667,7 @@ def preFlightCheck(ctx):
     Check if the environment is ready for upgrade
     """
     return _preFlightCheck(ctx)
+
 
 @cluster.command(
     "upgrade",
