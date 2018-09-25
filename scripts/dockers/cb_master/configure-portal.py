@@ -256,6 +256,24 @@ class Portal(object):
         if not self.lcl.networkids.exists(gid):
             networkids = {"id": gid, "networkids": list(newrange)}
             self.lcl.networkids.set(networkids)
+        # configure Disk-Types
+        disktypes = [
+            ('B', 'Boot Disk', "vmstor", 20, True),
+            ('M', 'Meta Data Disk', None, None, True),
+            ('D', 'Data Disk', "data", 20, True),
+            ('C', 'CD-ROM Disk', None, None, False),
+            ('P', 'Physical Disk', None, None, False)
+        ]
+        for disktype in disktypes:
+            dtype = self.ccl.disktype.searchOne({'id':disktype[0]})
+            if not dtype:
+                dtype = self.ccl.disktype.new()
+                dtype.id = disktype[0]
+                dtype.description = disktype[1]
+                dtype.vpool = disktype[2]
+                dtype.cacheratio = disktype[3]
+                dtype.snapshotable = disktype[4]
+                self.ccl.disktype.set(dtype)
 
     def configure_IYO(self):
         if not self.config["itsyouonline"].get("environment"):
