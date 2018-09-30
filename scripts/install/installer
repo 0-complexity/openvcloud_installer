@@ -20,6 +20,8 @@ from baldur import remote, network, teleport, kubernetes, etcdcluster
 import threading
 from functools import partial
 from io import StringIO
+import random
+import string
 
 Version = namedtuple("Version", ("version", "type"))
 REPO_URL = "https://github.com/0-complexity/openvcloud_installer"
@@ -979,6 +981,13 @@ class Cluster(AbstractConfig):
         self.kube_deploy()
         for node in self.nodes:
             self.remove_env_keys(node, self.config["ssh"]["public-key"])
+        output = self.kubectl('get secret -o json')
+        secrets = json.loads(output.stdout)
+        for secret in secrets['items']:
+            if secret['metadata']['name'] == 'ovs-cred':
+                break
+        else:
+            self.generate_edge_password()
 
     def apply_template(self, template, kind):
         self.kubectl("apply -f {template}".format(template=template))
@@ -1301,6 +1310,13 @@ class Cluster(AbstractConfig):
             self.delete()
         self.kube_deploy()
 
+    def generate_edge_password(self):
+        chars = string.digits + string.ascii_letters 
+        username = [random.choice(chars) for x in range(9)]
+        chars += string.punctuation
+        password = [random.choice(chars) for x in range(11)]
+        self.kubectl("kubectl create secret generic ovs-cred --from-literal=edgeuser={} --from-literal=edgepassword={} --dry-run -o yaml | kubectl apply -f  -".format(username, password))
+        
 
 class PNode(JumpScale7):
     def ipmi(self, *args):

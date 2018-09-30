@@ -46,6 +46,9 @@ spec:
           name: rundirlock
         - mountPath: /sys/fs/cgroup
           name: cgroup
+        - name: ovscred
+          mountPath: "/etc/ovscred"
+          readOnly: true
       volumes:
       - emptyDir: {}
         name: rundir
@@ -63,3 +66,9 @@ spec:
           path: /sys/fs/cgroup
           type: Directory
         name: cgroup
+
+      - name: ovscred
+        secret:
+          secretName: ovs-cred
+
+  

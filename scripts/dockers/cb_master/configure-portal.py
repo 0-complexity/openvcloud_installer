@@ -111,6 +111,14 @@ class Portal(object):
         cmd2 = "jsuser add -d %s:%s:admin:fakeemail.test.com:jumpscale" % (user, passwd)
         j.do.execute(cmd2, dieOnNonZeroExitCode=False)
 
+    def get_ovs_config(self):
+        with open("/etc/ovscred/edgeuser", "r") as f:
+            username = f.read()
+        with open("/etc/ovscred/edgepassword", "r") as f:
+            password = f.read()
+        return {'edgeuser': username, 'edgepassword': password}
+
+
     def configure_user_groups(self, portalhrd):
         ovc_environment = self.config["itsyouonline"]["environment"]
         gid = j.application.whoAmI.gid
@@ -223,6 +231,11 @@ class Portal(object):
         if not grid.settings:
             grid.settings = limits
         grid.settings.update(limits)
+        ovs_config = self.get_ovs_config()
+        if grid.settings.get("ovs_credentials"):
+            grid.settings['ovs_credentials'].update(ovs_config)
+        else:
+            grid.settings['ovs_credentials'] = ovs_config
 
         self.scl.grid.set(grid)
         # register vnc url

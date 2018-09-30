@@ -24,7 +24,7 @@ ssh_keys:
 # Edge users
 
 edgeUsers:
-    - { name: edgeuser, password: {{password}} }
+    - { name: {{edgeuser}}, password: {{password}} }
     
 
 

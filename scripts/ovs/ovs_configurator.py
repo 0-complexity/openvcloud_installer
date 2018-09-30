@@ -120,6 +120,12 @@ def get_nodes(config, role="cpu"):
             nodes.append(node)
     return nodes
 
+def get_ovs_config():
+    with open("/etc/ovscred/edgeuser", "r") as f:
+        username = f.read()
+    with open("/etc/ovscred/edgepassword", "r") as f:
+        password = f.read()
+    return {'edgeuser': username, 'password': password}
 
 @click.command()
 @click.option(
@@ -128,6 +134,7 @@ def get_nodes(config, role="cpu"):
 def main(config_path):
     config = prepare_config(config_path)
     env_type = config["environment"]["type"]
+    ovs_config = get_ovs_config()
     loader = jinja2.FileSystemLoader("./templates/{}".format(env_type))
     nodes_ips = {}
     nodes = []
@@ -171,12 +178,10 @@ def main(config_path):
         "inventory",
     )
     chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-    password = ""
-    for i in range(10):
-        password += random.choice(chars)
     data = {}
     data["env_name"] = config["environment"]["subdomain"]
-    data["password"] = password
+    data["edgeuser"] = ovs_config['edgeuser']
+    data["password"] = ovs_config['edgepassword']
     data["ovs_repo_url"] = config["environment"]["ovs_repo_url"]
     data["ovs_version"] = config["environment"]["ovs_version"]
 
