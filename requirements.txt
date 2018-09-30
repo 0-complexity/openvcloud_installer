@@ -6,4 +6,4 @@ requests>=2.18.1
 jsonschema>=2.6.0
 gevent>=1.2.2
 Jinja2>=2.9.6
--e git+http://git.gig.tech/openvcloud/baldur#egg=baldur
+-e git+https://git.gig.tech/openvcloud/baldur#egg=baldur
