@@ -91,7 +91,7 @@ class BuildAll:
 
     def build(self, publish):
         for image in self.images:
-            if image.version in ["latest", "9.9.9"] or not image.exists():
+            if image.version == "latest" or not image.exists():
                 image.build(publish)
 
 
@@ -143,13 +143,13 @@ class Builder:
                 self.clone_repo(repo, version)
         imagename = os.path.basename(self.builddir)
         if self.version == "master":
-            imageversion = "9.9.9"
+            imageversion = "latest"
         else:
             for name, imageversion in get_manifestdata()["images"].items():
                 if name == "openvcloud/{}".format(imagename):
                     break
             else:
-                imageversion = "9.9.9"
+                imageversion = "latest"
         imagenameversion = "openvcloud/{}:{}".format(imagename, imageversion)
         dockerbuild = ["docker", "build", "--pull"]
         for env in ["VERSION", "MANIFESTURL", "PRIVATEKEY", "GITTOKEN"]:
