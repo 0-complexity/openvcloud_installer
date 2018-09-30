@@ -271,6 +271,7 @@ def prepare_config(config_path):
         {"path": "/var/ovc/influxdb", "sync": True},
         {"path": "/var/ovc/mongodb", "sync": False},
         {"path": "/var/ovc/pxeboot", "sync": True},
+        {"path": "/var/ovc/0-access-hostkeys", "sync": True},
         {"path": "/var/ovc/grafana", "sync": True},
         {"path": "/var/ovc/0-access", "sync": True},
         {"path": "/var/ovc/ssl", "sync": True},
@@ -969,12 +970,7 @@ class Cluster(AbstractConfig):
             self._install_kubectl(kube_client, node)
         self._install_kubectl(kube_client)
 
-        log("Preparing directories")
-        directories = self.config.get("directories")
-        for node in self.nodes:
-            for directory in directories:
-                node.run("mkdir -p {0} && chmod 777 {0}".format(directory["path"]))
-
+        self.prepare_directories()
         self.write_certificates()
         self.install_teleport()
         self.configure_keys()
@@ -988,6 +984,13 @@ class Cluster(AbstractConfig):
                 break
         else:
             self.generate_edge_password()
+
+    def prepare_directories(self):
+        log("Preparing directories")
+        directories = self.config.get("directories")
+        for node in self.nodes:
+            for directory in directories:
+                node.run("mkdir -p {0} && chmod 777 {0}".format(directory["path"]))
 
     def apply_template(self, template, kind):
         self.kubectl("apply -f {template}".format(template=template))
@@ -1063,6 +1066,7 @@ class Cluster(AbstractConfig):
         self.kubectl("apply -f {}".format(loc))
 
     def upgrade(self):
+        self.prepare_directories()
         self.prepare_templates()
         self._reapply_service("upgrader")
 
@@ -1377,7 +1381,7 @@ class PNode(JumpScale7):
             node.sftp.unlink(dst)
 
     def install_os(self):
-        for retry in range(0,3):
+        for retry in range(0, 3):
             try:
                 self._install_os()
             except:
