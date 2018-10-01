@@ -276,9 +276,11 @@ def prepare_config(config_path):
         {"path": "/var/ovc/.ssh", "sync": True, "chmod": 0o700},
         {"path": "/var/ovc/updatelogs", "sync": True},
     ]
+    dirpaths = set(dir["path"] for dir in default_dirs)
     for dir in config.get("directories", []):
-        if dir["path"] not in default_dirs:
+        if dir["path"] not in dirpaths:
             default_dirs.append(dir)
+            dirpaths.add(dir["path"])
     config["directories"] = default_dirs
     with open(
         "{}/scripts/kubernetes/config/config-validator.json".format(REPO_PATH), "r"
@@ -985,12 +987,15 @@ class Cluster(AbstractConfig):
 
     def prepare_directories(self):
         log("Preparing directories")
-        directories = self.config["directories"]
+        dirmodmap = {}
+        for dirmap in self.config["directories"]:
+            chmod = dirmap.get("chmod", 0o777) or 0o777
+            dirmodmap.setdefault(chmod, []).append(dirmap["path"])
+
         for node in self.nodes:
-            for directory in directories:
-                chmod = directory.get("chmod", 0o777) or 0o777
+            for mod, paths in dirmodmap.items():
                 node.run(
-                    "mkdir -p {0} && chmod {1:o} {0}".format(directory["path"], chmod)
+                    "mkdir -p {0} && chmod {1:o} {0}".format(" ".join(paths), mod)
                 )
 
     def apply_template(self, template, kind):
