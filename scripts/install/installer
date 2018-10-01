@@ -988,9 +988,9 @@ class Cluster(AbstractConfig):
         directories = self.config["directories"]
         for node in self.nodes:
             for directory in directories:
-                chmod = oct(directory.get("chmod", 0o777) or 0o777)
+                chmod = directory.get("chmod", 0o777) or 0o777
                 node.run(
-                    "mkdir -p {0} && chmod {1} {0}".format(directory["path"], chmod)
+                    "mkdir -p {0} && chmod {1:o} {0}".format(directory["path"], chmod)
                 )
 
     def apply_template(self, template, kind):
