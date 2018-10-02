@@ -272,7 +272,7 @@ class Portal(object):
         # configure Disk-Types
         disktypes = [
             ('B', 'Boot Disk', "vmstor", 20, True),
-            ('M', 'Meta Data Disk', None, None, True),
+            ('M', 'Meta Data Disk', "vmstor", 20, True),
             ('D', 'Data Disk', "data", 20, True),
             ('C', 'CD-ROM Disk', None, None, False),
             ('P', 'Physical Disk', None, None, False)
