@@ -41,15 +41,8 @@ metadata.openvcloud            =
     url:'git@github.com:0-complexity/openvcloud_ays',
 """
 REPOREVISIONS = {}
+BASE_FS_PATH = "/var/ovc/base_images/"
 
-WHOAMI = """
-email                          =
-
-fullname                       =
-
-git.login                      = ''
-git.passwd                     = ''
-"""
 ERROR_COLOR = u"\u001b[31m"
 RESET_COLOR = u"\u001b[0m"
 COLORBLUE = u"\u001b[34m"
@@ -560,70 +553,65 @@ class Node(AbstractConfig):
                     self._roles = node["roles"]
                     break
             else:
-                raise LookupError("Faild to find a node with name {}".format(self.name))
+                raise LookupError(
+                    "Failed to find a node with name {}".format(self.name)
+                )
         return self._roles
 
 
 class JumpScale7(Node):
-    def install_core(self):
-        jsversion = self.versions["jsversion"]
-        ovcversion = self.versions["ovcversion"]
-        self.remote.add_ssh_host("root", "git.gig.tech")
-        self.remote.add_ssh_host("root", "github.com")
-        self.remote.add_ssh_host("root", "docs.greenitglobe.com", 10022)
+    def cleanup_base_images(self, fs_path):
+        self.first_node.run("docker image prune")
+        for fs in self.first_node.sftp.listdir(BASE_FS_PATH):
+            full_fs = BASE_FS_PATH + fs
+            if fs_path != full_fs:
+                self.first_node.run("rm -rf {}".format(full_fs))
 
-        if (
-            self.remote.run("which python", check=False).exit_status != 0
-            or self.remote.run("which curl", check=False).exit_status != 0
-        ):
-            self.remote.run("apt-get upgrade -y && apt-get install -y python curl")
-        if self.remote.run("which js", check=False).exit_status != 0:
+    def copy_base_image(self):
+        self.log("Syncing base image")
+        for image in self.versions["images"]:
+            if "openvcloud/base" in image:
+                break
+        else:
+            raise RuntimeError("Could not find base image")
+        self.first_node.run("mkdir -p {}".format(BASE_FS_PATH))
+        fs_path = BASE_FS_PATH + "image_fs_{}".format(image.replace("/", "_"))
+        if not self.first_node.exists(fs_path):
             cmd = """
-            set -e
-            export AYSBRANCH={0}; export JSBRANCH={0};
-            cd /tmp;rm -f install.sh;
-            curl -k https://raw.githubusercontent.com/jumpscale7/jumpscale_core7/{0}/install/install.sh > install.sh;bash install.sh
+            mkdir -p {1}
+            docker pull {0}
+            docker rm -f install_base || true # delete image if still exists from older version
+            docker create --name install_base {0} true
+            docker export install_base | tar xf - -C {1} --exclude=/etc/resolv.conf --exclude=/dev --exclude=/sys --exclude=/proc
             """.format(
-                jsversion.version
+                image, fs_path
             )
-            self.remote.run(cmd)
-        self.remote.write_file(
-            "/opt/jumpscale7/hrd/system/atyourservice.hrd",
-            AYSCONFIG.format(version=jsversion.version, ovcversion=ovcversion.version),
-        )
-        self.remote.write_file("/opt/jumpscale7/hrd/system/whoami.hrd", WHOAMI)
+            self.cleanup_base_images(fs_path)
+            self.first_node.run(cmd)
+        self.first_node.add_ssh_host("root", self.remote.address)
+        self.first_node.run("rsync -a {} {}:/".format(fs_path, self.remote.address))
+
+    def get_services(self):
+        services = ["jsredis", "jsagent"]
+        if "cpu" in self.roles or "storage" in self.roles:
+            services.append("nginx")
+        if "cpu" in self.roles:
+            services.append("libvirtlister")
+            services.append("vncproxy")
+        return services
 
     def start(self):
         self.log("Start JumpScale services")
-        self.remote.run("ays start")
+        self.remote.run("systemctl start {}".format(" ".join(self.get_services())))
 
     def stop(self):
         self.log("Stop JumpScale services")
-        self.remote.run("ays stop")
-        self.remote.run("fuser -k 4446/tcp", check=False)
-
-    def update_repo(self, account, repo, version):
-        cmd = "jscode update -a '{}' -n '{}' -d".format(account, repo)
-        if version.type == "branch":
-            cmd += " -b {} --https".format(version.version)
-        elif version.type == "tag":
-            cmd += " -t {} --https".format(version.version)
-        self.remote.run(cmd)
-
-    def update(self):
-        js_version = self.versions["jsversion"]
-        ovc_version = self.versions["ovcversion"]
-        self.log("Updating JumpScale repos")
-        self.update_repo("jumpscale7", "*", js_version)
-        self.log("Updating OpenvCloud repos")
-        self.update_repo("0-complexity", "openvcloud", ovc_version)
-        self.update_repo("0-complexity", "openvcloud_ays", ovc_version)
-        self.update_repo("0-complexity", "openvcloud_installer", ovc_version)
+        self.remote.run("systemctl stop {}".format(" ".join(self.get_services())))
 
     def upgrade(self):
         try:
             self.stop()
-            self.update()
+            self.copy_base_image()
         finally:
             self.start()
 
@@ -631,229 +619,30 @@ class JumpScale7(Node):
         self.stop()
         self.start()
 
-    def install_agent(self, roles=None):
-        roles = roles or ["node"]
-        redisdata = {
-            "instance.param.disk": "0",
-            "instance.param.mem": "100",
-            "instance.param.passwd": "",
-            "instance.param.port": "9999",
-            "instance.param.ip": "0.0.0.0",
-            "instance.param.unixsocket": "0",
-        }
-        self.ays_install("redis", instance="system", data=redisdata)
-        masterips = ",".join(self.backplaneips)
-
-        osisclientdata = {
-            "instance.param.osis.client.addr": masterips,
-            "instance.param.osis.client.login": "root",
-            "instance.param.osis.client.passwd": self.password,
-            "instance.param.osis.client.port": "5544",
-        }
-        self.ays_install(
-            "osis_client", instance="main", data=osisclientdata, reinstall=True
-        )
-        self.ays_install(
-            "osis_client", instance="jsagent", data=osisclientdata, reinstall=True
-        )
-
-        agentcontrollerdata = {
-            "instance.agentcontroller.client.addr": masterips,
-            "instance.agentcontroller.client.login": "node",
-            "instance.agentcontroller.client.passwd": "",
-            "instance.agentcontroller.client.port": "4444",
-        }
-        self.ays_install(
-            "agentcontroller_client",
-            instance="main",
-            data=agentcontrollerdata,
-            reinstall=True,
-        )
-
-        agentdata = {
-            "agentcontroller.connection": "main",
-            "grid.id": str(self.gid),
-            "grid.node.roles": ",".join(roles),
-            "osis.connection": "jsagent",
-        }
-        self.ays_install("jsagent", instance="main", data=agentdata)
-
-    def ays_install(
-        self, package, domain="jumpscale", instance="main", data=None, reinstall=False
-    ):
-        self.log("Installing JumpScale package {}:{}".format(domain, package))
-        datastr = ""
-        data = data or {}
-        for key, value in data.items():
-            datastr += "{}:{} ".format(key, value)
-        install = ""
-        if reinstall:
-            install = "-r"
-        cmd = 'ays install -d {} -n {} -i {} {} --data "{}"'.format(
-            domain, package, instance, install, datastr
-        )
-        self.remote.run(cmd)
-
     def install(self):
-        self.install_core()
-        roles = ["node"]
-        if "controller" in self.node["roles"]:
-            roles.append("controllernode")
-        self.install_agent(roles)
-        if "cpu" in self.node["roles"]:
-            self.install_compute_node()
-        if "storage" in self.node["roles"]:
-            self.install_storage_node()
-
-    def install_compute_node(self):
-        netinfo = {
-            "vxbackend_vlan": self.config["network"]["vxbackend"]["vlan"],
-            "vxbackend_ip": self.node["vxbackend"]["ipaddress"],
-            "gwmgmt_vlan": self.config["network"]["gateway-management"]["vlan"],
-            "gwmgmt_ip": self.node["gateway-management"]["ipaddress"],
+        self.copy_base_image()
+        extra_args = {
+            "vxvlan": self.config["network"]["vxbackend"]["vlan"],
+            "vxip": self.node["vxbackend"]["ipaddress"],
+            "gwvlan": self.config["network"]["gateway-management"]["vlan"],
+            "gwip": self.node["gateway-management"]["ipaddress"],
+            "gridid": self.config["environment"]["grid"]["id"],
+            "envsub": self.config["environment"]["subdomain"],
+            "envcli": self.config["itsyouonline"]["clientId"],
+            "envsec": self.config["itsyouonline"]["clientSecret"]
         }
-        data_net = {
-            "netconfig.public_backplane.interfacename": "backplane1",
-            "netconfig.gw_mgmt_backplane.interfacename": "backplane1",
-            "netconfig.vxbackend.interfacename": "backplane1",
-            "netconfig.gw_mgmt.vlanid": netinfo["gwmgmt_vlan"],
-            "netconfig.vxbackend.vlanid": netinfo["vxbackend_vlan"],
-            "netconfig.gw_mgmt.ipaddr": netinfo["gwmgmt_ip"],
-            "netconfig.vxbackend.ipaddr": netinfo["vxbackend_ip"],
-        }
-
-        data_cpu = {
-            "instance.param.rootpasswd": self.password,
-            "instance.param.master.addr": "",
-            "instance.param.network.gw_mgmt_ip": netinfo["gwmgmt_ip"],
-            "instance.param.grid.id": self.gid,
-        }
-
-        self.install_portal_client()
-        self.ays_install(
-            "scaleout_networkconfig",
-            domain="openvcloud",
-            instance="main",
-            data=data_net,
-        )
-        self.ays_install(
-            "cb_cpunode_aio", domain="openvcloud", instance="main", data=data_cpu
-        )
-
-    def install_portal_client(self):
-        portal_client = {
-            "instance.param.addr": self.fqdn,
-            "instance.param.port": "443",
-            "instance.param.secret": self.password,
-        }
-
-        self.ays_install(
-            "portal_client",
-            domain="jumpscale",
-            instance="main",
-            data=portal_client,
-            reinstall=True,
-        )
-
-    def configure_iyo_api_key(self, apikey):
-        label = apikey["label"]
-        clientid = self.config["itsyouonline"]["clientId"]
-        secret = self.config["itsyouonline"]["clientSecret"]
-        accesstokenparams = {
-            "grant_type": "client_credentials",
-            "client_id": clientid,
-            "client_secret": secret,
-        }
-        accesstoken = requests.post(
-            os.path.join(self.iyourl, "v1", "oauth", "access_token"),
-            params=accesstokenparams,
-        )
-        token = accesstoken.json()["access_token"]
-        authheaders = {"Authorization": "token %s" % token}
-        result = requests.get(
-            os.path.join(
-                self.iyourl, "api", "organizations", clientid, "apikeys", label
-            ),
-            headers=authheaders,
-        )
-        if result.status_code == 200:
-            stored_apikey = result.json()
-            if apikey["callbackURL"] != stored_apikey["callbackURL"]:
-                requests.delete(
-                    os.path.join(
-                        self.iyourl, "api", "organizations", clientid, "apikeys", label
-                    ),
-                    headers=authheaders,
-                )
-                apikey = {}
-            else:
-                apikey = stored_apikey
-
-        if "secret" not in apikey:
-            result = requests.post(
-                os.path.join(self.iyourl, "api", "organizations", clientid, "apikeys"),
-                json=apikey,
-                headers=authheaders,
+        self.remote.run(
+            """/opt/jumpscale7/bin/nodeinstaller --roles={} --masterips={} --password={} --gid={} --fqdn={} \
+            --vxbackend_vlan={vxvlan} --vxbackend_ip={vxip} --gwmgmt_vlan={gwvlan} --gwmgmt_ip={gwip}
+            --grid_id={gridid} --env_subdomain={envsub} --client_id={envcli} --secret={envsec}""".format(
+                ",".join(self.roles),
+                ",".join(self.backplaneips),
+                self.password,
+                self.gid,
+                self.fqdn,
+                **extra_args
             )
-            apikey = result.json()
-        return apikey
-
-    def install_storage_node(self):
-        self.install_portal_client()
-
-        data_storage = {
-            "param.rootpasswd": self.password,
-            "param.master.addr": "",
-            "param.grid.id": self.gid,
-        }
-
-        self.ays_install(
-            "cb_storagenode_aio",
-            domain="openvcloud",
-            instance="main",
-            data=data_storage,
         )
-        self.ays_install(
-            "cb_storagedriver_aio",
-            domain="openvcloud",
-            instance="main",
-            data=data_storage,
-        )
-        self.patch_ovs()
-
-    def patch_ovs(self):
-        output = self.remote.run(
-            'ovs config get "ovs/framework/hosts/$(cat /etc/openvstorage_id)/type"'
-        ).stdout
-
-        if "MASTER" in output:
-            self.remote.run(
-                "python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py"
-            )
-            ovscallbackurl = "https://ovs-{}/api/oauth2/redirect/".format(self.fqdn)
-            apikey = {
-                "label": "ovs-{}".format(self.config["environment"]["subdomain"]),
-                "clientCredentialsGrantType": False,
-                "callbackURL": ovscallbackurl,
-            }
-            apikey = self.configure_iyo_api_key(apikey)
-
-            oauth_token_uri = os.path.join(self.iyourl, "v1/oauth/access_token")
-            oauth_authorize_uri = os.path.join(self.iyourl, "v1/oauth/authorize")
-
-            data_oauth = {
-                "instance.oauth.id": self.config["itsyouonline"]["clientId"],
-                "instance.oauth.secret": apikey["secret"],
-                "instance.oauth.authorize_uri": oauth_authorize_uri,
-                "instance.oauth.token_uri": oauth_token_uri,
-            }
-            self.ays_install(
-                "openvstorage_oauth",
-                "openvcloud",
-                instance="main",
-                data=data_oauth,
-                reinstall=True,
-            )
 
 
 class Cluster(AbstractConfig):
@@ -994,9 +783,7 @@ class Cluster(AbstractConfig):
 
         for node in self.nodes:
             for mod, paths in dirmodmap.items():
-                node.run(
-                    "mkdir -p {0} && chmod {1:o} {0}".format(" ".join(paths), mod)
-                )
+                node.run("mkdir -p {0} && chmod {1:o} {0}".format(" ".join(paths), mod))
 
     def apply_template(self, template, kind):
         self.kubectl("apply -f {template}".format(template=template))
@@ -1704,7 +1491,7 @@ def preFlightCheck(ctx):
     help="Upgrade cluster, update all nodes and cluster and update kubernetes resources",
 )
 @click.option("--development", default=False, is_flag=True)
-@click.option("--pre-flight-check", default=True, is_flag=True)
+@click.option("--pre-flight-check", default=False, is_flag=True)
 @click.pass_context
 def upgrade_cluster(ctx, development, pre_flight_check):
     """

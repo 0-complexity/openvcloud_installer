@@ -1,4 +1,4 @@
-FROM openvcloud/js7
+FROM openvcloud/cb_master
 
 RUN mkdir -p /var/run/scripts/nginx/ /opt/cfg/nginx/ssl /opt/cfg/upgrade
 COPY configure-nginx.py /var/run/scripts/nginx/

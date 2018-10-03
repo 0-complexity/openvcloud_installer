@@ -1,4 +1,4 @@
-FROM openvcloud/js7
+FROM openvcloud/cb_master
 
 RUN mkdir -p /var/run/scripts/grafana/ /opt/cfg/grafana/templates
 COPY configure-grafana.py /var/run/scripts/grafana/

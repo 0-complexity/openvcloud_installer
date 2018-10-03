@@ -13,12 +13,13 @@ stages:
   image: openvcloud/imagebuilder
   when: manual
 
+
+build base:
+  <<: *build_definition
+  script: "python3 scripts/buildlib/builder.py scripts/dockers/base"
 build cb_master:
   <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/cb_master"
-build js7:
-  <<: *build_definition
-  script: "python3 scripts/buildlib/builder.py scripts/dockers/js7"
 build management:
   <<: *build_definition
   script: "python3 scripts/buildlib/builder.py scripts/dockers/management"

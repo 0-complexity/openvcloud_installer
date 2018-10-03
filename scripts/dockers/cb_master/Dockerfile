@@ -1,30 +1,36 @@
-# Before starting please add a private key which has access to the priv repos in id_rsa
-FROM openvcloud/js7
+FROM python:2.7 as builder
+ARG PRIVATEKEY
+ARG VERSION
+ARG MANIFESTURL
 
+RUN pip install requests pyyaml
+RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
+COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/services-migrator.py /tmp/
+COPY dep-manifest.yml /tmp/
+RUN python /tmp/packager.py
+
+FROM phusion/baseimage
+COPY --from=builder /opt/jumpscale7 /opt/jumpscale7
+COPY --from=builder /usr/local/bin/jspython /usr/local/bin/jspython
+COPY --from=builder /usr/local/bin/js /usr/local/bin/js
+RUN rm -f /etc/service/sshd/down
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
 COPY system /opt/jumpscale7/hrd/system/
 COPY apps /opt/jumpscale7/hrd/apps/
-COPY atyourservice.hrd /opt/jumpscale7/hrd/system/
-COPY whoami.hrd /opt/jumpscale7/hrd/system/
-
-COPY start.sh /
-COPY services-migrator.py /tmp/
-RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
-
-# add configuration script
-RUN mkdir -p /var/run/scripts/system /opt/cfg/system /opt/jumpscale7/var/resourcetracking/ /opt/cfg/version
+RUN mkdir -p /opt/grafana \
+          /opt/grafana/conf \
+          /opt/grafana/public \
+          /var/run/scripts/system \
+          /opt/cfg/system \
+          /opt/jumpscale7/var/resourcetracking \
+          /opt/cfg/version \
+          /var/run/scripts/portal
 COPY configure-system.py /var/run/scripts/system
-RUN mkdir -p /var/run/scripts/portal/
 COPY configure-portal.py /var/run/scripts/portal/
-
-RUN touch /root/.ssh/known_hosts && \
-    ssh-keyscan github.com >> /root/.ssh/known_hosts && \
-    ssh-keyscan git.aydo.com >> /root/.ssh/known_hosts && \
-    ssh-keyscan -p 10022 docs.greenitglobe.com >> /root/.ssh/known_hosts
-
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y graphviz
+    apt-get install -y graphviz sudo libmhash2 nmap \
+                       vim net-tools iproute2 openssh-server \
+                       iputils-ping curl
 
-RUN chmod +x start.sh
 
-RUN ["/bin/bash", "-c","./start.sh"]
