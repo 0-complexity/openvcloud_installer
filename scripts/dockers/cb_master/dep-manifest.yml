@@ -1,158 +1,83 @@
 https://git.gig.tech/openvcloud/binary/python:
-- branch: master
-  dest: /opt/jumpscale7/bin/
+- dest: /opt/jumpscale7/bin/
   source: base_python/root/bin/
-  tag: ''
-- branch: master
-  dest: /opt/jumpscale7/lib/
+- dest: /opt/jumpscale7/lib/
   source: base_python/root/lib/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/lib/capnp/
+- dest: /opt/jumpscale7/lib/capnp/
   source: pycapnp/
-  tag: ''
-- branch: master
-  dest: /opt/jumpscale7/env.sh
+- dest: /opt/jumpscale7/env.sh
   source: base_python/root/env.sh
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/libext/
+- dest: /opt/jumpscale7/libext/
   source: python-cloudlibs/root/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/jslib/
+- dest: /opt/jumpscale7/apps/portals/jslib/
   source: web_python/root/jslib/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/lib/
+- dest: /opt/jumpscale7/lib/
   source: web_python/root/lib/
-  tag: ''
 https://git.gig.tech/openvcloud/binary/redis:
-- branch: ''
-  dest: /opt/jumpscale7/apps/redis/
+- dest: /opt/jumpscale7/apps/redis/
   source: redis
-  tag: ''
 https://github.com/0-complexity/openvcloud:
-- branch: ''
-  dest: /opt/jumpscale7/libext/cloudbrokerlib/
+- dest: /opt/jumpscale7/libext/cloudbrokerlib/
   source: apps/cloudbroker/cloudbrokerlib/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/libext/CloudscalerLibcloud/
+- dest: /opt/jumpscale7/libext/CloudscalerLibcloud/
   source: libs/CloudscalerLibcloud/CloudscalerLibcloud/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/base/
+- dest: /opt/jumpscale7/apps/portals/main/base/
   source: apps/cloudbroker/base/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/templates/
+- dest: /opt/jumpscale7/apps/portals/main/templates/
   source: apps/cloudbroker/templates/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/base/
+- dest: /opt/jumpscale7/apps/portals/main/base/
   source: apps/cbportal/base/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/templates/
+- dest: /opt/jumpscale7/apps/portals/main/templates/
   source: apps/cbportal/templates/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/osis/logic/
+- dest: /opt/jumpscale7/apps/osis/logic/
   source: apps/osis/logic/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
+- dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
   source: libs/agent-scripts/
-  tag: ''
 https://github.com/0-complexity/selfhealing:
 - branch: ''
-  dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
+- dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
   source: jumpscripts/
-  tag: ''
 https://github.com/jumpscale7/jumpscale_core7:
-- branch: ''
-  dest: /opt/jumpscale7/apps/agentcontroller/controller.py
+- dest: /opt/jumpscale7/apps/agentcontroller/controller.py
   source: apps/agentcontroller/controller.py
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/core/
+- dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/core/
   source: apps/agentcontroller/jumpscripts/core/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/agentcontroller/processmanager/
+- dest: /opt/jumpscale7/apps/agentcontroller/processmanager/
   source: apps/agentcontroller/processmanager/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/agentcontroller/luajumpscripts/jumpscale/
+- dest: /opt/jumpscale7/apps/agentcontroller/luajumpscripts/jumpscale/
   source: apps/agentcontroller/luajumpscripts/jumpscale/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/osis/
+- dest: /opt/jumpscale7/apps/osis/
   source: apps/osis/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/osis/logic/
+- dest: /opt/jumpscale7/apps/osis/logic/
   source: apps/osis/logic/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/jsagent/
+- dest: /opt/jumpscale7/apps/jsagent/
   source: apps/jsagent/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/bin/
+- dest: /opt/jumpscale7/bin/
   source: shellcmds/
-  tag: ''
-- branch: ''
-  dest: /usr/local/bin/jspython
+- dest: /usr/local/bin/jspython
   source: shellcmds/jspython
-  tag: ''
-- branch: ''
-  dest: /usr/local/bin/js
+- dest: /usr/local/bin/js
   source: shellcmds/js
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/lib/JumpScale/
+- dest: /opt/jumpscale7/lib/JumpScale/
   source: lib/JumpScale/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/lib/JumpScale/ExtraTools.py
+- dest: /opt/jumpscale7/lib/JumpScale/ExtraTools.py
   source: install/ExtraTools.py
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/lib/JumpScale/InstallTools.py
+- dest: /opt/jumpscale7/lib/JumpScale/InstallTools.py
   source: install/InstallTools.py
-  tag: ''
 https://github.com/jumpscale7/jumpscale_portal:
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/portalbase/macros/
+- dest: /opt/jumpscale7/apps/portals/portalbase/macros/
   source: apps/portalbase/macros/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/portalbase/system/
+- dest: /opt/jumpscale7/apps/portals/portalbase/system/
   source: apps/portalbase/system/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/portalbase/wiki/System/
+- dest: /opt/jumpscale7/apps/portals/portalbase/wiki/System/
   source: apps/portalbase/wiki/System/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/portalbase/templates/
+- dest: /opt/jumpscale7/apps/portals/portalbase/templates/
   source: apps/portalbase/templates/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/portal_start.py
+- dest: /opt/jumpscale7/apps/portals/main/portal_start.py
   source: apps/portalbase/portal_start.py
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/base/home/
+- dest: /opt/jumpscale7/apps/portals/main/base/home/
   source: apps/portalbase/home/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/lib/JumpScale/portal/
+- dest: /opt/jumpscale7/lib/JumpScale/portal/
   source: lib/portal/
-  tag: ''
-- branch: ''
-  dest: /opt/jumpscale7/apps/portals/main/base/
+- dest: /opt/jumpscale7/apps/portals/main/base/
   source: apps/gridportal/base/
-  tag: ''
