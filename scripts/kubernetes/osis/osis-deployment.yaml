@@ -38,7 +38,7 @@ spec:
             memory: "2Gi"
         volumeMounts:
           - name:  cfg-dir
-          mountPath: /opt/jumpscale7/cfg/
+            mountPath: /opt/jumpscale7/cfg/
         ports:
         - containerPort: 5544
           name: osis-server
