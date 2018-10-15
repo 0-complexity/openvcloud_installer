@@ -28,7 +28,8 @@ RUN apk -U add nftables
 FROM scratch
 COPY --from=builder /opt/jumpscale7 /opt/jumpscale7
 COPY --from=builder /var/lib/libvirt/images /var/lib/libvirt/images
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/local/bin/js /usr/local/bin/js
+COPY --from=builder /usr/local/bin/jspython /usr/local/bin/jspython
 COPY --from=builder /etc/nginx/sites-enabled /etc/nginx/sites-enabled
 COPY --from=builder /opt/OpenvStorage /opt/OpenvStorage
 

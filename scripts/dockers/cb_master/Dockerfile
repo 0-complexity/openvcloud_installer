@@ -5,7 +5,7 @@ ARG MANIFESTURL
 
 RUN pip install requests pyyaml
 RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
-COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/services-migrator.py /tmp/
+COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/packager.py /tmp/
 COPY dep-manifest.yml /tmp/
 RUN python /tmp/packager.py
 
@@ -15,8 +15,7 @@ COPY --from=builder /usr/local/bin/jspython /usr/local/bin/jspython
 COPY --from=builder /usr/local/bin/js /usr/local/bin/js
 RUN rm -f /etc/service/sshd/down
 RUN /etc/my_init.d/00_regen_ssh_host_keys.sh
-COPY system /opt/jumpscale7/hrd/system/
-COPY apps /opt/jumpscale7/hrd/apps/
+ADD apps/ /opt/jumpscale7/cfg/
 RUN mkdir -p /opt/grafana \
           /opt/grafana/conf \
           /opt/grafana/public \

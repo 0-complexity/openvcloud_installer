@@ -1,9 +1,0 @@
-instance.agentcontroller.client.addr = 'agentcontroller'
-instance.agentcontroller.client.login = 'node'
-instance.agentcontroller.client.passwd = 'rooter'
-instance.agentcontroller.client.port = '4444'
-
-service.domain                 = 'jumpscale'
-service.installed.checksum     = '517340fdf2efb66e1311f9e0a1677e4b'
-service.instance               = 'main'
-service.name                   = 'agentcontroller_client'

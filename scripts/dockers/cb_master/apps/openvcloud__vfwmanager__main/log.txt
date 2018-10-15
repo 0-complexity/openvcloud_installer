@@ -1,9 +1,0 @@
-2017/11/28 13:18:22 : start instance
-2017/11/28 14:54:09 : stop instance
-2017/11/28 14:55:10 : start instance
-2017/11/28 14:55:13 : start instance
-2017/11/28 16:48:19 : stop instance
-2017/11/28 16:49:09 : start instance
-2017/11/28 16:49:12 : start instance
-2017/11/29 05:33:33 : start instance
-2017/11/29 05:33:35 : start instance

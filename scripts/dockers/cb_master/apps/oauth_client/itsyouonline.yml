@@ -1,0 +1,8 @@
+id: ''
+logout_url: '' 
+redirect_url: ''
+scope: ''
+secret: ''
+url: https://itsyou.online/v1/oauth/authorize
+url2: https://itsyou.online/v1/oauth/access_token
+user_info_url: https://itsyou.online/api/users/{username}/info

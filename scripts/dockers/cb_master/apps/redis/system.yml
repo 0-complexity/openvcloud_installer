@@ -1,0 +1,6 @@
+disk: True
+ip: 127.0.0.1
+mem: 100
+passwd: 
+port: 9999
+unixsocket: False

@@ -1,0 +1,3 @@
+influxdb_connection: main
+password: rooter
+port: 3000

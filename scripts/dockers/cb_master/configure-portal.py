@@ -89,12 +89,11 @@ class Portal(object):
         return apikey
 
     def configure_portal_client(self):
-        portal_client_services = j.atyourservice.findServices(
-            domain="jumpscale", name="portal_client"
-        )
-        for portal_client_service in portal_client_services:
-            portal_client_service.hrd.set("instance.param.addr", "localhost")
-            portal_client_service.hrd.save()
+        portal_instances = j.core.config.list("portal_client")
+        for portal_instance in portal_instances:
+            portal_client = j.core.config.get("portal_client", portal_instance)
+            portal_client["addr"] = "localhost"
+            j.core.config.set("portal_client", portal_instance, portal_client)
 
     def add_user(self):
         """
@@ -116,21 +115,27 @@ class Portal(object):
             username = f.read()
         with open("/etc/ovscred/edgepassword", "r") as f:
             password = f.read()
-        return {'edgeuser': username, 'edgepassword': password}
+        return {"edgeuser": username, "edgepassword": password}
 
-
-    def configure_user_groups(self, portalhrd):
+    def configure_user_groups(self, portal):
         ovc_environment = self.config["itsyouonline"]["environment"]
         gid = j.application.whoAmI.gid
-        portal_links = {
-            "vdc": {
-                "name": "End User",
-                "url": "https://{}".format(self.fqdn),
-                "scope": "user",
-                "theme": "dark",
+        portal_links = [
+            {
+                "name": "Cloud Broker",
+                "url": "/cbgrid",
+                "scope": "admin",
+                "theme": "light",
+            },
+            {
+                "name": "Statistics",
+                "url": "/grafana/d/1/overall-system-performance",
+                "scope": "admin",
+                "theme": "light",
                 "external": "true",
             },
-            "ovs": {
+            {"name": "Grid", "url": "/grid", "scope": "admin", "theme": "light"},
+            {
                 "name": "Storage",
                 "url": "https://ovs-{}/ovcinit/{}".format(
                     self.fqdn, self.config["environment"]["subdomain"]
@@ -139,62 +144,28 @@ class Portal(object):
                 "theme": "light",
                 "external": "true",
             },
-            "grafana": {
-                "name": "Statistics",
-                "url": "/grafana/d/1/overall-system-performance",
-                "scope": "admin",
-                "theme": "light",
+            {"name": "System", "url": "/system", "scope": "admin", "theme": "light"},
+            {
+                "name": "End User",
+                "url": "https://{}".format(self.fqdn),
+                "scope": "user",
+                "theme": "dark",
                 "external": "true",
             },
-            "grid": {
-                "name": "Grid",
-                "url": "/grid",
-                "scope": "admin",
-                "theme": "light",
-            },
-            "system": {
-                "name": "System",
-                "url": "/system",
-                "scope": "admin",
-                "theme": "light",
-            },
-            "cbgrid": {
-                "name": "Cloud Broker",
-                "url": "/cbgrid",
-                "scope": "admin",
-                "theme": "light",
-            },
-        }
-        for linkid, data in portal_links.items():
-            if data["url"]:
-                portalhrd.set("instance.navigationlinks.%s" % linkid, data)
-        portalhrd.set("instance.param.cfg.defaultspace", "vdc")
-        portalhrd.set("instance.param.cfg.force_oauth_instance", "itsyouonline")
-        portalhrd.save()
+        ]
 
-        # update cloudbroker service
-        cloudbrokerhrd = j.application.getAppInstanceHRD(
-            name="cloudbroker", domain="openvcloud", instance="main"
-        )
-        cloudbrokerhrd.set(
-            "instance.cloudbroker.portalurl", "https://{}".format(self.fqdn)
-        )
-        cloudbrokerhrd.set(
-            "instance.openvcloud.cloudbroker.defense_proxy",
-            "https://defense-{}".format(self.fqdn),
-        )
-        cloudbrokerhrd.set(
-            "instance.openvcloud.supportemail", self.config["mailclient"]["sender"]
-        )
-        cloudbrokerhrd.save()
-        # update cbportal service
-        cbportalhrd = j.application.getAppInstanceHRD(
-            name="cbportal", domain="openvcloud", instance="main"
-        )
-        cbportalhrd.set(
-            "instance.openvcloud.supportemail", self.config["mailclient"]["sender"]
-        )
-        cbportalhrd.save()
+        portal["navigationlinks"] = portal_links
+        portal["url"] = "https://{}".format(self.fqdn)
+        portal["defaultspace"] = "vdc"
+        portal["force_oauth_instance"] = "itsyouonline"
+        j.core.config.set("portal", "main", portal)
+
+        # update openvcloud config
+        openvcloud_config = j.core.config.get("openvcloud", "main")
+        openvcloud_config["portalurl"] = "https://{}".format(self.fqdn)
+        openvcloud_config["defense_proxy"] = "https://defense-{}".format(self.fqdn)
+        openvcloud_config["supportemail"] = self.config["mailclient"]["sender"]
+        j.core.config.set("openvcloud", "main", openvcloud_config)
 
         # setup user/groups
         for groupname in (
@@ -233,9 +204,9 @@ class Portal(object):
         grid.settings.update(limits)
         ovs_config = self.get_ovs_config()
         if grid.settings.get("ovs_credentials"):
-            grid.settings['ovs_credentials'].update(ovs_config)
+            grid.settings["ovs_credentials"].update(ovs_config)
         else:
-            grid.settings['ovs_credentials'] = ovs_config
+            grid.settings["ovs_credentials"] = ovs_config
 
         self.scl.grid.set(grid)
         # register vnc url
@@ -271,14 +242,14 @@ class Portal(object):
             self.lcl.networkids.set(networkids)
         # configure Disk-Types
         disktypes = [
-            ('B', 'Boot Disk', "vmstor", 20, True),
-            ('M', 'Meta Data Disk', "vmstor", 20, True),
-            ('D', 'Data Disk', "data", 20, True),
-            ('C', 'CD-ROM Disk', None, None, False),
-            ('P', 'Physical Disk', None, None, False)
+            ("B", "Boot Disk", "vmstor", 20, True),
+            ("M", "Meta Data Disk", "vmstor", 20, True),
+            ("D", "Data Disk", "data", 20, True),
+            ("C", "CD-ROM Disk", None, None, False),
+            ("P", "Physical Disk", None, None, False),
         ]
         for disktype in disktypes:
-            dtype = self.ccl.disktype.searchOne({'id':disktype[0]})
+            dtype = self.ccl.disktype.searchOne({"id": disktype[0]})
             if not dtype:
                 dtype = self.ccl.disktype.new()
                 dtype.id = disktype[0]
@@ -321,40 +292,32 @@ class Portal(object):
             user_scopes.append("user:memberof:{}.{}".format(self.client_id, group))
 
         data = {
-            "instance.oauth.client.id": self.client_id,
-            "instance.oauth.client.logout_url": "",
-            "instance.oauth.client.redirect_url": callbackURL,
-            "instance.oauth.client.secret": apikey["secret"],
-            "instance.oauth.client.url": os.path.join(
-                self.baseurl, "v1/oauth/authorize"
-            ),
-            "instance.oauth.client.url2": os.path.join(
-                self.baseurl, "v1/oauth/access_token"
-            ),
-            "instance.oauth.client.user_info_url": os.path.join(
-                self.baseurl, "api/users/{username}/info"
-            ),
+            "id": self.client_id,
+            "logout_url": "",
+            "redirect_url": callbackURL,
+            "secret": apikey["secret"],
+            "url": os.path.join(self.baseurl, "v1/oauth/authorize"),
+            "url2": os.path.join(self.baseurl, "v1/oauth/access_token"),
+            "user_info_url": os.path.join(self.baseurl, "api/users/{username}/info"),
         }
 
         admin_data = dict(data)
         user_data = dict(data)
 
-        admin_data["instance.oauth.client.scope"] = ",".join(admin_scopes)
-        user_data["instance.oauth.client.scope"] = ",".join(user_scopes)
+        admin_data["scope"] = ",".join(admin_scopes)
+        user_data["scope"] = ",".join(user_scopes)
 
-        oauthclienthrd = j.application.getAppInstanceHRD(
-            domain="jumpscale", name="oauth_client", instance="itsyouonline"
-        )
+        oauthclient = j.core.config.get("oauth_client", "itsyouonline")
+
         for key, val in admin_data.items():
-            oauthclienthrd.set(key, val)
-        oauthclienthrd.save()
+            oauthclient[key] = val
+        j.core.config.set("oauth_client", "itsyouonline", oauthclient)
 
-        useroauthclienthrd = j.application.getAppInstanceHRD(
-            domain="jumpscale", name="oauth_client", instance="itsyouonline_user"
-        )
+        useroauthclient = j.core.config.get("oauth_client", "itsyouonline_user")
+
         for key, val in user_data.items():
-            useroauthclienthrd.set(key, val)
-        useroauthclienthrd.save()
+            useroauthclient[key] = val
+        j.core.config.set("oauth_client", "itsyouonline_user", useroauthclient)
 
         # configure groups on itsyouonline
         for group in groups:
@@ -380,21 +343,14 @@ class Portal(object):
                     )
 
         # configure portal to use this oauthprovider and restart
-        portalhrd = j.application.getAppInstanceHRD(name="portal", instance="main")
-        portalhrd.set("instance.param.cfg.force_oauth_instance", "itsyouonline")
-        portalhrd.set("instance.param.dcpm.url", self.fqdn)
-        portalhrd.set("instance.param.ovs.url", "ovs-%s" % (self.fqdn))
-        portalhrd.set("instance.param.portal.url", self.fqdn)
-        portalhrd.save()
-        return portalhrd
+        portal = j.core.config.get("portal", "main")
+        portal["force_oauth_instance"] = "itsyouonline"
+        portal["url"] = self.fqdn
+        j.core.config.set("portal", "main", portal)
+        return portal
 
     def patch_mail_client(self):
-        mailclienthrd = j.application.getAppInstanceHRD(
-            domain="jumpscale", name="mailclient", instance="main"
-        )
-        for key, value in self.config["mailclient"].items():
-            mailclienthrd.set("instance.smtp.%s" % key, value)
-        mailclienthrd.save()
+        j.core.config.set("mailclient", "main", self.config["mailclient"])
 
     def configure_manifest(self):
         with open("/opt/cfg/version/versions-manifest.yaml") as file_discriptor:
@@ -426,9 +382,9 @@ class Portal(object):
 if __name__ == "__main__":
     portal = Portal()
     portal.add_user()
-    portalhrd = portal.configure_IYO()
-    portal.configure_user_groups(portalhrd)
+    portal_data = portal.configure_IYO()
+    portal.configure_user_groups(portal_data)
     portal.patch_mail_client()
     portal.configure_portal_client()
     portal.configure_manifest()
-    j.system.fs.copyDirTree("/opt/jumpscale7/hrd/apps/", "/opt/cfg/apps/")
+    j.system.fs.copyDirTree("/opt/jumpscale7/cfg/", "/opt/cfgdir/")

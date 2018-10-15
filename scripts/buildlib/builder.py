@@ -135,17 +135,29 @@ class Builder:
             raise RuntimeError(
                 "Given path {} does not contain Dockerfile".format(self.builddir)
             )
+        imagename = os.path.basename(self.builddir)
+        with open(dockerfile, 'r') as dckr:
+            docker_lines = dckr.readlines()
+        images_version = get_manifestdata()["images"]
+        for idx, docker_line in enumerate(docker_lines):
+            if docker_line.startswith("FROM openvcloud"):
+                for image, version in images_version.items():
+                    if image in docker_line:
+                        docker_lines[idx] = "FROM {}:{}\n".format(image, version)
+                        break
+                break
+        with open(dockerfile, 'w') as dckr:
+            dckr.writelines(docker_lines)
         if os.path.exists(buildyaml):
             with open(buildyaml) as fd:
                 repos = yaml.load(fd)
             for repo in repos["repos"]:
-                versiontype, version = self.get_version(repo)
+                _, version = self.get_version(repo)
                 self.clone_repo(repo, version)
-        imagename = os.path.basename(self.builddir)
         if self.version == "master":
             imageversion = "latest"
         else:
-            for name, imageversion in get_manifestdata()["images"].items():
+            for name, imageversion in images_version.items():
                 if name == "openvcloud/{}".format(imagename):
                     break
             else:

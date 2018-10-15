@@ -1,4 +1,4 @@
-http://github.com/0-complexity/noVNC:
+https://github.com/0-complexity/noVNC:
 - dest: /opt/jumpscale7/apps/vncproxy/
   source: vnc_auto.html
 - dest: /opt/jumpscale7/apps/vncproxy/images/
@@ -67,3 +67,6 @@ https://github.com/jumpscale7/jumpscale_portal:
 git@git.gig.tech:openvcloud/binary/routeros:
 - dest: /var/lib/libvirt/images/routeros/template/routeros.qcow2
   source: root/routeros-small-NETWORK-ID.qcow2
+https://github.com/0-complexity/openvcloud_installer:
+- source: scripts/install/installnode
+  dest: /opt/jumpscale7/bin/installnode

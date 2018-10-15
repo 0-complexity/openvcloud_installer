@@ -1,8 +1,0 @@
-id                             = ''
-
-node.id                        = ''
-node.machineguid               = ''
-node.roles                     =
-    'node',
-    'master',
-

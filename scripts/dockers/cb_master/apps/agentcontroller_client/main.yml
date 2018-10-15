@@ -1,0 +1,4 @@
+addr: agentcontroller
+login: node
+passwd: rooter
+port: 4444

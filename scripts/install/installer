@@ -21,6 +21,17 @@ import threading
 from functools import partial
 import string
 
+
+BASE_IMAGE_EXCLUDE = [
+    "dev",
+    "sys",
+    "proc",
+    "etc/resolv.conf",
+    "etc/hosts",
+    "etc/hostname",
+    "etc/mtab",
+]
+
 Version = namedtuple("Version", ("version", "type"))
 REPO_URL = "https://github.com/0-complexity/openvcloud_installer"
 DEV_REPOS = [
@@ -31,15 +42,6 @@ DEV_REPOS = [
 ]
 REPO_PATH = "/opt/code/github/0-complexity/openvcloud_installer"
 DEV_TMPLS = ["osis", "agentcontroller", "portal"]
-AYSCONFIG = """
-metadata.jumpscale             =
-    branch:'{version}',
-    url:'git@github.com:jumpscale7/ays_jumpscale7',
-
-metadata.openvcloud            =
-    branch:'{ovcversion}',
-    url:'git@github.com:0-complexity/openvcloud_ays',
-"""
 REPOREVISIONS = {}
 BASE_FS_PATH = "/var/ovc/base_images/"
 
@@ -117,7 +119,7 @@ def get_ipaddress(net):
 
 
 def get_pnodes(
-    config, versions=None, roles=None, enabled_only=False, active_only=False
+    config, versions=None, roles=None, enabled_only=False, active_only=False, fs_path=None
 ):
     pnodes = []
     roles = set(roles or [])
@@ -133,7 +135,7 @@ def get_pnodes(
 
     for pnode in nodes:
         if roles.intersection(set(pnode["roles"])):
-            node = PNode(config, pnode["name"], versions)
+            node = PNode(config, pnode["name"], versions, fs_path)
             if not active_only or node.is_up():
                 pnodes.append(node)
     return pnodes
@@ -367,10 +369,9 @@ def get_versions(config, version=None, url=None):
     if 404 in versions:
         raise RuntimeError("Could not find manifest @ {}".format(url))
     for repo in versions["repos"]:
-        if repo["url"] in "https://github.com/jumpscale7/ays_jumpscale7":
-            versions["jsversion"] = version_type(repo)
-        if repo["url"] in "https://github.com/0-complexity/openvcloud_ays":
+        if repo["url"] == "https://github.com/0-complexity/openvcloud":
             versions["ovcversion"] = version_type(repo)
+            break
     return versions
 
 
@@ -425,6 +426,38 @@ class AbstractConfig:
 
             raise LookupError("Could not find host with IP {}".format(hostip))
         raise LookupError("Could not find appname {}".format(appname))
+
+    def get_base_image(self):
+        log("Getting base image")
+        for image, tag in self.versions["images"].items():
+            if "openvcloud/base" in image:
+                break
+        else:
+            raise RuntimeError("Could not find base image in versions manifest")
+        self.first_node.run("mkdir -p {}".format(BASE_FS_PATH))
+        fs_path = BASE_FS_PATH + "image_fs_{}_{}".format(image.replace("/", "_"), tag)
+        exclude_cmd = ""
+        for path in BASE_IMAGE_EXCLUDE:
+            exclude_cmd += " --exclude {}".format(path)
+        cmd = """
+        mkdir -p {1}
+        docker pull {0}:{3}
+        docker rm -f install_base || true # delete image if still exists from older version
+        docker create --name install_base {0} true
+        docker export install_base | tar xf - -C {1}{2}
+        """.format(
+            image, fs_path, exclude_cmd, tag
+        )
+        self.first_node.run(cmd)
+        return fs_path
+
+    def clean_base_image_path(self, fs_path):
+        cmd = """
+        docker rm -f install_base || true
+        docker image prune -f
+        rm -rf {}
+        """
+        self.first_node.run(cmd.format(fs_path))
 
     def remove_env_keys(self, node, public_key):
         """
@@ -501,7 +534,7 @@ class AbstractConfig:
 
 
 class Node(AbstractConfig):
-    def __init__(self, config, name, versions):
+    def __init__(self, config, name, versions, fs_path=None):
         super().__init__(config, versions)
         self.name = name
         self._node = None
@@ -515,6 +548,7 @@ class Node(AbstractConfig):
             config["environment"]["subdomain"], config["environment"]["basedomain"]
         )
         self.iyourl = "https://itsyou.online/"
+        self.fs_path = fs_path
 
     def log(self, msg):
         if ISINTERACTIVE and self.name in status:
@@ -560,36 +594,38 @@ class Node(AbstractConfig):
 
 
 class JumpScale7(Node):
-    def cleanup_base_images(self, fs_path):
-        self.first_node.run("docker image prune")
-        for fs in self.first_node.sftp.listdir(BASE_FS_PATH):
-            full_fs = BASE_FS_PATH + fs
-            if fs_path != full_fs:
-                self.first_node.run("rm -rf {}".format(full_fs))
 
     def copy_base_image(self):
+        self.log("Getting node info")
+        res = portal_api_call(
+            "system/gridmanager/getNodes",
+            self.config,
+            data={"ipaddr": self.remote.address},
+        )
+        node_data = res.json()[0]
+        grid_yaml = {
+            "id": node_data["gid"],
+            "node": {
+                "id": node_data["id"],
+                "machineguid": node_data["machineguid"],
+                "roles": node_data["roles"],
+            },
+        }
         self.log("Syncing base image")
-        for image in self.versions["images"]:
-            if "openvcloud/base" in image:
-                break
-        else:
-            raise RuntimeError("Could not find base image")
-        self.first_node.run("mkdir -p {}".format(BASE_FS_PATH))
-        fs_path = BASE_FS_PATH + "image_fs_{}".format(image.replace("/", "_"))
-        if not self.first_node.exists(fs_path):
-            cmd = """
-            mkdir -p {1}
-            docker pull {0}
-            docker rm -f install_base || true # delete image if still exists from older version
-            docker create --name install_base {0} true
-            docker export install_base | tar xf - -C {1} --exclude=/etc/resolv.conf --exclude=/dev --exclude=/sys --exclude=/proc
-            """.format(
-                image, fs_path
-            )
-            self.cleanup_base_images(fs_path)
-            self.first_node.run(cmd)
         self.first_node.add_ssh_host("root", self.remote.address)
-        self.first_node.run("rsync -a {} {}:/".format(fs_path, self.remote.address))
+        self.first_node.run(
+            "rsync -av --delete {}/opt/jumpscale7/ {}:/opt/jumpscale7/".format(
+                self.fs_path, self.remote.address
+            )
+        )
+        self.first_node.run(
+            "rsync -av --exclude opt/jumpscale7 {}/ {}:/".format(
+                self.fs_path, self.remote.address
+            )
+        )
+        grid_yaml = yaml.dump(grid_yaml, default_flow_style=False)
+        self.remote.run("mkdir -p /opt/jumpscale7/cfg/system")
+        self.remote.write_file("/opt/jumpscale7/cfg/system/grid.yml", grid_yaml)
 
     def get_services(self):
         services = ["jsredis", "jsagent"]
@@ -606,7 +642,11 @@ class JumpScale7(Node):
 
     def stop(self):
         self.log("Stop JumpScale services")
-        self.remote.run("systemctl stop {}".format(" ".join(self.get_services())))
+        res = self.remote.run("which ays", check=False)
+        if res.exit_status:
+            self.remote.run("ays stop")
+        else:
+            self.remote.run("systemctl stop {}".format(" ".join(self.get_services())))
 
     def upgrade(self):
         try:
@@ -629,14 +669,14 @@ class JumpScale7(Node):
             "gridid": self.config["environment"]["grid"]["id"],
             "envsub": self.config["environment"]["subdomain"],
             "envcli": self.config["itsyouonline"]["clientId"],
-            "envsec": self.config["itsyouonline"]["clientSecret"]
+            "envsec": self.config["itsyouonline"]["clientSecret"],
         }
         self.remote.run(
-            """/opt/jumpscale7/bin/nodeinstaller --roles={} --masterips={} --password={} --gid={} --fqdn={} \
-            --vxbackend_vlan={vxvlan} --vxbackend_ip={vxip} --gwmgmt_vlan={gwvlan} --gwmgmt_ip={gwip}
+            """/opt/jumpscale7/bin/installnode --roles={} --masterips {} --password={} --gid={} --fqdn={} \
+            --vxbackend_vlan={vxvlan} --vxbackend_ip={vxip} --gwmgmt_vlan={gwvlan} --gwmgmt_ip={gwip} \
             --grid_id={gridid} --env_subdomain={envsub} --client_id={envcli} --secret={envsec}""".format(
-                ",".join(self.roles),
-                ",".join(self.backplaneips),
+                " ".join(self.roles),
+                " ".join(self.backplaneips),
                 self.password,
                 self.gid,
                 self.fqdn,
@@ -974,7 +1014,6 @@ class Cluster(AbstractConfig):
         log("Write system config")
         self.write_config_map("system-config", self.config)
         versions = copy.deepcopy(self.versions)
-        versions.pop("jsversion", None)
         versions.pop("ovcversion", None)
         self.write_config_map("versions-manifest", versions)
 
@@ -1250,19 +1289,6 @@ def storage(help="Storage actions"):
     pass
 
 
-@cli.group()
-def image(help="Image actions"):
-    pass
-
-
-@image.command("deploy", help="Deploy an VM Image")
-@click.option("--name", help="Image name")
-@click.pass_context
-def image_deploy(ctx, name):
-    storage = random.choice(get_pnodes(ctx.obj["config"], roles=["storage"]))
-    storage.ays_install(name, "openvcloud")
-
-
 @node.command("action", help="Will apply the action on storage and cpu nodes")
 @click.option(
     "--name", help="Node name pass all to apply on all comma seperate list for multiple"
@@ -1312,29 +1338,33 @@ def node_action(ctx, name, action):
 )
 @click.argument(
     "action",
-    type=click.Choice(["start", "stop", "update", "restart", "install", "upgrade"]),
+    type=click.Choice(["start", "stop", "restart", "install", "upgrade"]),
 )
 @click.pass_context
 def node_jsaction(ctx, name, action):
     """
     Execute command for node
     """
-    if name != "all" and "," not in name:
-        cluster = PNode(ctx.obj["config"], name, ctx.obj["versions"])
-        getattr(cluster, action)()
+    if action in ["upgrade", "install"]:
+        cluster = AbstractConfig(ctx.obj["config"], ctx.obj["versions"])
+        fs_path = cluster.get_base_image()
+    if name == "all":
+        pnodes = get_pnodes(
+            ctx.obj["config"],
+            ctx.obj["versions"],
+            roles=["cpu", "storage", "controller"],
+            fs_path=fs_path
+        )
     else:
-        if name == "all":
-            pnodes = get_pnodes(
-                ctx.obj["config"],
-                ctx.obj["versions"],
-                roles=["cpu", "storage", "controller"],
-            )
-        else:
-            pnodes = [
-                PNode(ctx.obj["config"], pname, ctx.obj["versions"])
-                for pname in name.split(",")
-            ]
+        pnodes = [
+            PNode(ctx.obj["config"], pname, ctx.obj["versions"], fs_path)
+            for pname in name.split(",")
+        ]
+    try:
         pnode_action(pnodes, action)
+    finally:
+        if action in ["upgrade", "install"]:
+            cluster.clean_base_image_path(fs_path)
 
 
 @node.command("update", help="Update code and restart required services on node")

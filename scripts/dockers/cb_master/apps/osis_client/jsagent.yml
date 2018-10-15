@@ -1,0 +1,4 @@
+addr: localhost
+login: node
+passwd: '' 
+port: 5544

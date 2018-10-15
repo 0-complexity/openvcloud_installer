@@ -22,13 +22,11 @@ spec:
         image: openvcloud/cb_master
         workingDir: /var/run/scripts/system
         volumeMounts:
-        - name: system-hrd
-          mountPath:  /opt/cfg/system/
+        - name: cfg-dir
+          mountPath: /opt/cfgdir/
         - name: versions-manifest
           mountPath:  /opt/cfg/version/versions-manifest.yaml
           subPath: versions-manifest.yaml
-        - name: apps-hrd
-          mountPath:  /opt/cfg/apps/
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
@@ -43,10 +41,8 @@ spec:
         image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/portals/main
         volumeMounts:
-        - name:  system-hrd
-          mountPath: /opt/jumpscale7/hrd/system/
-        - name:  apps-hrd
-          mountPath: /opt/jumpscale7/hrd/apps/
+        - name:  cfg-dir
+          mountPath: /opt/jumpscale7/cfg/
         - name:  system-config
           mountPath:  /opt/cfg/system/system-config.yaml
           subPath: system-config.yaml
@@ -70,10 +66,8 @@ spec:
         image: openvcloud/cb_master
         workingDir: /opt/jumpscale7/apps/jsagent/
         volumeMounts:
-        - name:  system-hrd
-          mountPath: /opt/jumpscale7/hrd/system/
-        - name:  apps-hrd
-          mountPath: /opt/jumpscale7/hrd/apps/
+        - name:  cfg-dir
+          mountPath: /opt/jumpscale7/cfg/
         ports:
         - containerPort: 4446
           name: jsagent-serv
@@ -101,9 +95,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
       volumes:
-      - name: system-hrd
-        emptyDir: {}
-      - name: apps-hrd
+      - name: cfg-dir
         emptyDir: {}
       - name: billing
         hostPath:

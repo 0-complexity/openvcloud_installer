@@ -1,0 +1,18 @@
+admingroups: 'admin,'
+appdir: '$base/apps/portals/portalbase'
+authentication_method: 'osis'
+contentdirs: 
+defaultspace: 'vdc'
+filesroot: '$vardir/portal/files'
+force_oauth_instance: 'itsyouonline'
+connections:
+  gitlab: main
+  osis: main
+ipaddr: 'localhost'
+port: '82'
+secret: 'rooter'
+rootpasswd: 'rooter'
+url: 'https://customer.demo.greenitglobe.com'
+proxies:
+- dest: 'http://grafana:3000'
+  path: '/grafana'

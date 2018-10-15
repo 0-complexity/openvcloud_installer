@@ -1,0 +1,3 @@
+password: admin
+url: http://grafana:3000
+username: admin

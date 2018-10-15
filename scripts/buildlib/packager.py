@@ -110,6 +110,7 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--link', action='store_true')
     parser.add_argument('-m', '--manifest', default='/tmp/dep-manifest.yml', type=argparse.FileType())
     parser.add_argument('-vp', '--version-manifest', default=None)
+    parser.add_argument("--no-key", default=False, action="store_true")
     options = parser.parse_args()
     key_path = "/root/.ssh/id_rsa"
     ssh_dir = os.path.dirname(key_path)
@@ -120,7 +121,7 @@ if __name__ == "__main__":
         with open(key_path, "w") as key_data:
             key_data.write(privatekey)
         os.chmod(key_path, 0o600)
-    elif subprocess.call(['ssh-add', '-l']) != 0:
+    elif subprocess.call(['ssh-add', '-l']) != 0 and not options.no_key:
         raise RuntimeError("Need either PRIVATEKEY env or key in agent")
     dep_data = yaml.load(options.manifest)
     migrator = Packager(options.link, options.version_manifest)

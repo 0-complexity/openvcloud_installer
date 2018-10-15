@@ -1,0 +1,5 @@
+addr: osis
+login: root
+passwd: rooter
+poolsize: 1000
+port: 5544

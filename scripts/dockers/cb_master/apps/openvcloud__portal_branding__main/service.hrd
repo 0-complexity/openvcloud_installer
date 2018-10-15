@@ -1,5 +1,0 @@
-service.domain                 = 'openvcloud'
-service.installed.checksum     = '0512c31c4466d3e0c04d156ef01a8d1e'
-service.instance               = 'main'
-service.name                   = 'portal_branding'
-service.platform.supported     = 'generic'

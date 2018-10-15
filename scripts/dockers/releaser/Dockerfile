@@ -1,4 +1,4 @@
-FROM openvcloud/cb_master:latest
+FROM openvcloud/cb_master
 ARG PRIVATEKEY
 ARG VERSION
 ARG MANIFESTURL
@@ -8,4 +8,4 @@ RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /
 RUN git config --global user.email "releaser@greenitglobe.com" && \
     git config --global user.name "gigreleaser"
 RUN wget "${MANIFESTURL}/${VERSION}.yml" -O /root/manifest.yml
-RUN jspython /opt/code/github/0-complexity/openvcloud/scripts/versions/makerelease -m /root/manifest.yml -u
+RUN jspython /opt/scripts/versions/makerelease -m /root/manifest.yml -u

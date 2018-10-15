@@ -13,9 +13,6 @@ https://git.gig.tech/openvcloud/binary/python:
   source: web_python/root/jslib/
 - dest: /opt/jumpscale7/lib/
   source: web_python/root/lib/
-https://git.gig.tech/openvcloud/binary/redis:
-- dest: /opt/jumpscale7/apps/redis/
-  source: redis
 https://github.com/0-complexity/openvcloud:
 - dest: /opt/jumpscale7/libext/cloudbrokerlib/
   source: apps/cloudbroker/cloudbrokerlib/
@@ -33,11 +30,14 @@ https://github.com/0-complexity/openvcloud:
   source: apps/osis/logic/
 - dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
   source: libs/agent-scripts/
+- dest: /opt/scripts/versions/
+  source: scripts/versions/
 https://github.com/0-complexity/selfhealing:
-- branch: ''
 - dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
   source: jumpscripts/
 https://github.com/jumpscale7/jumpscale_core7:
+- dest: /opt/jumpscale7/cfg/system/
+  source: bootstrap/
 - dest: /opt/jumpscale7/apps/agentcontroller/controller.py
   source: apps/agentcontroller/controller.py
 - dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/core/

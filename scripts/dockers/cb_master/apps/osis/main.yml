@@ -1,0 +1,5 @@
+connections:
+  mongodb: main
+
+key: ''
+passwd: rooter
