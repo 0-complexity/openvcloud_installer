@@ -628,31 +628,39 @@ class JumpScale7(Node):
         self.remote.write_file("/opt/jumpscale7/cfg/system/grid.yml", grid_yaml)
 
     def get_services(self):
-        services = ["jsredis", "jsagent"]
+        services = ["openvcloud_redis", "openvcloud_jsagent"]
         if "cpu" in self.roles or "storage" in self.roles:
             services.append("nginx")
         if "cpu" in self.roles:
-            services.append("libvirtlister")
-            services.append("vncproxy")
+            services.append("openvcloud_libvirtlistener")
+            services.append("openvcloud_vncproxy")
         return services
 
     def start(self):
         self.log("Start JumpScale services")
         self.remote.run("systemctl start {}".format(" ".join(self.get_services())))
 
-    def stop(self):
+    def stop(self, ays=False):
         self.log("Stop JumpScale services")
-        res = self.remote.run("which ays", check=False)
-        if res.exit_status:
+        if ays:
             self.remote.run("ays stop")
+            self.remote.run("systemctl disable jsagent_main.service")
+            self.remote.run("rm -f /etc/init.d/ays")
+            self.remote.run("rm -f /etc/systemd/system/jsagent_main.service")
         else:
             self.remote.run("systemctl stop {}".format(" ".join(self.get_services())))
 
     def upgrade(self):
+        extra_flag = "--update"
+        ays = False
+        res = self.remote.run("which ays", check=False)
+        if res.exit_status == 0:
+            ays = True
+            extra_flag = ""
         try:
-            self.stop()
+            self.stop(ays)
             self.copy_base_image()
-            self._run_install_node("--update")
+            self._run_install_node(extra_flag)
         finally:
             self.start()
 
