@@ -646,6 +646,7 @@ class JumpScale7(Node):
             self.remote.run("ays stop")
             self.remote.run("systemctl disable jsagent_main.service")
             self.remote.run("rm -f /etc/init.d/ays")
+            self.remote.run("rm -f /usr/local/bin/ays")
             self.remote.run("rm -f /etc/systemd/system/jsagent_main.service")
         else:
             self.remote.run("systemctl stop {}".format(" ".join(self.get_services())))
