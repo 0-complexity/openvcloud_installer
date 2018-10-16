@@ -119,7 +119,12 @@ def get_ipaddress(net):
 
 
 def get_pnodes(
-    config, versions=None, roles=None, enabled_only=False, active_only=False, fs_path=None
+    config,
+    versions=None,
+    roles=None,
+    enabled_only=False,
+    active_only=False,
+    fs_path=None,
 ):
     pnodes = []
     roles = set(roles or [])
@@ -594,7 +599,6 @@ class Node(AbstractConfig):
 
 
 class JumpScale7(Node):
-
     def copy_base_image(self):
         self.log("Getting node info")
         res = portal_api_call(
@@ -643,13 +647,16 @@ class JumpScale7(Node):
     def stop(self, ays=False):
         self.log("Stop JumpScale services")
         if ays:
-            self.remote.run("ays stop")
-            self.remote.run("systemctl disable jsagent_main.service")
+            self.remote.run("ays stop", check=False)
+            self.remote.run("systemctl disable jsagent_main.service", check=False)
             self.remote.run("rm -f /etc/init.d/ays")
             self.remote.run("rm -f /usr/local/bin/ays")
             self.remote.run("rm -f /etc/systemd/system/jsagent_main.service")
         else:
-            self.remote.run("systemctl stop {}".format(" ".join(self.get_services())))
+            for service in self.get_services():
+                res = self.remote.run("systemctl status {}".format(service), check=False)
+                if res.exit_status == 0:
+                    self.remote.run("systemctl stop {}".format(service))
 
     def upgrade(self):
         extra_flag = "--update"
@@ -1351,8 +1358,7 @@ def node_action(ctx, name, action):
     "--name", help="Node name pass all to apply on all comma seperate list for multiple"
 )
 @click.argument(
-    "action",
-    type=click.Choice(["start", "stop", "restart", "install", "upgrade"]),
+    "action", type=click.Choice(["start", "stop", "restart", "install", "upgrade"])
 )
 @click.pass_context
 def node_jsaction(ctx, name, action):
@@ -1367,7 +1373,7 @@ def node_jsaction(ctx, name, action):
             ctx.obj["config"],
             ctx.obj["versions"],
             roles=["cpu", "storage", "controller"],
-            fs_path=fs_path
+            fs_path=fs_path,
         )
     else:
         pnodes = [
