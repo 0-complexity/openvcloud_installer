@@ -7,8 +7,8 @@ RUN pip install requests pyyaml
 RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
 COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/packager.py /tmp/
 COPY dep-manifest.yml /tmp/
-RUN python /tmp/packager.py
-RUN sed -i -e 's/$VERSION/"${VERSION}"/g' /opt/jumpscale7/cfg/system/system.yml
+RUN eval `ssh-agent -s` && ssh-add && python /tmp/packager.py
+RUN sed -i -e 's/$VERSION/'"${VERSION}"'/g' /opt/jumpscale7/cfg/system/system.yml
 
 # build caddy
 FROM golang:alpine as gobuilder

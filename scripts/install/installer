@@ -1583,14 +1583,15 @@ def upgrade_cluster(ctx, development, pre_flight_check):
         _preFlightCheck(ctx)
 
     config = ctx.obj["config"]
+    cluster = Cluster(config, ctx.obj["versions"], development)
+    fs_path = cluster.get_base_image()
     pnodes = get_pnodes(
         config,
         versions=ctx.obj["versions"],
         roles=["cpu", "storage", "controller"],
         enabled_only=True,
+        fs_path=fs_path
     )
-
-    cluster = Cluster(config, ctx.obj["versions"], development)
     cluster.upgrade()
     try:
         try:
@@ -1612,6 +1613,8 @@ def upgrade_cluster(ctx, development, pre_flight_check):
         portal_api_call("cloudbroker/grid/upgradeFailed", ctx.obj["config"])
         logging.error("Error:", exc_info=True)
         log("Failed to update environment.")
+    finally:
+        cluster.clean_base_image_path(fs_path)
 
 
 @cluster.command("updatedomain", help="Update the environment certificates and domain")
