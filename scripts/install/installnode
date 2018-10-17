@@ -355,6 +355,7 @@ class StorageNode(Node):
         self.redis["config"]["maxram"] = 200
 
     def install(self):
+        super(StorageNode, self).install()
         self.install_cb_storagenode_aio()
         self.install_cb_storagedriver_aio()
         if not self.config.update:
