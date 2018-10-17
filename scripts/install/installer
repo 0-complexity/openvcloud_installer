@@ -1159,7 +1159,34 @@ class Cluster(AbstractConfig):
         self.kubectl("delete deploy --namespace default -l 'app!=qa'")
         self.kubectl("delete deploy --all --namespace development")
 
+    def init_ovscred(self):
+        content = """
+from JumpScale import j
+scl = j.clients.osis.getNamespace("system")
+grid = scl.grid.get(j.application.whoAmI.gid)
+ovs_credentials = grid.settings.get("ovs_credentials", {})
+edgeuser = ovs_credentials.get("edgeuser")
+edgepassword = ovs_credentials.get("edgepassword")
+print("{}, {}".format(edgeuser, edgepassword))
+        """
+        self.first_node.write_file('/tmp/getovscred.py', content)
+        edgeuser, edgepassword = self.first_node.run('jspython /tmp/getovscred.py').stdout.split(',', 1)
+        self.kubectl(
+            "create secret generic ovs-cred --from-literal=edgeuser={} --from-literal=edgepassword={} --dry-run -o yaml | kubectl apply -f  -".format(
+                edgeuser.strip(), edgepassword.strip()
+            )
+        )
+
+
     def update(self):
+        output = self.kubectl("get secret -o json")
+        secrets = json.loads(output.stdout)
+        for secret in secrets["items"]:
+            if secret["metadata"]["name"] == "ovs-cred":
+                break
+        else:
+            self.init_ovscred()
+            
         log("Restarting cluster...")
         if self.development:
             self.kubectl("delete deploy {}".format(" ".join(DEV_TMPLS)), check=False)
@@ -1173,7 +1200,7 @@ class Cluster(AbstractConfig):
         chars += string.punctuation
         password = [random.choice(chars) for x in range(11)]
         self.kubectl(
-            "kubectl create secret generic ovs-cred --from-literal=edgeuser={} --from-literal=edgepassword={} --dry-run -o yaml | kubectl apply -f  -".format(
+            "create secret generic ovs-cred --from-literal=edgeuser={} --from-literal=edgepassword={} --dry-run -o yaml | kubectl apply -f  -".format(
                 username, password
             )
         )
