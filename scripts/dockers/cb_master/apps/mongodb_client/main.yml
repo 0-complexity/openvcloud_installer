@@ -3,4 +3,4 @@ login: ''
 passwd: ''    
 port: 27017
 replicaset: rs0
-ssl: ''       
+ssl: False

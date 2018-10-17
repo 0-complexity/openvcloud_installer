@@ -1428,7 +1428,7 @@ def _node_update(ctx):
     pnodes = get_pnodes(
         config, ctx.obj["versions"], roles=["cpu", "storage", "controller"]
     )
-    pnode_action(pnodes, "update")
+    pnode_action(pnodes, "upgrade")
     pnode_action(pnodes, "restart")
 
 
@@ -1459,7 +1459,7 @@ def kube_apply_all(ctx):
     """
     Rewrite kube resources from template
     """
-    cluster = Cluster(ctx.obj["config"], ctx.obj["vesions"])
+    cluster = Cluster(ctx.obj["config"], ctx.obj["versions"])
     cluster.kube_deploy()
 
 
@@ -1596,7 +1596,7 @@ def upgrade_cluster(ctx, development, pre_flight_check):
         try:
             pnode_action(pnodes, "stop")
             cluster.update()
-            pnode_action(pnodes, "update")
+            pnode_action(pnodes, "upgrade")
         finally:
             pnode_action(pnodes, "start")
 

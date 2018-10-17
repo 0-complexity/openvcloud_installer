@@ -1,5 +1,5 @@
 connections:
   mongodb: main
 
-key: ''
+key: null
 passwd: rooter

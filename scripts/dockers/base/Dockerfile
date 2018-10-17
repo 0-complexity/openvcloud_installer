@@ -8,6 +8,7 @@ RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /
 COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/packager.py /tmp/
 COPY dep-manifest.yml /tmp/
 RUN python /tmp/packager.py
+RUN sed -i -e 's/$VERSION/"${VERSION}"/g' /opt/jumpscale7/cfg/system/system.yml
 
 # build caddy
 FROM golang:alpine as gobuilder
