@@ -11,6 +11,9 @@ stages:
 .build_template: &build_definition
   stage: build
   image: openvcloud/imagebuilder
+  variables:
+      VERSION: "9.9.9"
+      MANIFESTURL: "https://raw.githubusercontent.com/0-complexity/devmanifests/master/manifests/"
   when: manual
 
 
