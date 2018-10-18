@@ -203,10 +203,8 @@ class ComputeNode(Node):
         self.vfwnode = {
             "config": {
                 "netrange_internal": "10.199.0.0/22",
-                "passwd": "Dct007",
-                "newpasswd": "Dct007",
+                "password": "Dct007",
                 "login": "vscalers",
-                "ip": "10.199.3.254",
             },
             "servicename": "routeros",
             "instance": "main",
