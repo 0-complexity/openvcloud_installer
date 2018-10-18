@@ -19,15 +19,27 @@ class Node(object):
 
     def install_packages(self):
         j.do.execute("apt-get update")
-        j.do.execute("apt-get install -y redis-server openvswitch-switch libmhash2")
+        j.do.execute("apt-get install -y redis-server openvswitch-switch libmhash2 nginx")
 
     def prepare_config(self):
+        self.grid = {
+            "config":{
+                'id': self.config.grid_id
+            },
+            "servicename": "system",
+            "instance": "grid"
+        }
+        grid_config = j.core.config.get('system', 'grid')
+        if not grid_config['id']:
+            self.update_config(self.grid)
+
         if self.extraroles:
             grid = j.core.config.get("system", "grid")
             for role in self.extraroles:
                 if role not in grid["node"]["roles"]:
                     grid["node"]["roles"].append(role)
             j.core.config.set("system", "grid", grid)
+
         self.redis = {
             "config": {
                 "name": "main",
@@ -133,13 +145,23 @@ class Node(object):
         self.write_config(self.agent_controller_client)
 
     def register_service(self, config):
-        j.system.platform.ubuntu.serviceInstall(
-            "openvcloud_{}".format(config["servicename"]),
-            config["daemonpath"],
-            config["args"],
-            pwd=config["pwd"],
-        )
-        j.system.platform.ubuntu.restartService(
+        after=config['after'] if 'after' in config else None
+        if not after:
+            j.system.platform.ubuntu.serviceInstall(
+                "openvcloud_{}".format(config["servicename"]),
+                config["daemonpath"],
+                config["args"],
+                pwd=config["pwd"],
+            )
+        else:
+            j.system.platform.ubuntu.serviceInstall(
+                "openvcloud_{}".format(config["servicename"]),
+                config["daemonpath"],
+                config["args"],
+                pwd=config["pwd"],
+                after=after,
+            )
+        j.system.platform.ubuntu.startService(
             "openvcloud_{}".format(config["servicename"])
         )
 
@@ -148,6 +170,11 @@ class Node(object):
 
     def write_config(self, data):
         j.core.config.set(data["servicename"], data["instance"], data.get("config", {}))
+    
+    def update_config(self, data):
+        conf = j.core.config.get(data['servicename'], data['instance'])
+        conf.update(data.get("config", {}))
+        j.core.config.set(data["servicename"], data["instance"], conf)
 
     def clean(self):
         for service in self.services:
@@ -198,7 +225,7 @@ class ComputeNode(Node):
             "rootpasswd": self.config.password,
             "master.addr": "",
             "network.gw_mgmt_ip": self.netinfo["gwmgmt_ip"],
-            "grid.id": self.config.gid,
+            "grid.id": self.config.grid_id,
         }
 
         self.libvirtlistener = {
@@ -217,7 +244,6 @@ class ComputeNode(Node):
             "servicename": "routeros",
             "instance": "main",
         }
-
         self.services.extend([self.vncproxy, self.libvirtlistener])
 
     def install_vfwnode(self):
@@ -278,8 +304,8 @@ class ComputeNode(Node):
             self.install_packages()
         self.configure()
         self.install_vncproxy()
-        self.install_libvirtlistener()
         self.install_network()
+        self.install_libvirtlistener()
         self.install_cb_cpunode_aio()
         self.install_vfwnode()
 
@@ -291,6 +317,7 @@ class ComputeNode(Node):
 
     def install_network(self):
         import libvirt
+        self.restart_service("libvirtd")
 
         nics = j.system.net.getNics()
 
@@ -342,11 +369,6 @@ class StorageNode(Node):
 
     def prepare_config(self):
         super(StorageNode, self).prepare_config()
-        # self.data_storage = {
-        #     "param.rootpasswd": self.config.password,
-        #     "param.master.addr": "",
-        #     "param.grid.id": self.config.gid,
-        #     }
         self.redis["config"]["maxram"] = 200
 
     def install(self):
@@ -541,7 +563,166 @@ class ConvergedNode(ComputeNode, StorageNode):
     def clean(self):
         super(ConvergedNode, self).clean()
 
+class MasterNode(Node):
+    def __init__(self, config):
+        Node.__init__(self, config)
+        self.prepare_config()
 
+    def prepare_config(self):
+        super(MasterNode, self).prepare_config()
+        self.ovc_itsyouonline = {
+            "config":{
+                "callbackurl": '{}/restmachine/system/oauth/authorize'.format(self.config.fqdn),
+                "client_id": self.config.client_id,
+                "client_secret":self.config.secret,
+                "environment": self.config.env_subdomain,
+            }
+        }
+        self.portal_client['config'].update({
+                "addr": self.config.masterips[0],
+                "port": 80,
+                "secret": self.config.password,
+                }
+        )
+        dbpath = "/opt/jumpscale7/var/mongodb/main/"
+        j.do.createDir(dbpath)
+        self.mongodb = {
+            "config": {
+                "name": "main",
+            },
+            "servicename": "mongodb",
+            "instance": "main",
+            "daemonpath": "/usr/bin/mongod",
+            "args": "--dbpath {dbpath} --smallfiles --rest --httpinterface".format(dbpath=dbpath),
+            "pwd": "/opt/jumpscale7",
+        }
+        self.mongodb_client = {
+            "config": {
+                "addr": self.config.masterips[0],
+                "replicaset": None,
+            },
+            "servicename": "mongodb_client",
+            "instance": "main"
+        }
+        self.osis = {
+            "config": {
+                "name": "main",
+            },
+            "servicename": "osis",
+            "instance": "main",
+            "after":"openvcloud_mongodb.target",
+            "daemonpath": "/usr/local/bin/jspython",
+            "args": "osisServerStart.py main",
+            "pwd": "/opt/jumpscale7/apps/osis/",
+        }
+
+        self.controller = {
+            "config": {
+                "name": "main",
+            },
+            "servicename": "agentcontroller",
+            "after":"openvcloud_jsagent.target",
+            "instance": "main",
+            "daemonpath": "/usr/local/bin/jspython",
+            "args": "controller.py -i main",
+            "pwd": "/opt/jumpscale7/apps/agentcontroller/",
+        }
+        self.portal = {
+            "config": {
+                "port": 82,
+                "url": self.config.fqdn,
+                "navigationlinks":[
+            {
+                "name": "Cloud Broker",
+                "url": "/cbgrid",
+                "scope": "admin",
+                "theme": "light",
+            },
+            {
+                "name": "Statistics",
+                "url": "/grafana/d/1/overall-system-performance",
+                "scope": "admin",
+                "theme": "light",
+                "external": "true",
+            },
+            {"name": "Grid", "url": "/grid", "scope": "admin", "theme": "light"},
+            {
+                "name": "Storage",
+                "url": self.config.ovs_url,
+                "scope": "ovs_admin",
+                "theme": "light",
+                "external": "true",
+            },
+            {"name": "System", "url": "/system", "scope": "admin", "theme": "light"},
+            {
+                "name": "End User",
+                "url": self.config.fqdn,
+                "scope": "user",
+                "theme": "dark",
+                "external": "true",
+            },
+        ]
+            },
+            "servicename": "portal",
+            "instance": "main",
+            "daemonpath": "/usr/local/bin/jspython",
+            "args": "portal_start.py main",
+            "pwd": "/opt/jumpscale7/apps/portals/main/",
+        }
+        self.grid = {
+            "config":{
+                'id': self.config.grid_id
+            },
+            "servicename": "system",
+            "instance": "grid"
+        }
+        self.update_config(self.grid)
+        self.update_config(self.mongodb_client)
+         # update openvcloud config
+        openvcloud_config = j.core.config.get("openvcloud", "main")
+        openvcloud_config["portalurl"] = self.config.fqdn
+        openvcloud_config["supportemail"] = j.core.config.get("mailclient", "main")["sender"]
+        j.core.config.set("openvcloud", "main", openvcloud_config)
+
+
+    def install_packages(self):
+        super(MasterNode, self).install_packages()
+        j.do.execute(
+            "apt-get install -y graphviz mongodb libmhash2"
+        )
+    def install_portal(self):
+        import os
+        args = "--fqdn={} --password={} --env_subdomain={} --client_id={} --secret={} --ovs_url={}".format(
+            self.config.fqdn,
+            self.config.password,
+            self.config.env_subdomain,
+            self.config.client_id,
+            self.config.secret,
+            self.config.ovs_url
+        )
+        os.system('jspython /opt/code/github/0-complexity/openvcloud_installer/scripts/dockers/cb_master/configure-portal-local.py {}'.format(args))
+        self.register_service(self.portal)
+        self.restart_service('openvcloud_portal')
+        
+    def install(self):
+        self.install_redis()
+        j.do.execute('systemctl restart nginx')
+        self.register_service(self.mongodb)
+        import time
+        time.sleep(40)
+        self.register_service(self.osis)
+        time.sleep(20)
+        self.install_osis_client()
+        self.register_service(self.controller)
+        self.install_agentcontroller_client()
+        time.sleep(20)
+        self.install_jsagent()
+        self.install_portal()
+        self.install_portal_client()
+
+
+
+    
 if __name__ == "__main__":
 
     from argparse import ArgumentParser
@@ -559,7 +740,6 @@ if __name__ == "__main__":
         help="master ips",
     )
     parser.add_argument("-p", "--password", dest="password", help="Password")
-    parser.add_argument("-gid", "--gid", dest="gid", help="GID", required=True)
     parser.add_argument("-fqdn", "--fqdn", dest="fqdn", required=True, help="FQDN")
     parser.add_argument(
         "-vxbackend_vlan",
@@ -574,7 +754,7 @@ if __name__ == "__main__":
         "-gwmgmt_vlan", "--gwmgmt_vlan", dest="gwmgmt_vlan", help="gwmgmt_vlan"
     )
     parser.add_argument("-gwmgmt_ip", "--gwmgmt_ip", dest="gwmgmt_ip", help="gwmgmt_ip")
-    parser.add_argument("-grid_id", "--grid_id", dest="grid_id", help="grid_id")
+    parser.add_argument("-grid_id", "--grid_id", dest="grid_id", help="grid_id", type=int)
     parser.add_argument(
         "-env_subdomain", "--env_subdomain", dest="env_subdomain", help="env_subdomain"
     )
@@ -584,8 +764,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "-secret", "--secret", dest="secret", help="itsyouonline Secret"
     )
+    parser.add_argument(
+        "-ovs_url", "--ovs_url", dest="ovs_url", help="ovs_url required for local dev installation"
+    )
     parser.add_argument("--update", help="Update", action="store_true")
-
     config = parser.parse_args()
     if "cpu" in config.roles and "storage" in config.roles:
         node = ConvergedNode(config)
@@ -593,6 +775,8 @@ if __name__ == "__main__":
         node = ComputeNode(config)
     elif "storage" in config.roles:
         node = StorageNode(config)
+    elif "master" in config.roles:
+        node = MasterNode(config)
     else:
         extraroles = []
         if "controller" in config.roles:

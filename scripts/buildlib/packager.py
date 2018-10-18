@@ -69,10 +69,18 @@ class Packager:
             elif os.path.isfile(destination):
                 os.remove(destination)
             return False
+
         if os.path.isdir(src):
             for filepath in os.listdir(src):
                 srcpath = os.path.join(src, filepath)
                 dstpath = os.path.join(dest, filepath)
+                if os.path.exists(dstpath):
+                    if os.path.isdir(dstpath):
+                        self._create_link(srcpath, dstpath)
+                        continue
+                    else:
+                        continue
+
                 if check_link(srcpath, dstpath):
                     continue
                 os.symlink(srcpath, dstpath.rstrip('/'))

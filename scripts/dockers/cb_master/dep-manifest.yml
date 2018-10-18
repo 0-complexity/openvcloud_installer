@@ -13,6 +13,7 @@ https://git.gig.tech/openvcloud/binary/python:
   source: web_python/root/jslib/
 - dest: /opt/jumpscale7/lib/
   source: web_python/root/lib/
+
 https://github.com/jumpscale7/jumpscale_core7:
 - dest: /opt/jumpscale7/cfg/system/
   source: bootstrap/
