@@ -13,25 +13,6 @@ https://git.gig.tech/openvcloud/binary/python:
   source: web_python/root/jslib/
 - dest: /opt/jumpscale7/lib/
   source: web_python/root/lib/
-https://github.com/0-complexity/openvcloud:
-- dest: /opt/jumpscale7/libext/cloudbrokerlib/
-  source: apps/cloudbroker/cloudbrokerlib/
-- dest: /opt/jumpscale7/libext/CloudscalerLibcloud/
-  source: libs/CloudscalerLibcloud/CloudscalerLibcloud/
-- dest: /opt/jumpscale7/apps/portals/main/base/
-  source: apps/cloudbroker/base/
-- dest: /opt/jumpscale7/apps/portals/main/templates/
-  source: apps/cloudbroker/templates/
-- dest: /opt/jumpscale7/apps/portals/main/base/
-  source: apps/cbportal/base/
-- dest: /opt/jumpscale7/apps/portals/main/templates/
-  source: apps/cbportal/templates/
-- dest: /opt/jumpscale7/apps/osis/logic/
-  source: apps/osis/logic/
-- dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
-  source: libs/agent-scripts/
-- dest: /opt/scripts/versions/
-  source: scripts/versions/
 https://github.com/0-complexity/selfhealing:
 - dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
   source: jumpscripts/
@@ -81,3 +62,22 @@ https://github.com/jumpscale7/jumpscale_portal:
   source: lib/portal/
 - dest: /opt/jumpscale7/apps/portals/main/base/
   source: apps/gridportal/base/
+https://github.com/0-complexity/openvcloud:
+- dest: /opt/jumpscale7/libext/cloudbrokerlib/
+  source: apps/cloudbroker/cloudbrokerlib/
+- dest: /opt/jumpscale7/libext/CloudscalerLibcloud/
+  source: libs/CloudscalerLibcloud/CloudscalerLibcloud/
+- dest: /opt/jumpscale7/apps/portals/main/base/
+  source: apps/cloudbroker/base/
+- dest: /opt/jumpscale7/apps/portals/main/templates/
+  source: apps/cloudbroker/templates/
+- dest: /opt/jumpscale7/apps/portals/main/base/
+  source: apps/cbportal/base/
+- dest: /opt/jumpscale7/apps/portals/main/templates/
+  source: apps/cbportal/templates/
+- dest: /opt/jumpscale7/apps/osis/logic/
+  source: apps/osis/logic/
+- dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
+  source: libs/agent-scripts/
+- dest: /opt/scripts/versions/
+  source: scripts/versions/
