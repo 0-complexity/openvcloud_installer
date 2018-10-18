@@ -15,7 +15,7 @@
 			"gid": 0
 		},
 		"args": [
-			"/bin/dnsmasq"
+			"/usr/sbin/dnsmasq"
 		],
 		"env": [
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",

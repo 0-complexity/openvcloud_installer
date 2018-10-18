@@ -60,6 +60,16 @@ class Node(object):
             "servicename": "osis_client",
             "instance": "main",
         }
+        self.portal_client = {
+            "config": {
+                "addr": self.config.fqdn,
+                "port": 443,
+                "secret": self.config.password,
+            },
+            "domain": "jumpscale",
+            "servicename": "portal_client",
+            "instance": "main",
+        }
 
         import copy
 
@@ -83,6 +93,7 @@ class Node(object):
         self.install_redis()
         self.install_osis_client()
         self.install_agentcontroller_client()
+        self.install_portal_client()
         self.install_jsagent()
 
     def install_redis(self):
@@ -103,6 +114,9 @@ class Node(object):
         # reload system config / whoAmI
         j.application.loadConfig()
         self.register_service(self.jsagent)
+
+    def install_portal_client(self):
+        self.write_config(self.portal_client)
 
     def install_osis_client(self):
         self.write_config(self.osis_client_main)
@@ -179,16 +193,6 @@ class ComputeNode(Node):
             "grid.id": self.config.gid,
         }
 
-        self.portal_client = {
-            "config": {
-                "addr": self.config.fqdn,
-                "port": 443,
-                "secret": self.config.password,
-            },
-            "domain": "jumpscale",
-            "servicename": "portal_client",
-            "instance": "main",
-        }
         self.libvirtlistener = {
             "servicename": "libvirtlistener",
             "daemonpath": "/usr/local/bin/jspython",
@@ -216,7 +220,7 @@ class ComputeNode(Node):
     def install_packages(self):
         super(ComputeNode, self).install_packages()
         j.do.execute(
-            "apt-get install -y qemu nginx libvirt-bin python-libvirt virtinst python-pexpect ovmf openvswitch-switch openvswitch-common genisoimage qemu-kvm"
+            "apt-get install -y qemu nginx libvirt-bin python-libvirt virtinst python-pexpect ovmf openvswitch-switch openvswitch-common genisoimage qemu-kvm runc"
         )
 
     def configure(self):
@@ -267,7 +271,6 @@ class ComputeNode(Node):
         if not self.config.update:
             self.install_packages()
         self.configure()
-        self.install_portal_client()
         self.install_vncproxy()
         self.install_libvirtlistener()
         self.install_network()
@@ -279,9 +282,6 @@ class ComputeNode(Node):
 
     def install_libvirtlistener(self):
         self.register_service(self.libvirtlistener)
-
-    def install_portal_client(self):
-        self.write_config(self.portal_client)
 
     def install_network(self):
         import libvirt
@@ -534,6 +534,8 @@ Pin-Priority: 1000
             }
 
             self.write_config(openvstorage_oauth)
+
+
 class ConvergedNode(ComputeNode, StorageNode):
     def __init__(self, config):
         ComputeNode.__init__(self, config)
@@ -545,7 +547,7 @@ class ConvergedNode(ComputeNode, StorageNode):
 
     def clean(self):
         super(ConvergedNode, self).clean()
-        
+
 
 if __name__ == "__main__":
 
