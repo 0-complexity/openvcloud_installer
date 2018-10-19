@@ -44,6 +44,8 @@ https://github.com/0-complexity/openvcloud:
   source: apps/libvirtlistener/
 - dest: /opt/jumpscale7/apps/vncproxy/utils/
   source: apps/vncproxy/utils/
+- source: scripts/ovs/alba-create-user.py
+  dest: /opt/jumpscale7/bin/alba-create-user.py
 https://github.com/jumpscale7/jumpscale_core7:
 - dest: /opt/jumpscale7/cfg/system/
   source: bootstrap/

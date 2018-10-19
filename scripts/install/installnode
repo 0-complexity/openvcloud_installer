@@ -322,7 +322,7 @@ class ComputeNode(Node):
     def install_cb_cpunode_aio(self):
         roles = j.application.config["grid"]["node"].get("roles", [])
         change = False
-        for role in ["cpunode", "vfw"]:
+        for role in ["cpunode", "fw"]:
             if role not in roles:
                 change = True
                 roles.append(role)
@@ -465,7 +465,7 @@ Pin-Priority: 1000
 
         if "MASTER" in output:
             j.do.execute(
-                "python /opt/code/github/0-complexity/openvcloud/scripts/ovs/alba-create-user.py"
+                "python /opt/jumpscale7/bin/alba-create-user.py"
             )
             ovscallbackurl = "https://ovs-{}/api/oauth2/redirect/".format(
                 self.config.fqdn
