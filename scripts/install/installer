@@ -822,11 +822,7 @@ class Cluster(AbstractConfig):
 
         self.prepare_directories()
         self.write_certificates()
-        self.install_teleport()
         self.configure_keys()
-        self.kube_deploy()
-        for node in self.nodes:
-            self.remove_env_keys(node, self.config["ssh"]["public-key"])
         output = self.kubectl("get secret -o json")
         secrets = json.loads(output.stdout)
         for secret in secrets["items"]:
@@ -834,6 +830,9 @@ class Cluster(AbstractConfig):
                 break
         else:
             self.generate_edge_password()
+        self.kube_deploy()
+        for node in self.nodes:
+            self.remove_env_keys(node, self.config["ssh"]["public-key"])
 
     def prepare_directories(self):
         log("Preparing directories")

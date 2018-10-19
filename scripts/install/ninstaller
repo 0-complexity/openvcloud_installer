@@ -412,10 +412,11 @@ def cli(config, version, url):
                 "python3",
                 "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
                 "--config={}".format(app.configpath),
-                "--version={}".format(version),
             ]
             if url:
                 command.append("--url={}".format(url))
+            if version:
+                command.append("--version={}".format(version))
             command.extend([
                 "cluster",
                 app.clustercommand,
