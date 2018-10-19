@@ -18,7 +18,7 @@ class Node(object):
 
     def install_packages(self):
         j.do.execute("apt-get update")
-        j.do.execute("apt-get install -y redis-server openvswitch-switch")
+        j.do.execute("apt-get install -y redis-server openvswitch-switch libmhash2")
 
     def prepare_config(self):
         self.redis = {
@@ -218,7 +218,7 @@ class ComputeNode(Node):
     def install_packages(self):
         super(ComputeNode, self).install_packages()
         j.do.execute(
-            "apt-get install -y qemu nginx libvirt-bin python-libvirt virtinst python-pexpect ovmf openvswitch-switch openvswitch-common genisoimage qemu-kvm runc"
+            "apt-get install -y qemu-system-x86 qemu-utils nginx libvirt-bin python-libvirt virtinst python-pexpect ovmf openvswitch-switch openvswitch-common genisoimage runc"
         )
 
     def configure(self):

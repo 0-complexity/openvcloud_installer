@@ -606,13 +606,13 @@ class JumpScale7(Node):
             self.config,
             data={"ipaddr": self.remote.address},
         )
-        node_data = res.json()[0]
+        node_data = next(iter(res.json()), {})
         grid_yaml = {
-            "id": node_data["gid"],
+            "id": self.config["environment"]["grid"]["id"],
             "node": {
-                "id": node_data["id"],
-                "machineguid": node_data["machineguid"],
-                "roles": node_data["roles"],
+                "id": node_data.get("id"),
+                "machineguid": node_data.get("machineguid"),
+                "roles": node_data.get("roles", ['node']),
             },
         }
         self.log("Syncing base image")
@@ -654,7 +654,9 @@ class JumpScale7(Node):
             self.remote.run("rm -f /etc/systemd/system/jsagent_main.service")
         else:
             for service in self.get_services():
-                res = self.remote.run("systemctl status {}".format(service), check=False)
+                res = self.remote.run(
+                    "systemctl status {}".format(service), check=False
+                )
                 if res.exit_status == 0:
                     self.remote.run("systemctl stop {}".format(service))
 
@@ -1168,14 +1170,15 @@ edgeuser = ovs_credentials.get("edgeuser")
 edgepassword = ovs_credentials.get("edgepassword")
 print("{}, {}".format(edgeuser, edgepassword))
         """
-        self.first_node.write_file('/tmp/getovscred.py', content)
-        edgeuser, edgepassword = self.first_node.run('jspython /tmp/getovscred.py').stdout.split(',', 1)
+        self.first_node.write_file("/tmp/getovscred.py", content)
+        edgeuser, edgepassword = self.first_node.run(
+            "jspython /tmp/getovscred.py"
+        ).stdout.split(",", 1)
         self.kubectl(
             "create secret generic ovs-cred --from-literal=edgeuser={} --from-literal=edgepassword={} --dry-run -o yaml | kubectl apply -f  -".format(
                 edgeuser.strip(), edgepassword.strip()
             )
         )
-
 
     def update(self):
         output = self.kubectl("get secret -o json")
@@ -1185,7 +1188,7 @@ print("{}, {}".format(edgeuser, edgepassword))
                 break
         else:
             self.init_ovscred()
-            
+
         log("Restarting cluster...")
         if self.development:
             self.kubectl("delete deploy {}".format(" ".join(DEV_TMPLS)), check=False)
@@ -1589,7 +1592,7 @@ def upgrade_cluster(ctx, development, pre_flight_check):
         versions=ctx.obj["versions"],
         roles=["cpu", "storage", "controller"],
         enabled_only=True,
-        fs_path=fs_path
+        fs_path=fs_path,
     )
     cluster.upgrade()
     try:
