@@ -397,7 +397,10 @@ class App(npyscreen.NPSApp):
 @click.option(
     "--version", help="Version to install(e.g., 2.4.4)", envvar="ENV_OVC_VERSION"
 )
-def cli(config, version):
+@click.option(
+    "--url", help="version url to install from", envvar="OVC_VERSION_URL", default=None
+)
+def cli(config, version, url):
     app = App(config)
     try:
         app.run()
@@ -405,18 +408,21 @@ def cli(config, version):
         logs = "/var/log/"
         os.makedirs(logs, exist_ok=True)
         if app.action == "cluster":
+            command = [
+                "python3",
+                "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
+                "--config={}".format(app.configpath),
+                "--version={}".format(version),
+            ]
+            if url:
+                command.append("--url={}".format(url))
+            command.extend([
+                "cluster",
+                app.clustercommand,
+            ])
             processes.append(
                 (
-                    subprocess.Popen(
-                        [
-                            "python3",
-                            "/opt/code/github/0-complexity/openvcloud_installer/scripts/install/installer",
-                            "--config={}".format(app.configpath),
-                            "--version={}".format(version),
-                            "cluster",
-                            app.clustercommand,
-                        ]
-                    ),
+                    subprocess.Popen(command),
                     "cluster {}".format(app.clustercommand),
                     None,
                 )
