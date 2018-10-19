@@ -679,6 +679,7 @@ class JumpScale7(Node):
         self.start()
 
     def _run_install_node(self, extra_flags=""):
+        self.log("Installing node packages and services")
         extra_args = {
             "vxvlan": self.config["network"]["vxbackend"]["vlan"],
             "vxip": self.node["vxbackend"]["ipaddress"],

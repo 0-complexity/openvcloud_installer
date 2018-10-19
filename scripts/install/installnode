@@ -246,7 +246,7 @@ class ComputeNode(Node):
         while j.application.whoAmI.nid == 0 or time.time() > start + timeout:
             time.sleep(3)
             j.application.loadConfig()
-            j.application.initWhoAmI()
+            j.application.initWhoAmI(True)
         if not ccl.stack.count(
             {
                 "referenceId": str(j.application.whoAmI.nid),
