@@ -1,10 +1,3 @@
-https://github.com/0-complexity/noVNC:
-- dest: /opt/jumpscale7/apps/vncproxy/
-  source: vnc_auto.html
-- dest: /opt/jumpscale7/apps/vncproxy/images/
-  source: images/
-- dest: /opt/jumpscale7/apps/vncproxy/utils/
-  source: utils/
 https://git.gig.tech/openvcloud/binary/python:
 - dest: /opt/jumpscale7/bin/
   source: base_python/root/bin/
@@ -18,34 +11,6 @@ https://git.gig.tech/openvcloud/binary/python:
   source: web_python/root/lib/
 - dest: /opt/jumpscale7/libext/
   source: python-cloudlibs/root/
-https://git.gig.tech/openvcloud/binary/openvstorage_branding:
-- dest: /opt/OpenvStorage/webapps/frontend/lib/ovs/images/
-  source: images/
-- dest: /opt/OpenvStorage/webapps/frontend/css/
-  source: css/
-- dest: /opt/OpenvStorage/webapps/frontend/app/views/site/
-  source: app/views/site/login.html
-- dest: /opt/OpenvStorage/webapps/frontend/app/views/
-  source: app/views/index.html
-https://github.com/0-complexity/openvcloud:
-- dest: /opt/jumpscale7/libext/cloudbrokerlib/
-  source: apps/cloudbroker/cloudbrokerlib/
-- dest: /opt/jumpscale7/libext/CloudscalerLibcloud/
-  source: libs/CloudscalerLibcloud/CloudscalerLibcloud/
-- dest: /etc/nginx/sites-enabled/cpunode_aio
-  source: apps/nginx/cpunode_aio
-- dest: /opt/jumpscale7/apps/routeros/configs/
-  source: apps/routeros/configs/
-- dest: /opt/jumpscale7/apps/routeros/template/
-  source: apps/routeros/template/
-- dest: /etc/nginx/sites-enabled/storagedriver_aio
-  source: apps/nginx/storagedriver_aio
-- dest: /opt/jumpscale7/apps/libvirtlistener/
-  source: apps/libvirtlistener/
-- dest: /opt/jumpscale7/apps/vncproxy/utils/
-  source: apps/vncproxy/utils/
-- source: scripts/ovs/alba-create-user.py
-  dest: /opt/jumpscale7/bin/alba-create-user.py
 https://github.com/jumpscale7/jumpscale_core7:
 - dest: /opt/jumpscale7/cfg/system/
   source: bootstrap/
@@ -66,9 +31,42 @@ https://github.com/jumpscale7/jumpscale_core7:
 https://github.com/jumpscale7/jumpscale_portal:
 - dest: /opt/jumpscale7/lib/JumpScale/portal/
   source: lib/portal/
+https://github.com/0-complexity/openvcloud:
+- dest: /opt/jumpscale7/libext/cloudbrokerlib/
+  source: apps/cloudbroker/cloudbrokerlib/
+- dest: /opt/jumpscale7/libext/CloudscalerLibcloud/
+  source: libs/CloudscalerLibcloud/CloudscalerLibcloud/
+- dest: /etc/nginx/sites-enabled/cpunode_aio
+  source: apps/nginx/cpunode_aio
+- dest: /opt/jumpscale7/apps/routeros/configs/
+  source: apps/routeros/configs/
+- dest: /opt/jumpscale7/apps/routeros/template/
+  source: apps/routeros/template/
+- dest: /etc/nginx/sites-enabled/storagedriver_aio
+  source: apps/nginx/storagedriver_aio
+- dest: /opt/jumpscale7/apps/libvirtlistener/
+  source: apps/libvirtlistener/
+- dest: /opt/jumpscale7/apps/vncproxy/utils/
+  source: apps/vncproxy/utils/
 git@git.gig.tech:openvcloud/binary/routeros:
 - dest: /var/lib/libvirt/images/routeros/template/routeros.qcow2
   source: root/routeros-small-NETWORK-ID.qcow2
+https://github.com/0-complexity/noVNC:
+- dest: /opt/jumpscale7/apps/vncproxy/
+  source: vnc_auto.html
+- dest: /opt/jumpscale7/apps/vncproxy/images/
+  source: images/
+- dest: /opt/jumpscale7/apps/vncproxy/utils/
+  source: utils/
+https://git.gig.tech/openvcloud/binary/openvstorage_branding:
+- dest: /opt/OpenvStorage/webapps/frontend/lib/ovs/images/
+  source: images/
+- dest: /opt/OpenvStorage/webapps/frontend/css/
+  source: css/
+- dest: /opt/OpenvStorage/webapps/frontend/app/views/site/
+  source: app/views/site/login.html
+- dest: /opt/OpenvStorage/webapps/frontend/app/views/
+  source: app/views/index.html
 https://github.com/0-complexity/openvcloud_installer:
 - source: scripts/install/installnode
   dest: /opt/jumpscale7/bin/installnode

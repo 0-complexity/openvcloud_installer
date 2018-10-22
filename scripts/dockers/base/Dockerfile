@@ -3,7 +3,7 @@ ARG PRIVATEKEY
 ARG VERSION
 ARG MANIFESTURL
 
-RUN pip install requests pyyaml
+RUN pip install requests oyaml py-spy
 RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
 COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/packager.py /tmp/
 COPY dep-manifest.yml /tmp/
@@ -31,6 +31,7 @@ COPY --from=builder /opt/jumpscale7 /opt/jumpscale7
 COPY --from=builder /var/lib/libvirt/images /var/lib/libvirt/images
 COPY --from=builder /usr/local/bin/js /usr/local/bin/js
 COPY --from=builder /usr/local/bin/jspython /usr/local/bin/jspython
+COPY --from=builder /usr/local/bin/py-spy /usr/local/bin/py-spy
 COPY --from=builder /etc/nginx/sites-enabled /etc/nginx/sites-enabled
 COPY --from=builder /opt/OpenvStorage /opt/OpenvStorage
 

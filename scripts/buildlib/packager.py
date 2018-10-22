@@ -1,4 +1,4 @@
-import yaml
+import oyaml as yaml
 import os
 import requests
 import subprocess

@@ -3,7 +3,7 @@ ARG PRIVATEKEY
 ARG VERSION
 ARG MANIFESTURL
 
-RUN pip install requests pyyaml
+RUN pip install requests oyaml
 RUN mkdir -p /root/.ssh && echo "$PRIVATEKEY" > /root/.ssh/id_rsa && chmod 600 /root/.ssh/id_rsa
 COPY code/github.com/0-complexity/openvcloud_installer/scripts/buildlib/packager.py /tmp/
 COPY dep-manifest.yml /tmp/
