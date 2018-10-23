@@ -343,7 +343,10 @@ def get_versions(config, version=None, url=None):
         response.raise_for_status()
         versions = yaml.load(response.content)
         versions["url"] = url
-        versions["version"] = version
+        ourversion = version
+        if not ourversion:
+            ourversion = os.path.splitext(os.path.basename(url))[0]
+        versions["version"] = ourversion
         return versions
 
     if not version:
