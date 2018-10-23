@@ -440,29 +440,36 @@ class AbstractConfig:
         else:
             raise RuntimeError("Could not find base image in versions manifest")
         self.first_node.run("mkdir -p {}".format(BASE_FS_PATH))
-        fs_path = BASE_FS_PATH + "image_fs_{}_{}".format(image.replace("/", "_"), tag)
+        fs_path = BASE_FS_PATH + "image_fs"
+        result = self.first_node.run(
+            "docker pull {} > /dev/null; docker inspect install_base -f {{{{.Image}}}}".format(
+                image
+            ),
+            check=False,
+        )
+        if result.exit_status == 0:
+            imginspect = self.first_node.run(
+                "docker image inspect {} -f {{{{.Id}}}}".format(image)
+            )
+            if imginspect.stdout == result.stdout and self.first_node.exists(fs_path):
+                return fs_path
+
         exclude_cmd = ""
         for path in BASE_IMAGE_EXCLUDE:
             exclude_cmd += " --exclude {}".format(path)
+
         cmd = """
-        mkdir -p {1}
-        docker pull {0}:{3}
         docker rm -f install_base || true # delete image if still exists from older version
+        rm -rf {1}
+        mkdir -p {1}
         docker create --name install_base {0} true
+        docker image prune -f
         docker export install_base | tar xf - -C {1}{2}
         """.format(
             image, fs_path, exclude_cmd, tag
         )
         self.first_node.run(cmd)
         return fs_path
-
-    def clean_base_image_path(self, fs_path):
-        cmd = """
-        docker rm -f install_base || true
-        docker image prune -f
-        rm -rf {}
-        """
-        self.first_node.run(cmd.format(fs_path))
 
     def remove_env_keys(self, node, public_key):
         """
@@ -612,18 +619,18 @@ class JumpScale7(Node):
             "node": {
                 "id": node_data.get("id"),
                 "machineguid": node_data.get("machineguid"),
-                "roles": node_data.get("roles", ['node']),
+                "roles": node_data.get("roles", ["node"]),
             },
         }
         self.log("Syncing base image")
         self.first_node.add_ssh_host("root", self.remote.address)
         self.first_node.run(
-            "rsync -av --delete {}/opt/jumpscale7/ {}:/opt/jumpscale7/".format(
+            "rsync -e 'ssh -o StrictHostKeyChecking=no' -av --delete {}/opt/jumpscale7/ {}:/opt/jumpscale7/".format(
                 self.fs_path, self.remote.address
             )
         )
         self.first_node.run(
-            "rsync -av --exclude opt/jumpscale7 {}/ {}:/".format(
+            "rsync -e 'ssh -o StrictHostKeyChecking=no' -av --exclude opt/jumpscale7 {}/ {}:/".format(
                 self.fs_path, self.remote.address
             )
         )
@@ -1198,10 +1205,9 @@ print("{}, {}".format(edgeuser, edgepassword))
         self.kube_deploy()
 
     def generate_edge_password(self):
-        chars = string.digits + string.ascii_letters
-        username = [random.choice(chars) for x in range(9)]
-        chars += string.punctuation
-        password = [random.choice(chars) for x in range(11)]
+        chars = string.digits + string.ascii_letters + string.punctuation
+        username = "edgeuser"
+        password = "".join([random.choice(chars) for x in range(16)])
         self.kubectl(
             "create secret generic ovs-cred --from-literal=edgeuser={} --from-literal=edgepassword={} --dry-run -o yaml | kubectl apply -f  -".format(
                 username, password
@@ -1410,11 +1416,7 @@ def node_jsaction(ctx, name, action):
             PNode(ctx.obj["config"], pname, ctx.obj["versions"], fs_path)
             for pname in name.split(",")
         ]
-    try:
-        pnode_action(pnodes, action)
-    finally:
-        if action in ["upgrade", "install"]:
-            cluster.clean_base_image_path(fs_path)
+    pnode_action(pnodes, action)
 
 
 @node.command("update", help="Update code and restart required services on node")
@@ -1616,8 +1618,6 @@ def upgrade_cluster(ctx, development, pre_flight_check):
         portal_api_call("cloudbroker/grid/upgradeFailed", ctx.obj["config"])
         logging.error("Error:", exc_info=True)
         log("Failed to update environment.")
-    finally:
-        cluster.clean_base_image_path(fs_path)
 
 
 @cluster.command("updatedomain", help="Update the environment certificates and domain")

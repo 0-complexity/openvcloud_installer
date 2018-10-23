@@ -9,7 +9,8 @@ import time
 class Node(object):
     """ Install basic packages on a node """
 
-    def __init__(self, config, update=False):
+    def __init__(self, config, update=False, extraroles=None):
+        self.extraroles = extraroles
         self.services = []
         self.config = config
         self.prepare_config()
@@ -21,6 +22,12 @@ class Node(object):
         j.do.execute("apt-get install -y redis-server openvswitch-switch libmhash2")
 
     def prepare_config(self):
+        if self.extraroles:
+            grid = j.core.config.get("system", "grid")
+            for role in self.extraroles:
+                if role not in grid["roles"]:
+                    grid["roles"].append(role)
+            j.core.config.set("system", "grid", grid)
         self.redis = {
             "config": {
                 "name": "main",
@@ -132,12 +139,12 @@ class Node(object):
             config["args"],
             pwd=config["pwd"],
         )
-        j.system.platform.ubuntu.startService(
+        j.system.platform.ubuntu.restartService(
             "openvcloud_{}".format(config["servicename"])
         )
 
     def restart_service(self, servicename):
-        j.system.platform.ubuntu.startService(servicename)
+        j.system.platform.ubuntu.restartService(servicename)
 
     def write_config(self, data):
         j.core.config.set(data["servicename"], data["instance"], data.get("config", {}))
@@ -152,6 +159,7 @@ class Node(object):
 class ComputeNode(Node):
     def __init__(self, config):
         Node.__init__(self, config)
+        self.extraroles = ["cpunode", "fw"]
         self.prepare_config()
 
     def prepare_config(self):
@@ -320,25 +328,14 @@ class ComputeNode(Node):
             private.setAutostart(True)
 
     def install_cb_cpunode_aio(self):
-        roles = j.application.config["grid"]["node"].get("roles", [])
-        change = False
-        for role in ["cpunode", "fw"]:
-            if role not in roles:
-                change = True
-                roles.append(role)
-        if change:
-            grid_conf = j.application.config["grid"]
-            grid_conf["node"]["roles"] = roles
-            j.core.config.set("system", "grid", grid_conf)
-
-            self.restart_service("openvcloud_jsagent")
         self.restart_service("nginx")
 
 
 class StorageNode(Node):
     def __init__(self, config):
-        self.iyourl = "https://itsyou.online/"
         Node.__init__(self, config)
+        self.iyourl = "https://itsyou.online/"
+        self.extraroles = ["storagenode"]
         self.prepare_config()
         if not config.update:
             self.install_packages()
@@ -464,9 +461,7 @@ Pin-Priority: 1000
         )
 
         if "MASTER" in output:
-            j.do.execute(
-                "python /opt/jumpscale7/bin/alba-create-user.py"
-            )
+            j.do.execute("python /opt/jumpscale7/bin/alba-create-user.py")
             ovscallbackurl = "https://ovs-{}/api/oauth2/redirect/".format(
                 self.config.fqdn
             )
@@ -599,7 +594,10 @@ if __name__ == "__main__":
     elif "storage" in config.roles:
         node = StorageNode(config)
     else:
-        node = Node(config)
+        extraroles = []
+        if "controller" in config.roles:
+            extraroles = ["controllernode"]
+        node = Node(config, extraroles=extraroles)
     if config.update:
         node.clean()
     node.install()
