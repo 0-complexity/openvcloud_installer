@@ -1604,7 +1604,7 @@ def upgrade_cluster(ctx, development, pre_flight_check):
     cluster.upgrade()
     try:
         try:
-            cluster.kubectl("delete deploy uptime-monitor")
+            cluster.kubectl("delete deploy uptime-monitor", check=False)
             pnode_action(pnodes, "stop")
             cluster.update()
             pnode_action(pnodes, "upgrade")
