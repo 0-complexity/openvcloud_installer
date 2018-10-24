@@ -2,7 +2,7 @@ FROM openvcloud/cb_master
 
 RUN useradd test
 
-RUN apt update && apt-get install -y python-dev build-essential libssl-dev \
+RUN apt update && apt-get install -y git python-dev build-essential libssl-dev \
 libxml2-dev libxslt1-dev zlib1g-dev python-pip \
 python3-pip iputils-ping tmux wget unzip xvfb chromium-chromedriver s3cmd
 
