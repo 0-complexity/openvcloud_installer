@@ -78,8 +78,6 @@ https://github.com/0-complexity/openvcloud:
   source: libs/agent-scripts/
 - dest: /opt/scripts/versions/
   source: scripts/versions/
-- dest: /opt/jumpscale7/apps/heartbeat
-  source: apps/heartbeat
 https://github.com/0-complexity/selfhealing:
 - dest: /opt/jumpscale7/apps/agentcontroller/jumpscripts/
   source: jumpscripts/

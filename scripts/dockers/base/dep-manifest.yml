@@ -48,6 +48,8 @@ https://github.com/0-complexity/openvcloud:
   source: apps/libvirtlistener/
 - dest: /opt/jumpscale7/apps/vncproxy/utils/
   source: apps/vncproxy/utils/
+- dest: /opt/jumpscale7/apps/heartbeat/
+  source: apps/heartbeat/
 git@git.gig.tech:openvcloud/binary/routeros:
 - dest: /var/lib/libvirt/images/routeros/template/routeros.qcow2
   source: root/routeros-small-NETWORK-ID.qcow2
