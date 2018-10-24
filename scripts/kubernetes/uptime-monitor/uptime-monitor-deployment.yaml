@@ -1,0 +1,32 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: uptime-monitor
+spec:
+  selector:
+    matchLabels:
+      app: uptime-monitor
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: uptime-monitor
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: uptime-monitor-container
+        imagePullPolicy: Always
+        image: openvcloud/cb_master
+        workingDir: /opt/jumpscale7/apps/heartbeat
+        command: ["jspython"]
+        args: ["uptime_monitor.py"]
+        ports:
+        - containerPort: 9500
+          protocol: UDP
+
+      livenessProbe:
+        tcpSocket:
+          port: 9500
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5

@@ -94,7 +94,15 @@ class Node(object):
             "servicename": "agentcontroller_client",
             "instance": "main",
         }
-        self.services.extend([self.redis, self.jsagent])
+
+        self.uptime_daemon = {
+            "servicename": "uptime-daemon",
+            "daemonpath": "/usr/local/bin/jspython",
+            "args": "uptime_daemon.py",
+            "pwd": "/opt/jumpscale7/apps/heartbeat",
+        }
+
+        self.services.extend([self.redis, self.jsagent, self.uptime_daemon])
 
     def install(self):
         self.install_redis()
@@ -131,7 +139,10 @@ class Node(object):
 
     def install_agentcontroller_client(self):
         self.write_config(self.agent_controller_client)
-
+    
+    def install_uptime_daemon(self):
+        self.register_service(self.uptime_daemon)
+        
     def register_service(self, config):
         j.system.platform.ubuntu.serviceInstall(
             "openvcloud_{}".format(config["servicename"]),
@@ -282,6 +293,7 @@ class ComputeNode(Node):
         self.install_network()
         self.install_cb_cpunode_aio()
         self.install_vfwnode()
+        self.install_uptime_daemon()
 
     def install_vncproxy(self):
         self.register_service(self.vncproxy)
@@ -353,6 +365,7 @@ class StorageNode(Node):
         super(StorageNode, self).install()
         self.install_cb_storagenode_aio()
         self.install_cb_storagedriver_aio()
+        self.install_uptime_daemon()
         if not self.config.update:
             self.patch_ovs()
 

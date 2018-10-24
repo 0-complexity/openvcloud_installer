@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: uptime-monitor
+  labels:
+    name: uptime-monitor
+spec:
+  type: NodePort
+  ports:
+  - name: uptime-monitor
+    targetPort: 9500
+    port: 9500
+    protocol: UDP
+  selector:
+    app: uptime-monitor

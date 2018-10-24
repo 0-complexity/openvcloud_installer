@@ -1009,7 +1009,7 @@ class Cluster(AbstractConfig):
 
         self.first_node.copy_dir_tree(srcdir, self.scripts_dir)
         # add external ips to the specified services to expose to the internal network
-        templates = ["agentcontroller", "osis", "management"]
+        templates = ["agentcontroller", "osis", "management", "uptime-monitor"]
         externalips = list(get_controller_ips(self.config, "backplane"))
         for template in templates:
             self.write_service_template(template, externalips)
@@ -1106,6 +1106,7 @@ class Cluster(AbstractConfig):
             "management",
             "ovs",
             "controller-jsagent",
+            "uptime-monitor",
             "nginx",
         ]
         statefulSets = ["mongo", "syncthing"]
@@ -1603,6 +1604,7 @@ def upgrade_cluster(ctx, development, pre_flight_check):
     cluster.upgrade()
     try:
         try:
+            cluster.kubectl("delete deploy uptime-monitor")
             pnode_action(pnodes, "stop")
             cluster.update()
             pnode_action(pnodes, "upgrade")
