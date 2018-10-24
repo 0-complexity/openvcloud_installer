@@ -13,7 +13,6 @@ https://git.gig.tech/openvcloud/binary/python:
   source: web_python/root/jslib/
 - dest: /opt/jumpscale7/lib/
   source: web_python/root/lib/
-
 https://github.com/jumpscale7/jumpscale_core7:
 - dest: /opt/jumpscale7/cfg/system/
   source: bootstrap/
@@ -25,10 +24,10 @@ https://github.com/jumpscale7/jumpscale_core7:
   source: apps/agentcontroller/processmanager/
 - dest: /opt/jumpscale7/apps/agentcontroller/luajumpscripts/jumpscale/
   source: apps/agentcontroller/luajumpscripts/jumpscale/
-- dest: /opt/jumpscale7/apps/osis/
-  source: apps/osis/
 - dest: /opt/jumpscale7/apps/osis/logic/
   source: apps/osis/logic/
+- dest: /opt/jumpscale7/apps/osis/osisServerStart.py
+  source: apps/osis/osisServerStart.py
 - dest: /opt/jumpscale7/apps/jsagent/
   source: apps/jsagent/
 - dest: /opt/jumpscale7/bin/

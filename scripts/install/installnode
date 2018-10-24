@@ -32,7 +32,6 @@ class Node(object):
         grid_config = j.core.config.get('system', 'grid')
         if not grid_config['id']:
             self.update_config(self.grid)
-
         if self.extraroles:
             grid = j.core.config.get("system", "grid")
             for role in self.extraroles:
@@ -252,7 +251,7 @@ class ComputeNode(Node):
     def install_packages(self):
         super(ComputeNode, self).install_packages()
         j.do.execute(
-            "apt-get install -y qemu-system-x86 qemu-utils nginx libvirt-bin python-libvirt virtinst python-pexpect ovmf openvswitch-switch openvswitch-common genisoimage runc"
+            "apt-get install -y qemu-system-x86 qemu-utils nginx libvirt-bin python-libvirt virtinst python-pexpect ovmf openvswitch-switch openvswitch-common genisoimage qemu-kvm runc"
         )
 
     def configure(self):
@@ -684,7 +683,6 @@ class MasterNode(Node):
         openvcloud_config["supportemail"] = j.core.config.get("mailclient", "main")["sender"]
         j.core.config.set("openvcloud", "main", openvcloud_config)
 
-
     def install_packages(self):
         super(MasterNode, self).install_packages()
         j.do.execute(
@@ -708,14 +706,16 @@ class MasterNode(Node):
         self.install_redis()
         j.do.execute('systemctl restart nginx')
         self.register_service(self.mongodb)
-        import time
-        time.sleep(40)
+        if not j.system.net.waitConnectionTest('127.0.0.1', 27017, 60):
+            raise RuntimeError('Could not start mongodb')
         self.register_service(self.osis)
-        time.sleep(20)
+        if not j.system.net.waitConnectionTest('127.0.0.1', 5544, 20):
+            raise RuntimeError('Could not start osis')
         self.install_osis_client()
         self.register_service(self.controller)
         self.install_agentcontroller_client()
-        time.sleep(20)
+        if not j.system.net.waitConnectionTest('127.0.0.1', 4444, 20):
+            raise RuntimeError('Could not start agentcontroller')
         self.install_jsagent()
         self.install_portal()
         self.install_portal_client()
@@ -754,7 +754,7 @@ if __name__ == "__main__":
         "-gwmgmt_vlan", "--gwmgmt_vlan", dest="gwmgmt_vlan", help="gwmgmt_vlan"
     )
     parser.add_argument("-gwmgmt_ip", "--gwmgmt_ip", dest="gwmgmt_ip", help="gwmgmt_ip")
-    parser.add_argument("-grid_id", "--grid_id", dest="grid_id", help="grid_id", type=int)
+    parser.add_argument("-gid", "--grid_id", dest="grid_id", help="grid_id", type=int)
     parser.add_argument(
         "-env_subdomain", "--env_subdomain", dest="env_subdomain", help="env_subdomain"
     )
