@@ -688,9 +688,9 @@ class JumpScale7(Node):
             "envsec": self.config["itsyouonline"]["clientSecret"],
         }
         self.remote.run(
-            """/opt/jumpscale7/bin/installnode {} --roles={} --masterips {} --password={} --gid={} --fqdn={} \
+            """/opt/jumpscale7/bin/installnode {} --roles={} --masterips {} --password={} -gid={} --fqdn={} \
             --vxbackend_vlan={vxvlan} --vxbackend_ip={vxip} --gwmgmt_vlan={gwvlan} --gwmgmt_ip={gwip} \
-            --grid_id={gridid} --env_subdomain={envsub} --client_id={envcli} --secret={envsec}""".format(
+            --env_subdomain={envsub} --client_id={envcli} --secret={envsec}""".format(
                 extra_flags,
                 " ".join(self.roles),
                 " ".join(self.backplaneips),

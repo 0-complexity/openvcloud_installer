@@ -27,10 +27,10 @@ https://github.com/jumpscale7/jumpscale_core7:
   source: apps/agentcontroller/processmanager/
 - dest: /opt/jumpscale7/apps/agentcontroller/luajumpscripts/jumpscale/
   source: apps/agentcontroller/luajumpscripts/jumpscale/
-- dest: /opt/jumpscale7/apps/osis/
-  source: apps/osis/
 - dest: /opt/jumpscale7/apps/osis/logic/
   source: apps/osis/logic/
+- dest: /opt/jumpscale7/apps/osis/osisServerStart.py
+  source: apps/osis/osisServerStart.py
 - dest: /opt/jumpscale7/apps/jsagent/
   source: apps/jsagent/
 - dest: /opt/jumpscale7/bin/
