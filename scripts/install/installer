@@ -1295,7 +1295,14 @@ class PNode(JumpScale7):
         self.log("Waiting for 911 boot")
         self.wait_up()
         self.log("Installing OS")
-        status = self.remote.run("cd /root/tools/; ./Install").exit_status
+        storageip = get_ipaddress(self.node["storage"]["ipaddress"])
+        storagevlan = self.config["network"]["storage"]["vlan"]
+        backplaneip = get_ipaddress(self.node["backplane"]["ipaddress"])
+        status = self.remote.run(
+            "cd /root/tools/; BACKPLANEIP={} STORAGEIP={} STORAGEVLAN={} ./Install".format(
+                backplaneip, storageip, storagevlan
+            )
+        ).exit_status
         if status != 0:
             raise RuntimeError("Failed to install OS")
         self.disable_pxe()
