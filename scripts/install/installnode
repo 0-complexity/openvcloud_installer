@@ -754,7 +754,7 @@ if __name__ == "__main__":
         "-gwmgmt_vlan", "--gwmgmt_vlan", dest="gwmgmt_vlan", help="gwmgmt_vlan"
     )
     parser.add_argument("-gwmgmt_ip", "--gwmgmt_ip", dest="gwmgmt_ip", help="gwmgmt_ip")
-    parser.add_argument("-gid", "--grid_id", dest="grid_id", help="grid_id", type=int)
+    parser.add_argument("-gid", "--gid", dest="grid_id", help="grid_id", type=int)
     parser.add_argument(
         "-env_subdomain", "--env_subdomain", dest="env_subdomain", help="env_subdomain"
     )

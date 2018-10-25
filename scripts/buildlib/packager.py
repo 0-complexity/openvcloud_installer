@@ -69,7 +69,6 @@ class Packager:
             elif os.path.isfile(destination):
                 os.remove(destination)
             return False
-
         if os.path.isdir(src):
             for filepath in os.listdir(src):
                 srcpath = os.path.join(src, filepath)
