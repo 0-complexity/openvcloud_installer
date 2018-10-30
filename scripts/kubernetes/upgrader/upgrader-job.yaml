@@ -13,7 +13,7 @@ spec:
       - name: nginx-init
         command: [jspython]
         args: ['configure-nginx.py', '--upgrade']
-        image: openvcloud/nginx-init
+        image: openvcloud/nginx-init:2.4.5
         workingDir: /var/run/scripts/nginx
         volumeMounts:
         - name: nginx-config
@@ -27,7 +27,7 @@ spec:
           mountPath: /opt/logs
       containers:
       - name: upgrader-container
-        image: openvcloud/management
+        image: openvcloud/management:2.4.5.3
         volumeMounts:
         - name: ssh-dir
           mountPath: /root/.ssh
